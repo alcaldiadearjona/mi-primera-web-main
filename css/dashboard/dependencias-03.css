@@ -230,34 +230,44 @@
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge {
-  gap: 5px;
-  padding: 5px 9px;
-  border: 1px solid #cfe0ff !important;
-  border-radius: 8px;
-  background: #eff6ff !important;
-  color: #2563eb !important;
-  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 4px;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #ffffff 0%, #eaf3ff 100%) !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.14);
   font-size: 0;
-  transition: background-color 0.16s ease, box-shadow 0.16s ease;
+  white-space: normal !important;
+  transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge::before {
-  width: 13px;
-  height: 13px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6M8 13h8m-8 4h8'/%3E%3C/svg%3E") center / contain no-repeat;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6M8 13h8m-8 4h8'/%3E%3C/svg%3E") center / contain no-repeat;
   content: "";
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge::after {
-  color: #2563eb;
-  content: "Abrir PDF";
-  font-size: 10px;
-  font-weight: 650;
+  color: #1d4ed8;
+  content: "Ver\A PDF";
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.15;
+  text-align: center;
+  white-space: pre-line;
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge:hover {
-  background: #e4efff !important;
-  box-shadow: 0 4px 9px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+  background: linear-gradient(145deg, #ffffff 0%, #dceaff 100%) !important;
+  box-shadow: 0 5px 11px rgba(37, 99, 235, 0.2);
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) > span:not(.pdf-badge) {

@@ -85,17 +85,17 @@
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge {
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 4px;
+  padding: 7px 4px;
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge::before {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge::after {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 #pantallaDependencia .table-custom td:nth-child(1) > span:not(.pdf-badge) {
