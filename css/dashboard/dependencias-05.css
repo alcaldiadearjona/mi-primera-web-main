@@ -1,0 +1,250 @@
+#pantallaDependencia #tituloDependenciaDetalle::before {
+  display: none;
+}
+
+#pantallaDependencia .detail-dependency-icon {
+  width: 58px;
+  height: 58px;
+  flex-basis: 58px;
+  font-size: 32px;
+}
+
+#pantallaDependencia .detail-status-tag {
+  gap: 8px;
+  padding: 8px 14px !important;
+  font-size: 12px !important;
+}
+
+#pantallaDependencia .detail-status-tag::before {
+  width: 17px;
+  height: 17px;
+  flex-basis: 17px;
+}
+
+#pantallaDependencia .detail-filters input,
+#pantallaDependencia .detail-filters select {
+  min-height: 44px;
+  font-size: 13px !important;
+}
+
+#pantallaDependencia .detail-filters input {
+  flex-basis: 280px;
+  width: 280px !important;
+  background-size: 19px;
+}
+
+#pantallaDependencia .detail-filters select {
+  flex-basis: 172px;
+  width: 172px !important;
+  background-size: 18px;
+}
+
+#pantallaDependencia #filtroMes {
+  flex-basis: 182px;
+  width: 182px !important;
+}
+
+#pantallaDependencia .detail-filter-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+#pantallaDependencia .detail-filter-button > i {
+  font-size: 15px;
+}
+
+#pantallaDependencia .table-custom {
+  font-size: 14px;
+}
+
+#pantallaDependencia .table-custom th {
+  height: 48px;
+  padding: 13px 9px !important;
+  font-size: 11px;
+}
+
+#pantallaDependencia .table-custom td {
+  min-height: 64px;
+  padding: 16px 10px !important;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+#pantallaDependencia .table-custom td:nth-child(5) .badge-status,
+#pantallaDependencia .table-custom td:nth-child(6) .badge-status {
+  gap: 7px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(5) .badge-status::before {
+  width: 15px;
+  height: 15px;
+  flex-basis: 15px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(1) .pdf-badge {
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(1) .pdf-badge::before {
+  width: 15px;
+  height: 15px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(1) .pdf-badge::after {
+  font-size: 12px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(1) > span:not(.pdf-badge) {
+  gap: 6px;
+  font-size: 12px !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(1) > span:not(.pdf-badge)::before {
+  width: 15px;
+  height: 15px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(1) > span:not(.pdf-badge) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#pantallaDependencia .table-custom td:nth-child(2) {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+#pantallaDependencia .table-custom td:nth-child(3),
+#pantallaDependencia .table-custom td:nth-child(4),
+#pantallaDependencia .table-custom td:nth-child(5) {
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+#pantallaDependencia .table-custom td:nth-child(8) {
+  max-width: none !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+#pantallaDependencia .table-custom td.assigned-official-cell {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#pantallaDependencia .table-custom th:nth-child(10) {
+  padding-right: 4px !important;
+  padding-left: 4px !important;
+  letter-spacing: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+@media (max-width: 900px) {
+  #pantallaDependencia .detail-table-scroll-hint {
+    display: block;
+    margin: 0 0 8px;
+    color: #64748b;
+    font-size: 12px;
+    text-align: right;
+  }
+
+  #pantallaDependencia .table-custom {
+    font-size: 9px;
+  }
+
+  #pantallaDependencia .table-custom th,
+  #pantallaDependencia .table-custom td {
+    padding: 6px 3px !important;
+    font-size: 9px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  #pantallaDependencia .table-custom td:nth-child(11) button {
+    width: 22px !important;
+    height: 22px !important;
+    margin: 0 !important;
+    border-radius: 6px !important;
+  }
+
+  #pantallaDependencia .table-custom td:nth-child(11) button svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  #pantallaDependencia #tituloDependenciaDetalle {
+    font-size: 20px !important;
+  }
+
+  #pantallaDependencia .detail-filters input {
+    flex: 1 1 240px;
+    width: auto !important;
+  }
+
+  #pantallaDependencia .detail-filters select,
+  #pantallaDependencia #filtroMes {
+    flex: 1 1 165px;
+    width: auto !important;
+  }
+}
+
+@media (max-width: 600px) {
+  #pantallaDependencia #tituloDependenciaDetalle {
+    font-size: 18px !important;
+  }
+
+  #pantallaDependencia #tituloDependenciaDetalle::before {
+    display: none;
+  }
+
+  #pantallaDependencia .detail-dependency-icon {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+    font-size: 28px;
+  }
+
+  #pantallaDependencia .detail-status-tag {
+    font-size: 11px !important;
+  }
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) button {
+  width: 30px !important;
+  height: 30px !important;
+  margin: 1px !important;
+  border-radius: 8px !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) button:nth-of-type(2)::before {
+  width: 16px;
+  height: 16px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) button:nth-of-type(3)::before {
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 900px) {
+  #pantallaDependencia .table-custom td:nth-child(11) button {
+    width: 22px !important;
+    height: 22px !important;
+    margin: 0 !important;
+    border-radius: 6px !important;
+  }
+
+  #pantallaDependencia .table-custom td:nth-child(11) button:nth-of-type(2)::before,
+  #pantallaDependencia .table-custom td:nth-child(11) button:nth-of-type(3)::before {
+    width: 13px;
+    height: 13px;
+  }
+}

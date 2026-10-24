@@ -1,0 +1,329 @@
+#pantallaDependencia .table-custom td:nth-child(12) > button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #3988f5, #1768dc) !important;
+  box-shadow: 0 4px 11px rgba(40, 120, 237, 0.24);
+  color: #ffffff !important;
+  font-size: 0 !important;
+  font-weight: 650 !important;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) > button::before {
+  display: none;
+  content: none;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) > button::after {
+  color: #ffffff;
+  content: "Cargar Respuesta";
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) > button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 6px 14px rgba(40, 120, 237, 0.3);
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-file-link {
+  display: inline-flex;
+  width: 100%;
+  max-width: 122px;
+  min-height: 30px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 5px 9px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #b9d4ff !important;
+  white-space: nowrap;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #eff6ff, #dceaff) !important;
+  color: #1d63c5 !important;
+  box-shadow: 0 3px 9px rgba(40, 120, 237, 0.12);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-file-link::before {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231d63c5' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
+  content: "";
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-file-link:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #e2efff, #cfe2ff) !important;
+  box-shadow: 0 5px 12px rgba(40, 120, 237, 0.2);
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) {
+  text-align: center;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-upload-progress {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-upload-progress-label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 2px;
+  margin-bottom: 6px;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-upload-progress-label > span {
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-upload-progress-label > span:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-upload-progress-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-upload-progress-bar {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #60a5fa, #2563eb);
+  transition: width 0.3s ease;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-file-actions {
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  white-space: normal;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-replace-button,
+#pantallaDependencia .table-custom td:nth-child(12) .response-delete-button {
+  min-height: 28px;
+  padding: 5px 8px !important;
+  border-radius: 7px;
+  text-decoration: none;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-replace-button {
+  background: #eaf2ff !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-delete-button {
+  background: #fff0f0 !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) > button {
+  display: inline-flex;
+  width: 100%;
+  max-width: 122px;
+  min-height: 30px;
+  box-sizing: border-box;
+  white-space: normal;
+  padding: 5px 6px !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) > button::before {
+  display: none;
+  content: none;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) > button::after {
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-file-link,
+#pantallaDependencia .table-custom td:nth-child(12) > button {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+#pantallaDependencia .table-custom td:nth-child(12) .response-file-link {
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  #pantallaDependencia > .view-card {
+    padding: 16px;
+  }
+
+  #pantallaDependencia #tituloDependenciaDetalle {
+    font-size: 20px !important;
+  }
+
+  #pantallaDependencia .detail-filters {
+    display: flex;
+  }
+
+  #pantallaDependencia .detail-filters input,
+  #pantallaDependencia .detail-filters select {
+    flex: 1 1 190px;
+  }
+
+  #pantallaDependencia .detail-filters {
+    flex-wrap: wrap;
+  }
+
+  #pantallaDependencia .detail-filter-button {
+    margin-left: 0;
+  }
+
+  #pantallaDependencia .detail-table-scroll {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+  }
+}
+
+@media (max-width: 600px) {
+  #pantallaDependencia > .view-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  #pantallaDependencia .detail-filters {
+    width: 100%;
+  }
+
+  #pantallaDependencia .detail-filters input,
+  #pantallaDependencia .detail-filters select {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  #pantallaDependencia .detail-header {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
+  #pantallaDependencia #tituloDependenciaDetalle,
+  #pantallaDependencia .detail-status-tag,
+  #pantallaDependencia .detail-filters {
+    grid-column: 1;
+  }
+
+  #pantallaDependencia #tituloDependenciaDetalle {
+    grid-row: 1;
+  }
+
+  #pantallaDependencia .detail-status-tag {
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  #pantallaDependencia .detail-filters {
+    grid-row: 3;
+  }
+
+  #pantallaDependencia .detail-table-scroll {
+    margin-right: -2px;
+    border-radius: 10px;
+  }
+}
+
+#pantallaDependencia .detail-filters {
+  column-gap: 12px !important;
+}
+
+#pantallaDependencia .detail-filters input {
+  flex: 0 1 260px;
+  width: 260px !important;
+  min-width: 210px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' fill='none' stroke='%2373887d' stroke-width='1.7' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 11px center !important;
+  font-size: 11px !important;
+}
+
+#pantallaDependencia .detail-filters select {
+  flex: 0 1 162px;
+  width: 162px !important;
+  min-width: 148px;
+  padding-left: 31px !important;
+  padding-right: 25px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' fill='none' stroke='%2300a838' stroke-width='1.7' viewBox='0 0 24 24'%3E%3Crect x='3.5' y='5' width='17' height='16' rx='2'/%3E%3Cpath d='M7.5 3v4M16.5 3v4M3.5 10h17'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 10px center !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+#pantallaDependencia #filtroMes {
+  flex-basis: 168px;
+  width: 168px !important;
+}
+
+#pantallaDependencia .detail-filter-button {
+  min-width: 72px;
+  min-height: 36px;
+  padding: 6px 11px;
+  font-size: 11px;
+}
+
+#pantallaDependencia .detail-filter-button > i {
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  #pantallaDependencia .detail-filters {
+    column-gap: 9px !important;
+  }
+
+  #pantallaDependencia .detail-filters input {
+    flex: 1 1 230px;
+  }
+
+  #pantallaDependencia .detail-filters select,
+  #pantallaDependencia #filtroMes {
+    flex: 1 1 155px;
+    width: auto !important;
+  }
+}
+
+@media (max-width: 600px) {
+  #pantallaDependencia .detail-filters input,
+  #pantallaDependencia .detail-filters select,
+  #pantallaDependencia #filtroMes {
+    flex: 1 1 100%;
+    width: 100% !important;
+  }
+}
+
+#pantallaDependencia #tituloDependenciaDetalle {
+  gap: 12px;
+  font-size: 22px !important;
+}

@@ -1,0 +1,299 @@
+.table-custom td:nth-child(6) .badge-status {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.table-custom td:nth-child(6) .status-vigente {
+  background-color: #bfdbfe;
+  color: #243b53;
+}
+
+.table-custom td:nth-child(6) .status-cerrado {
+  background-color: #c9efd3;
+  color: #245b34;
+}
+
+.table-custom td:nth-child(6) .status-proximo {
+  background-color: #ffedbd;
+  color: #654d18;
+}
+
+.table-custom td:nth-child(6) .status-extemporanea {
+  background-color: #ffdbce;
+  color: #793c27;
+}
+
+.table-custom td:nth-child(6) .status-tramite {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ==========================================
+   BOTÓN / INSIGNIA DE PDF (Estilo Azul Pastel)
+   ========================================== */
+.pdf-badge {
+  background-color: transparent;     /* Transparente sin el símbolo # */
+  color: #1e40af;                    /* Texto en azul oscuro */
+  border: 1px solid #bfdbfe;         /* Borde azul sutil */
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 11px;
+  display: inline-block;
+  transition: background-color 0.2s ease;
+}
+
+.pdf-badge:hover {
+  background-color: #bfdbfe;
+}
+
+/* ==========================================
+   ESTILOS PANTALLA DE LOGIN
+   ========================================== */
+
+/* ==========================================
+   ESTILOS PANTALLA DE LOGIN (TAMAÑO MÁS GRANDE)
+   ========================================== */
+
+/* ==========================================
+   ESTILOS PANTALLA DE LOGIN CON CABECERA GRIS
+   ========================================== */
+
+#pantalla-login {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #eef3fb !important;
+  background-image: url('../../assets/images/fondo-inicio-de-sesion.jpg') !important;
+  background-repeat: repeat !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Tarjeta Principal (Contenedor general con fondo gris suave superior) */
+#pantalla-login .card-login {
+  background: #f4f6f9; /* Fondo gris claro suave de la cabecera */
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 1. Cabecera Gris (Escudo grande + Texto) */
+#pantalla-login .header-top-gris {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 25px 30px 20px 30px;
+  background: #f4f6f9; /* Mismo color gris claro */
+}
+
+/* Escudo más grande */
+#pantalla-login .escudo-login {
+  height: 65px; /* Aumentado de tamaño */
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Texto de la Alcaldía */
+#pantalla-login .titulo-alcaldia-login {
+  font-weight: 700;
+  font-size: 17px;
+  color: #1e293b;
+  letter-spacing: 0.5px;
+}
+
+/* 2. Cuerpo Interior Blanco con Bordes Redondeados */
+#pantalla-login .card-body-login {
+  background: #ffffff;
+  border-radius: 20px 20px 0 0; /* Curva superior blanca */
+  padding: 30px 40px 35px 40px;
+}
+
+/* Línea Verde y Elementos */
+#pantalla-login .linea-verde-login {
+  width: 150px;
+  height: 3px;
+  background: #00a838;
+  margin: 10px auto 0 auto;
+  border-radius: 2px;
+}
+
+#pantalla-login .login-password-field {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid #cbd5e1;
+  transition: border-color 0.2s ease;
+}
+
+#pantalla-login .login-password-field:focus-within {
+  border-color: #00a838;
+}
+
+#pantalla-login .login-password-field input {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0 !important;
+}
+
+#pantalla-login input[type="password"]::-ms-reveal,
+#pantalla-login input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+#pantalla-login .login-password-toggle {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+#pantalla-login .login-password-toggle:hover {
+  color: #00a838;
+}
+
+#pantalla-login .login-password-toggle:focus-visible {
+  outline: 2px solid #00a838;
+  outline-offset: 2px;
+}
+
+#pantalla-login .badge-flecha {
+  background: #93c5fd;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 20px 7px 15px;
+  clip-path: polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%);
+  border-radius: 3px 0 0 3px;
+}
+
+#pantalla-login .btn-ingresar-login {
+  background: #00a838;
+  color: white;
+  border: none;
+  padding: 11px 52px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 168, 56, 0.3);
+  transition: background 0.2s;
+}
+
+#pantalla-login .btn-ingresar-login:hover {
+  background: #00852d;
+}
+
+/* ==========================================
+   ANIMACIÓN SPINNER (RUEDITA CARGANDO)
+   ========================================== */
+@keyframes girar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Habilita la selección directa de todo el texto */
+.table-custom td {
+  user-select: all !important;
+  -webkit-user-select: all !important;
+  cursor: pointer;
+}
+
+/* Botón Volver */
+.btn-back {
+  background: #64748b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-back:hover {
+  background: #475569;
+}
+
+
+/* ANIMACIÓN Y ESTILO DEL SPINNER DE CARGA */
+@keyframes girar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: girar 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* 1. N° Radicado: Siempre visible y completo */
+.table-custom td:nth-child(2) {
+  max-width: none !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* 2. Remitente (Col. 8) y Asunto (Col. 9): Recorte compacto con (...) */
+.table-custom td:nth-child(8),
+.table-custom td:nth-child(9) {
+  max-width: 80px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  user-select: all !important;
+  -webkit-user-select: all !important;
+  cursor: pointer;
+}
+
+/* 3. Despliegue flotante al pasar el mouse sobre Remitente y Asunto */
+.table-custom td:nth-child(8):hover,
+.table-custom td:nth-child(9):hover {
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  position: relative;
+  z-index: 30;
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  padding: 8px !important;
+}

@@ -1,0 +1,250 @@
+/* Acabado visual moderno con Bootstrap, iconos e Inter */
+body {
+  background:
+    radial-gradient(ellipse at 88% 0%, rgba(219, 243, 235, 0.55), transparent 34rem),
+    var(--main-bg);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+}
+
+.sidebar {
+  background: linear-gradient(180deg, #163650 0%, #10283e 100%);
+  padding: 28px 18px 20px;
+  box-shadow: 8px 0 30px rgba(15, 35, 55, 0.08);
+}
+
+.brand {
+  gap: 13px;
+  margin-bottom: 38px;
+}
+
+.brand img {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.brand-title {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.menu {
+  gap: 7px;
+}
+
+.menu-item {
+  min-height: 46px;
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: #c0ccd8;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.menu-item i {
+  width: 20px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.menu-item:hover,
+.menu-item.active {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.menu-item:hover {
+  transform: translateX(2px);
+}
+
+.sidebar-footer {
+  border-top-color: rgba(255, 255, 255, 0.22);
+  padding: 18px 6px 0;
+}
+
+.user-info p {
+  margin-bottom: 3px;
+  color: #e3f2e9;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.btn-logout {
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.main-content {
+  padding: clamp(22px, 3.2vw, 48px);
+}
+
+.top-header {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(24px, 3vw, 38px);
+  border: 1px solid rgba(211, 226, 234, 0.9);
+  border-radius: 18px;
+  background: linear-gradient(115deg, #ffffff 0%, #f4fbf8 100%);
+  box-shadow: 0 8px 28px rgba(23, 48, 72, 0.06);
+}
+
+.top-header::after {
+  position: absolute;
+  right: -42px;
+  bottom: -94px;
+  width: 230px;
+  height: 230px;
+  border: 32px solid rgba(0, 168, 56, 0.06);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.top-header h1 {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 9px;
+  color: #18344d;
+  font-size: clamp(25px, 2.5vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.top-header h1 i {
+  margin-right: 5px;
+  color: #16804a;
+  font-size: 0.84em;
+}
+
+.top-header p {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0;
+  color: #62758a;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #1d354d;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.section-title i {
+  color: #16804a;
+  font-size: 16px;
+}
+
+.dep-card {
+  min-height: 112px;
+  padding: 21px;
+  border: 1px solid #e3eaf0;
+  border-top: 3px solid #2563eb;
+  border-radius: 14px;
+  box-shadow: 0 5px 16px rgba(24, 50, 76, 0.045);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dep-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(24, 50, 76, 0.1);
+}
+
+.dep-card h3 {
+  color: #20374e;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.dep-card h3 i {
+  margin-right: 5px;
+  color: #16804a;
+}
+
+.dep-card span {
+  line-height: 1.5;
+}
+
+.form-card,
+.view-card {
+  border: 1px solid #e3eaf0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(24, 50, 76, 0.055);
+}
+
+.form-card {
+  padding: clamp(18px, 2.5vw, 30px);
+}
+
+.form-header-bar {
+  border-bottom-color: #edf2f6;
+  color: #1d354d;
+  font-size: 17px;
+}
+
+.form-group label {
+  color: #344b61;
+  font-size: 12px;
+  letter-spacing: 0.015em;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  min-height: 42px;
+  border-color: #d8e1e9;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #26374a;
+  font-family: inherit;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #00a838;
+  box-shadow: 0 0 0 3px rgba(0, 168, 56, 0.11);
+}
+
+.view-card {
+  padding: clamp(16px, 2.2vw, 26px);
+}
+
+.table-custom {
+  color: #344b61;
+  font-size: 12px;
+}
+
+.table-custom th {
+  background-color: #f2f6f8;
+  color: #42576c;
+  font-size: 11px;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.table-custom th,
+.table-custom td {
+  border-bottom-color: #e8edf2;
+}
+
+.pdf-badge {
+  border-color: #d9e5ef;
+  border-radius: 7px;
+  background-color: #f4f8fb;
+}
+
+.btn-back {
+  border-radius: 8px;
+  background: #35546e;
+}

@@ -1,0 +1,4 @@
+/* CSS entry point. Keep this order to preserve the original cascade. */
+@import url("dashboard/base.css");
+@import url("dashboard/theme.css");
+@import url("dashboard/dependencias.css");

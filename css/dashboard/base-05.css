@@ -1,0 +1,233 @@
+@media (max-width: 600px) {
+  .mobile-toolbar {
+    min-height: 54px;
+    padding: 8px 14px;
+  }
+
+  .main-content {
+    padding: 18px 14px 28px;
+  }
+
+  .top-header {
+    padding: 18px 16px;
+    margin-bottom: 20px;
+  }
+
+  .top-header h1 {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .top-header p {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+    font-size: 17px;
+  }
+
+  .form-card,
+  .view-card {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .form-header-bar {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .form-group.full-width {
+    grid-column: auto;
+  }
+
+  .dependencias-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+
+  .dep-card {
+    padding: 16px;
+  }
+
+  #vista-dependencias > div[style*="width: fit-content"] {
+    width: 100%;
+    margin: 20px 0;
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+
+  #inputBuscarDependencia {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .view-card {
+    overflow-x: auto;
+  }
+
+  #pantallaDependencia .view-card {
+    overflow: hidden;
+  }
+
+  .detail-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .detail-filters {
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  .detail-filters > span {
+    flex: 1 0 100%;
+  }
+
+  .detail-filters input,
+  .detail-filters select {
+    flex: 1 1 180px;
+    min-width: 0;
+    min-height: 40px;
+    font-size: 16px !important;
+  }
+
+  .detail-status-tag {
+    align-self: flex-start;
+  }
+
+  #pantalla-login {
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  #pantalla-login .card-login {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  #pantalla-login .header-top-gris {
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px 16px;
+    text-align: center;
+  }
+
+  #pantalla-login .titulo-alcaldia-login {
+    font-size: 14px;
+    text-align: center;
+  }
+
+  #pantalla-login .card-body-login {
+    padding: 24px 18px 28px;
+  }
+
+  #pantalla-login .btn-ingresar-login {
+    width: 100%;
+  }
+}
+
+#contenedorFormulario .form-header-bar {
+  display: none;
+}
+
+#contenedorFormulario #pqrsForm {
+  display: grid;
+  gap: 0;
+  padding: 14px;
+  border: 1px solid #d9e0e6;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+#contenedorFormulario #pqrsForm .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+#contenedorFormulario #pqrsForm .form-group {
+  min-width: 0;
+  gap: 5px;
+}
+
+#contenedorFormulario #pqrsForm .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+#contenedorFormulario #pqrsForm .form-group label {
+  color: #303943;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+#contenedorFormulario #pqrsForm .form-group input:not([type="file"]),
+#contenedorFormulario #pqrsForm .form-group select,
+#contenedorFormulario #pqrsForm .form-group textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #bfc8d1;
+  border-radius: 9px;
+  background-color: #ffffff;
+  color: #26323d;
+  font-size: 13px;
+  box-shadow: inset 0 1px 2px rgba(20, 35, 50, 0.035);
+}
+
+#contenedorFormulario #pqrsForm .form-group textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+#contenedorFormulario #pqrsForm #fechaEntrega {
+  background-color: #f1f4f6 !important;
+}
+
+#contenedorFormulario #pqrsForm #solicitudPdf {
+  width: min(100%, 270px);
+  min-height: 46px;
+  padding: 7px;
+  border: 1px dashed #c4ccd5;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+}
+
+#contenedorFormulario #pqrsForm #solicitudPdf::file-selector-button {
+  margin-right: 9px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #eef2f6;
+  color: #475569;
+  font: inherit;
+  cursor: pointer;
+}
+

@@ -1,0 +1,5 @@
+/* theme styles, split into smaller files. */
+@import url("theme-01.css");
+@import url("theme-02.css");
+@import url("theme-03.css");
+@import url("theme-04.css");
