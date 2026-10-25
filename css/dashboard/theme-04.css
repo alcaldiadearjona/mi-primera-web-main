@@ -33,6 +33,7 @@
   background: #ffcf36;
   color: #352a12;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .summary-card-progress .summary-trend {

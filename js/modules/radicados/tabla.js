@@ -153,7 +153,14 @@ if (reg.respuestaUrl) {
     `;
     const funcionarioCell = document.createElement('td');
     funcionarioCell.className = 'assigned-official-cell';
-    funcionarioCell.textContent = reg.funcionarioAsignado || '';
+    const partesFuncionario = (reg.funcionarioAsignado || '').trim().split(/\s+/).filter(Boolean);
+    if (partesFuncionario.length > 1) {
+      const nombre = partesFuncionario[0];
+      const apellido = partesFuncionario.slice(1).join(' ');
+      funcionarioCell.append(nombre, document.createElement('br'), apellido);
+    } else {
+      funcionarioCell.textContent = reg.funcionarioAsignado || '';
+    }
     funcionarioCell.title = reg.funcionarioAsignado || '';
     tr.insertBefore(funcionarioCell, tr.cells[9]);
     tbody.appendChild(tr);
