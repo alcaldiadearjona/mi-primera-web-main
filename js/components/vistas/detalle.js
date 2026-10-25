@@ -11,7 +11,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
               <span style="font-size: 12px; font-weight: 700; color: #475569;">🔍 Filtrar por:</span>
               
               <!-- Buscador por Radicado o Remitente -->
-              <input type="text" id="inputBuscar" oninput="aplicarFiltrosRadicados()" placeholder="Buscar radicado o remitente..." style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 210px; outline: none; background: white;">
+              <input type="text" id="inputBuscar" oninput="aplicarFiltrosRadicados()" placeholder="Buscar radicado, remitente o funcionario..." style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 230px; outline: none; background: white;">
 
               <!-- Selector de Año -->
               <select id="filtroAno" onchange="aplicarFiltrosRadicados()" style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; color: #334155; font-weight: 600; cursor: pointer; background: white;">

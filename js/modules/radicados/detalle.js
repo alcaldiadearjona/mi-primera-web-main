@@ -60,10 +60,18 @@ window.aplicarFiltrosRadicados = function() {
   let lista = datosRadicados[dependenciaActual] || [];
 
   lista = lista.filter(reg => {
-    // 1. Filtrar por texto (Número de Radicado o Remitente)
+    // Detectar el nombre del funcionario sin importar cómo se llame la clave
+    const nombreFuncionario = reg.funcionario || reg.funcionarioAsignado || reg.responsable || reg.asignadoA || "";
+    
+    // Detectar la petición o asunto sin importar cómo se llame la clave en el objeto
+    const textoPeticion = reg.peticion || reg.asunto || reg.detalle || reg.observacion || "";
+
+    // 1. Filtrar por texto (Radicado, Remitente, Funcionario o Petición/Asunto)
     const coincideTexto = textoBusqueda === "" || 
       (reg.radicado && reg.radicado.toLowerCase().includes(textoBusqueda)) || 
-      (reg.remitente && reg.remitente.toLowerCase().includes(textoBusqueda));
+      (reg.remitente && reg.remitente.toLowerCase().includes(textoBusqueda)) ||
+      (nombreFuncionario && nombreFuncionario.toLowerCase().includes(textoBusqueda)) ||
+      (textoPeticion && textoPeticion.toLowerCase().includes(textoBusqueda));
 
     if (!coincideTexto) return false;
 
@@ -83,10 +91,29 @@ window.aplicarFiltrosRadicados = function() {
     return true;
   });
 
-  // Ordenar también los resultados filtrados del más reciente al más antiguo
+  // Ordenar los resultados del más reciente al más antiguo
   lista.sort((a, b) => new Date(b.fechaRadicacion) - new Date(a.fechaRadicacion));
 
   renderizarTablaRadicados(lista);
+
+  // SI HAY BÚSQUEDA O FILTROS ACTIVOS: Expandir automáticamente los meses para mostrar los registros
+  if (textoBusqueda !== "" || anoSeleccionado !== "" || mesSeleccionado !== "") {
+    const botonesMes = document.querySelectorAll('#cuerpoTablaExclusiva tr button[aria-expanded]');
+    botonesMes.forEach(boton => {
+      boton.setAttribute('aria-expanded', 'true');
+      const icon = boton.querySelector('i');
+      if (icon) {
+        icon.classList.remove('bi-chevron-right');
+        icon.classList.add('bi-chevron-down');
+      }
+      const monthGroupRow = boton.closest('tr');
+      let nextRow = monthGroupRow?.nextElementSibling;
+      while (nextRow?.classList.contains('month-record-row')) {
+        nextRow.hidden = false;
+        nextRow = nextRow.nextElementSibling;
+      }
+    });
+  }
 };
 
 window.toggleMonthGroup = function(button) {
