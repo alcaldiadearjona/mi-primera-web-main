@@ -111,6 +111,18 @@ window.cerrarModalEditar = function() {
 
 async function guardarEdicionRadicado(e) {
   e.preventDefault();
+  const boton = document.getElementById('btnGuardarEdicion');
+  const spinner = document.getElementById('spinnerGuardarEdicion');
+  const texto = document.getElementById('textoGuardarEdicion');
+  if (boton?.disabled) return;
+
+  if (boton) {
+    boton.disabled = true;
+    boton.setAttribute('aria-busy', 'true');
+  }
+  if (spinner) spinner.style.display = 'inline-block';
+  if (texto) texto.textContent = 'Guardando...';
+
   const id = document.getElementById('editDocId').value;
 
   try {
@@ -131,6 +143,13 @@ async function guardarEdicionRadicado(e) {
   } catch (error) {
     console.error("Error al actualizar:", error);
     alert("Ocurrió un error al actualizar los datos.");
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+    if (texto) texto.textContent = 'Guardar Cambios';
+    if (boton) {
+      boton.disabled = false;
+      boton.removeAttribute('aria-busy');
+    }
   }
 }
 
@@ -163,6 +182,18 @@ window.cerrarModalOtrosEstados = function() {
 };
 
 window.guardarOtrosEstados = async function() {
+  const boton = document.getElementById('btnGuardarOtrosEstados');
+  const spinner = document.getElementById('spinnerGuardarOtrosEstados');
+  const texto = document.getElementById('textoGuardarOtrosEstados');
+  if (boton?.disabled) return;
+
+  if (boton) {
+    boton.disabled = true;
+    boton.setAttribute('aria-busy', 'true');
+  }
+  if (spinner) spinner.style.display = 'inline-block';
+  if (texto) texto.textContent = 'Guardando...';
+
   const id = document.getElementById('modalEstadoDocId').value;
   const funcionarioAsignado = document.getElementById('txtFuncionarioAsignado').value.trim();
   const otrosEstados = document.getElementById('selectOtrosEstados').value; // <--- Corregido a selectOtrosEstados
@@ -183,5 +214,12 @@ window.guardarOtrosEstados = async function() {
   } catch (error) {
     console.error("Error al guardar estado/observaciones:", error);
     alert("Ocurrió un error al guardar los datos.");
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+    if (texto) texto.textContent = '💾 Guardar';
+    if (boton) {
+      boton.disabled = false;
+      boton.removeAttribute('aria-busy');
+    }
   }
 };
