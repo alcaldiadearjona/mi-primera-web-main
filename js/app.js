@@ -2,6 +2,7 @@ import { ingresoMarkup } from './components/auth/ingreso.js';
 import { navegacionMarkup } from './components/navegacion/menu.js';
 import { aperturaVistaMarkup } from './components/vistas/layout.js';
 import { inicioMarkup } from './components/vistas/inicio.js';
+import { iasMarkup } from './components/vistas/ias.js';
 import { dependenciasMarkup } from './components/vistas/dependencias.js';
 import { detalleMarkup } from './components/vistas/detalle.js';
 import { cierreVistaMarkup } from './components/vistas/cierre.js';
@@ -23,6 +24,7 @@ document.body.insertAdjacentHTML('beforeend', [
   navegacionMarkup,
   aperturaVistaMarkup,
   inicioMarkup,
+  iasMarkup,
   dependenciasMarkup,
   detalleMarkup,
   cierreVistaMarkup,

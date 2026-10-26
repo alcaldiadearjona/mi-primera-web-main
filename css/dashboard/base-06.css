@@ -27,7 +27,8 @@
   }
 }
 
-#pantallaInicio > .top-header {
+#pantallaInicio > .top-header,
+#pantallaIAS > .top-header {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(0, 168, 56, 0.12);
@@ -44,30 +45,36 @@
     0 4px 10px rgba(0, 168, 56, 0.1);
 }
 
-#pantallaInicio > .top-header::after {
+#pantallaInicio > .top-header::after,
+#pantallaIAS > .top-header::after {
   display: none;
 }
 
-#pantallaInicio > .top-header .top-header-content {
+#pantallaInicio > .top-header .top-header-content,
+#pantallaIAS > .top-header .top-header-content {
   position: relative;
   z-index: 2;
   max-width: 66%;
 }
 
-#pantallaInicio > .top-header h1 {
+#pantallaInicio > .top-header h1,
+#pantallaIAS > .top-header h1 {
   color: #1f2937;
 }
 
-#pantallaInicio > .top-header p {
+#pantallaInicio > .top-header p,
+#pantallaIAS > .top-header p {
   color: #334155;
 }
 
-#pantallaInicio > .top-header h1 i {
+#pantallaInicio > .top-header h1 i,
+#pantallaIAS > .top-header h1 i {
   color: #00a838;
 }
 
 @media (max-width: 600px) {
-  #pantallaInicio > .top-header .top-header-content {
+  #pantallaInicio > .top-header .top-header-content,
+  #pantallaIAS > .top-header .top-header-content {
     max-width: 72%;
   }
 }

@@ -1,39 +1,53 @@
 import { establecerDependenciaActual } from '../../data/radicados.js';
 import { establecerFormularioVisible } from '../radicados/formulario.js';
 
+function mostrarVista(idVista) {
+  ['pantallaInicio', 'vista-dependencias', 'pantallaDependencia', 'pantallaIAS'].forEach(id => {
+    const vista = document.getElementById(id);
+    if (vista) vista.style.display = id === idVista ? 'block' : 'none';
+  });
+}
+
+function activarMenu(vista) {
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.menuView === vista);
+  });
+}
+
 window.mostrarPantallaInicio = function() {
   establecerDependenciaActual("");
-  const pantallaInicio = document.getElementById('pantallaInicio');
-  const vistaDependencias = document.getElementById('vista-dependencias');
-  const pantallaDependencia = document.getElementById('pantallaDependencia');
-
-  if (pantallaDependencia) pantallaDependencia.style.display = 'none';
-  if (vistaDependencias) vistaDependencias.style.display = 'none';
-  if (pantallaInicio) pantallaInicio.style.display = 'block';
+  mostrarVista('pantallaInicio');
   establecerFormularioVisible(false);
+  document.getElementById('tituloPantallaPrincipal').textContent = 'Ventanilla Única';
+  document.getElementById('textoAccionFormulario').textContent = 'Ingresar nueva PQRS';
+  document.getElementById('ayudaFormulario').textContent = 'Registra y asigna una solicitud a su dependencia destino.';
+  document.getElementById('tituloFormularioRadicado').textContent = 'Formulario de Radicación de Solicitud / PQRS';
+  activarMenu('pqrs');
+};
 
-  const menuItems = document.querySelectorAll('.menu-item');
-  if (menuItems.length >= 2) {
-    menuItems[0].classList.add('active');
-    menuItems[1].classList.remove('active');
-  }
+window.mostrarGeneracionRadicados = function() {
+  establecerDependenciaActual("");
+  mostrarVista('pantallaInicio');
+  document.getElementById('tituloPantallaPrincipal').textContent = 'Generación de Radicados';
+  document.getElementById('textoAccionFormulario').textContent = 'Generar nuevo radicado';
+  document.getElementById('ayudaFormulario').textContent = 'Diligencia el formulario para generar un nuevo radicado.';
+  document.getElementById('tituloFormularioRadicado').textContent = 'Generación de Radicado';
+  establecerFormularioVisible(true);
+  activarMenu('generacion');
+};
+
+window.mostrarIAS = function() {
+  establecerDependenciaActual("");
+  mostrarVista('pantallaIAS');
+  establecerFormularioVisible(false);
+  activarMenu('ias');
 };
 
 window.mostrarDependenciasMenu = function() {
   establecerDependenciaActual("");
-  const pantallaInicio = document.getElementById('pantallaInicio');
-  const vistaDependencias = document.getElementById('vista-dependencias');
-  const pantallaDependencia = document.getElementById('pantallaDependencia');
-
-  if (pantallaInicio) pantallaInicio.style.display = 'none';
-  if (pantallaDependencia) pantallaDependencia.style.display = 'none';
-  if (vistaDependencias) vistaDependencias.style.display = 'block';
-
-  const menuItems = document.querySelectorAll('.menu-item');
-  if (menuItems.length >= 2) {
-    menuItems[0].classList.remove('active');
-    menuItems[1].classList.add('active');
-  }
+  mostrarVista('vista-dependencias');
+  establecerFormularioVisible(false);
+  activarMenu('dependencias');
 };
 
 window.mostrarMenuPrincipal = function() {

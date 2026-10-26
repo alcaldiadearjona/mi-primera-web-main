@@ -23,8 +23,10 @@ export const navegacionMarkup = String.raw`  <div class="mobile-toolbar">
       </div>
 
       <nav class="menu">
-        <a class="menu-item active d-flex align-items-center gap-2" onclick="mostrarPantallaInicio()"><i class="bi bi-inbox-fill" aria-hidden="true"></i> PQRS</a>
-        <a class="menu-item d-flex align-items-center gap-2" onclick="mostrarDependenciasMenu()"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias</a>
+        <a class="menu-item active d-flex align-items-center gap-2" data-menu-view="pqrs" onclick="mostrarPantallaInicio()"><i class="bi bi-inbox-fill" aria-hidden="true"></i> PQRS</a>
+        <a class="menu-item d-flex align-items-center gap-2" data-menu-view="dependencias" onclick="mostrarDependenciasMenu()"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias</a>
+        <a class="menu-item d-flex align-items-center gap-2" data-menu-view="generacion" onclick="mostrarGeneracionRadicados()"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> Generación de Radicados</a>
+        <a class="menu-item d-flex align-items-center gap-2" data-menu-view="ias" onclick="mostrarIAS()"><i class="bi bi-bank" aria-hidden="true"></i> IAS</a>
       </nav>
     </div>
 

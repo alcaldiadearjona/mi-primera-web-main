@@ -1,7 +1,7 @@
 export const inicioMarkup = String.raw`<div id="pantallaInicio">
       <header class="top-header">
         <div class="top-header-content">
-          <h1><i class="bi bi-folder2-open" aria-hidden="true"></i> Ventanilla Única</h1>
+          <h1><i class="bi bi-folder2-open" aria-hidden="true"></i> <span id="tituloPantallaPrincipal">Ventanilla Única</span></h1>
           <p>Sistema Institucional de Radicación de Correspondencia y PQRS — Alcaldía Municipal de Arjona</p>
         </div>
       </header>
@@ -10,14 +10,14 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
         <section class="dashboard-form-column" aria-labelledby="accionesPrincipales">
           <h2 id="accionesPrincipales" class="section-title"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i> Acciones Principales</h2>
           <button class="dashboard-form-toggle is-collapsed" type="button" aria-expanded="false" aria-controls="contenedorFormulario" onclick="toggleFormulario()">
-            <span><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> Ingresar nueva PQRS</span>
+            <span><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> <span id="textoAccionFormulario">Ingresar nueva PQRS</span></span>
             <i class="bi bi-chevron-up" aria-hidden="true"></i>
           </button>
-          <span class="dashboard-form-hint">Registra y asigna una solicitud a su dependencia destino.</span>
+          <span id="ayudaFormulario" class="dashboard-form-hint">Registra y asigna una solicitud a su dependencia destino.</span>
 
           <div id="contenedorFormulario" class="form-card" style="display: none;">
             <div class="form-header-bar">
-              <i class="bi bi-pencil-square" aria-hidden="true"></i> Formulario de Radicación de Solicitud / PQRS
+              <i class="bi bi-pencil-square" aria-hidden="true"></i> <span id="tituloFormularioRadicado">Formulario de Radicación de Solicitud / PQRS</span>
             </div>
 
             <form id="pqrsForm">
