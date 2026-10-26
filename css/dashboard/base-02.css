@@ -98,14 +98,47 @@
   background-color: #dc2626 !important;
 }
 
+/* Centrar íconos y spinners dentro de los botones de acciones */
+.table-custom td:nth-child(11) button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  vertical-align: middle;
+}
+
+/* Ocultar iconos previos (incluidos pseudo-elementos ::before de Bootstrap Icons) */
+.table-custom td:nth-child(11) button.btn-loading-active,
+.btn-loading-active::before,
+.btn-loading-active::after,
+.btn-loading-active i,
+.btn-loading-active svg {
+  background-image: none !important;
+}
+
+.table-custom td:nth-child(11) button.btn-loading-active::before,
+.table-custom td:nth-child(11) button.btn-loading-active::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Spinner del botón eliminar */
 .action-delete-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.45);
-  border-top-color: #ffffff;
+  display: inline-block !important;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
-  display: inline-block;
-  animation: girar 0.7s linear infinite;
+  border-top-color: #ffffff;
+  animation: girarBoton 0.7s linear infinite;
+  box-sizing: border-box;
+  margin: 0 auto !important;
+}
+
+@keyframes girarBoton {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .response-file-actions {
@@ -242,4 +275,20 @@
   background-color: #eff6ff; 
   color: #2563eb; 
   border: 1px solid #93c5fd; 
+}
+
+/* Cuando el botón está cargando, oculta cualquier icono previo (incluyendo ::before y ::after) */
+.btn-loading-active::before,
+.btn-loading-active::after,
+.btn-loading-active i,
+.btn-loading-active svg {
+  display: none !important;
+  content: none !important;
+}
+
+.btn-loading-active {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
 }

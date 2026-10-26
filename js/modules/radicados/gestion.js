@@ -17,14 +17,17 @@ function actualizarEstadoFuncionarioPreview(event) {
   }
 }
 
-window.eliminarRadicado = async function(id, botonEliminar) {
+window.eliminarRadicado = async function(id, elementoClick) {
   if (!confirm("¿Estás seguro de que deseas eliminar este radicado y sus archivos?")) {
     return;
   }
 
+  const botonEliminar = elementoClick ? (elementoClick.closest('button') || elementoClick) : null;
+
   if (botonEliminar) {
     botonEliminar.disabled = true;
-    botonEliminar.innerHTML = '<span class="action-delete-spinner" aria-label="Eliminando"></span>';
+    botonEliminar.classList.add('btn-loading-active');
+    botonEliminar.innerHTML = '<span class="action-delete-spinner"></span>';
     botonEliminar.title = "Eliminando...";
   }
 
@@ -74,6 +77,7 @@ window.eliminarRadicado = async function(id, botonEliminar) {
     console.error("Error al eliminar:", error);
     if (botonEliminar?.isConnected) {
       botonEliminar.disabled = false;
+      botonEliminar.classList.remove('btn-loading-active');
       botonEliminar.textContent = "🗑️";
       botonEliminar.title = "Eliminar";
     }
