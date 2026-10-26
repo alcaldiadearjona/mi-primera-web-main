@@ -1,9 +1,17 @@
 import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
+// Función auxiliar para convertir textos a formato Título
+function aTitulo(texto) {
+  if (!texto) return '';
+  return texto.toLowerCase().replace(/(?:^|\s|-)\S/g, letra => letra.toUpperCase());
+}
+
 export function renderizarTablaRadicados(lista) {
   const tbody = document.getElementById('cuerpoTablaExclusiva');
   if (!tbody) return;
   tbody.innerHTML = '';
+  
+  // ... resto de tu código normal
 
   const hayFiltrosActivos = Boolean(
     document.getElementById('inputBuscar')?.value.trim() ||
@@ -113,6 +121,7 @@ if (reg.respuestaUrl) {
 }
 
     // Texto completo para el tooltip del asunto
+// Texto completo para el tooltip del asunto
     const textoAsuntoTooltip = `${reg.asunto || ''}${reg.otrosEstados ? ' | Estado: ' + reg.otrosEstados : ''}${reg.observaciones ? ' | Obs: ' + reg.observaciones : ''}`;
 
     const tr = document.createElement('tr');
@@ -127,20 +136,39 @@ if (reg.respuestaUrl) {
       <td><span class="badge-status ${estadoObj.clase}">${reg.fechaVencimiento || ''}</span></td>
       <td><span class="badge-status ${estadoObj.clase}">${textoEstado}</span></td>
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
+
+      <!-- Remitente con formato Título -->
+      <td title="${aTitulo(reg.remitente) || ''}" 
+          style="cursor: pointer; user-select: none; -webkit-user-select: none;" 
+          onmousedown="event.preventDefault();"
+          onclick="const div = this.querySelector('div'); div.style.whiteSpace = div.style.whiteSpace === 'normal' ? 'nowrap' : 'normal'; div.style.overflow = div.style.overflow === 'visible' ? 'hidden' : 'visible';">
+          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
+            ${aTitulo(reg.remitente) || ''}
+          </div>
+      </td>
       
-      <!-- Remitente con tooltip y texto completo -->
-      <td title="${reg.remitente || ''}">${reg.remitente || ''}</td>
-      
-      <!-- Asunto con tooltip, otros estados y observaciones -->
-        <td title="${textoAsuntoTooltip}">
-            <div>${reg.asunto || ''}</div>
-            
-            <!-- Estado seleccionado (ej: Para Conocimiento / No Requiere Respuesta) -->
-            ${reg.otrosEstados ? `<div style="font-size: 11px; font-weight: 600; color: #0284c7; margin-top: 2px;">📌 ${reg.otrosEstados}</div>` : ''}
-            
-            <!-- Observación en verde neón -->
-            ${reg.observaciones ? `<div style="font-size: 11px; font-style: italic; color: #16804a; margin-top: 2px; font-weight: 600;">Obs: ${reg.observaciones}</div>` : ''}
-        </td>
+      <!-- Asunto con indicadores compactos (alfiler y ojito verde) y vista expandida limpia -->
+      <td title="${reg.asunto || ''}${reg.otrosEstados ? ' - ' + reg.otrosEstados : ''}${reg.observaciones ? ' - ' + reg.observaciones : ''}" 
+          style="cursor: pointer; user-select: none; -webkit-user-select: none;" 
+          onmousedown="event.preventDefault();"
+          onclick="const c = this.querySelector('.vista-compacta'); const e = this.querySelector('.vista-expandida'); const isExp = e.style.display === 'block'; e.style.display = isExp ? 'none' : 'block'; c.style.display = isExp ? 'flex' : 'none';">
+          <div style="max-width: 220px;">
+            <!-- Vista Compacta: Texto con puntos suspensivos + Íconos indicadores -->
+            <div class="vista-compacta" style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${aTitulo(reg.asunto) || ''}</span>
+              <span style="flex-shrink: 0; font-size: 12px; display: flex; align-items: center; gap: 3px;">
+                ${reg.otrosEstados ? '<span title="Tiene Estado adicional">📌</span>' : ''}
+                ${reg.observaciones ? '<span title="Tiene Observación" style="display: inline-flex; align-items: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16804a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>' : ''}
+              </span>
+            </div>
+            <!-- Vista Expandida: Muestra todo limpio -->
+            <div class="vista-expandida" style="display: none; white-space: normal; word-break: break-word;">
+              <div>${aTitulo(reg.asunto) || ''}</div>
+              ${reg.otrosEstados ? `<div style="font-size: 11px; font-weight: 600; color: #0284c7; margin-top: 2px;">📌 ${reg.otrosEstados}</div>` : ''}
+              ${reg.observaciones ? `<div style="font-size: 11px; font-style: italic; color: #16804a; margin-top: 2px; font-weight: 600;">Obs: ${reg.observaciones}</div>` : ''}
+            </div>
+          </div>
+      </td>
       
       <td>
         <button onclick="prepararEdicion('${reg.id}')" style="background:#2563eb; color:white; border:none; width:32px; height:32px; border-radius:4px; cursor:pointer; margin-right:2px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
@@ -151,19 +179,26 @@ if (reg.respuestaUrl) {
       </td>
       <td>${columnaRespuestaHtml}</td>
     `;
+
     const funcionarioCell = document.createElement('td');
     funcionarioCell.className = 'assigned-official-cell';
-    const partesFuncionario = (reg.funcionarioAsignado || '').trim().split(/\s+/).filter(Boolean);
+    
+    // Aplicamos el formato Título al texto del funcionario
+    const funcionarioLimpio = aTitulo(reg.funcionarioAsignado || '');
+    const partesFuncionario = funcionarioLimpio.trim().split(/\s+/).filter(Boolean);
+    
     if (partesFuncionario.length > 1) {
       const nombre = partesFuncionario[0];
       const apellido = partesFuncionario.slice(1).join(' ');
       funcionarioCell.append(nombre, document.createElement('br'), apellido);
     } else {
-      funcionarioCell.textContent = reg.funcionarioAsignado || '';
+      funcionarioCell.textContent = funcionarioLimpio;
     }
-    funcionarioCell.title = reg.funcionarioAsignado || '';
+    funcionarioCell.title = funcionarioLimpio;
     tr.insertBefore(funcionarioCell, tr.cells[9]);
+
+    // 👇 ¡Importante! Faltaba agregar la fila completa a la tabla
     tbody.appendChild(tr);
-    });
-  });
-}
+  }); // Cierra el forEach de reg (radicados)
+}); // Cierra el forEach de gruposPorMes
+} // Cierra la función renderizarTablaRadicados
