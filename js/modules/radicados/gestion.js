@@ -111,7 +111,7 @@ window.cerrarModalEditar = function() {
 
 async function guardarEdicionRadicado(e) {
   e.preventDefault();
-  const boton = document.getElementById('btnGuardarEdicion');
+  const boton = document.getElementById('btnGuardarEditar');
   const spinner = document.getElementById('spinnerGuardarEdicion');
   const texto = document.getElementById('textoGuardarEdicion');
   if (boton?.disabled) return;
@@ -216,7 +216,7 @@ window.guardarOtrosEstados = async function() {
     alert("Ocurrió un error al guardar los datos.");
   } finally {
     if (spinner) spinner.style.display = 'none';
-    if (texto) texto.textContent = '💾 Guardar';
+    if (texto) texto.textContent = 'Guardar';
     if (boton) {
       boton.disabled = false;
       boton.removeAttribute('aria-busy');

@@ -43,7 +43,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
           <button type="button" onclick="cerrarModalEditar()" style="background:#64748b; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer;">Cancelar</button>
-          <button type="submit" id="btnGuardarEdicion" style="background:#2563eb; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">
+          <button id="btnGuardarEditar" type="submit" style="background:#2563eb; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold; display:inline-flex; align-items:center; justify-content:center;">
             <span id="spinnerGuardarEdicion" class="spinner" style="display:none;" aria-hidden="true"></span><span id="textoGuardarEdicion">Guardar Cambios</span>
           </button>
         </div>
@@ -80,12 +80,10 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
       </div>
 
       <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
-        <button type="button" onclick="cerrarModalOtrosEstados()" style="background: #e2e8f0; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancelar</button>
-        <button type="button" id="btnGuardarOtrosEstados" onclick="guardarOtrosEstados()" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">
-          <span id="spinnerGuardarOtrosEstados" class="spinner" style="display:none;" aria-hidden="true"></span><span id="textoGuardarOtrosEstados">💾 Guardar</span>
-        </button>
-      </div>
-    </div>
-  </div>
+  <button type="button" onclick="cerrarModalOtrosEstados()" style="background: #e2e8f0; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancelar</button>
+  <button id="btnGuardarOtrosEstados" type="button" onclick="guardarOtrosEstados()" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">
+    <span id="spinnerGuardarOtrosEstados" class="spinner" style="display:none;" aria-hidden="true"></span><span id="textoGuardarOtrosEstados">Guardar</span>
+  </button>
+</div>
 
 `;
