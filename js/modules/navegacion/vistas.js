@@ -19,6 +19,8 @@ window.mostrarPantallaInicio = function() {
   mostrarVista('pantallaInicio');
   establecerFormularioVisible(false);
   document.getElementById('tituloPantallaPrincipal').textContent = 'Ventanilla Única';
+  document.getElementById('iconoPantallaPrincipal').className = 'bi bi-folder2-open';
+  document.getElementById('subtituloPantallaPrincipal').textContent = 'Sistema Institucional de Radicación de Correspondencia y PQRS';
   document.getElementById('textoAccionFormulario').textContent = 'Ingresar nueva PQRS';
   document.getElementById('ayudaFormulario').textContent = 'Registra y asigna una solicitud a su dependencia destino.';
   document.getElementById('tituloFormularioRadicado').textContent = 'Formulario de Radicación de Solicitud / PQRS';
@@ -29,6 +31,8 @@ window.mostrarGeneracionRadicados = function() {
   establecerDependenciaActual("");
   mostrarVista('pantallaInicio');
   document.getElementById('tituloPantallaPrincipal').textContent = 'Generación de Radicados';
+  document.getElementById('iconoPantallaPrincipal').className = 'bi bi-file-earmark-plus';
+  document.getElementById('subtituloPantallaPrincipal').textContent = 'Sistema de Generacion de Radicados de Salida';
   document.getElementById('textoAccionFormulario').textContent = 'Generar nuevo radicado';
   document.getElementById('ayudaFormulario').textContent = 'Diligencia el formulario para generar un nuevo radicado.';
   document.getElementById('tituloFormularioRadicado').textContent = 'Generación de Radicado';

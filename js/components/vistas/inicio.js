@@ -1,8 +1,8 @@
 export const inicioMarkup = String.raw`<div id="pantallaInicio">
       <header class="top-header">
         <div class="top-header-content">
-          <h1><i class="bi bi-folder2-open" aria-hidden="true"></i> <span id="tituloPantallaPrincipal">Ventanilla Única</span></h1>
-          <p>Sistema Institucional de Radicación de Correspondencia y PQRS — Alcaldía Municipal de Arjona</p>
+          <h1><i id="iconoPantallaPrincipal" class="bi bi-folder2-open" aria-hidden="true"></i> <span id="tituloPantallaPrincipal">Ventanilla Única</span></h1>
+          <p id="subtituloPantallaPrincipal">Sistema Institucional de Radicación de Correspondencia y PQRS</p>
         </div>
       </header>
 
