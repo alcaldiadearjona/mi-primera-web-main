@@ -49,7 +49,8 @@
 .table-custom th:nth-child(8), .table-custom td:nth-child(8) { width: 12% !important; }  /* Remitente */
 .table-custom th:nth-child(9), .table-custom td:nth-child(9) { width: 12% !important; }  /* Asunto */
 .table-custom th:nth-child(10), .table-custom td:nth-child(10) { width: 12% !important; }/* Funcionario asignado */
-.table-custom th:nth-child(11), .table-custom td:nth-child(11) { width: 100px !important; }/* Acciones */
+/* Ancho de la columna 11 suficiente para 3 botones de 36px y sus espacios */
+.table-custom th:nth-child(11), .table-custom td:nth-child(11) { width: 130px !important; }/* Acciones */
 .table-custom th:nth-child(12), .table-custom td:nth-child(12) { width: 110px !important; }/* Respuesta */
 
 .table-custom td:nth-child(11),
@@ -291,4 +292,12 @@
   align-items: center !important;
   justify-content: center !important;
   padding: 0 !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) button::before,
+#pantallaDependencia .table-custom td:nth-child(11) button::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
 }
