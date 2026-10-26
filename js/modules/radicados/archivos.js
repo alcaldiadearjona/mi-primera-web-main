@@ -3,6 +3,7 @@ import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
 import { datosRadicados } from '../../data/radicados.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import { confirmarAccion } from '../ui/avisos.js';
 
 window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
   const file = inputElement.files ? inputElement.files[0] : null;
@@ -90,7 +91,11 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
 };
 
 window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
-  if (!confirm("¿Estás seguro de que deseas eliminar el archivo de respuesta de Google Drive?")) {
+  const confirmado = await confirmarAccion(
+    '¿Estás seguro de que deseas eliminar el archivo de respuesta de Google Drive?',
+    { titulo: 'Eliminar archivo de respuesta', aceptarTexto: 'Eliminar' }
+  );
+  if (!confirmado) {
     return;
   }
 

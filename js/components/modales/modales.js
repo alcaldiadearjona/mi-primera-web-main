@@ -85,5 +85,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
     <span id="spinnerGuardarOtrosEstados" class="spinner" style="display:none;" aria-hidden="true"></span><span id="textoGuardarOtrosEstados">Guardar</span>
   </button>
 </div>
+</div>
+</div>
 
 `;

@@ -2,6 +2,7 @@ import { deleteDoc, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10
 import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
 import { datosRadicados } from '../../data/radicados.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import { confirmarAccion } from '../ui/avisos.js';
 
 export function inicializarAccionesRadicados() {
   document.getElementById('formEditar')?.addEventListener('submit', guardarEdicionRadicado);
@@ -18,7 +19,11 @@ function actualizarEstadoFuncionarioPreview(event) {
 }
 
 window.eliminarRadicado = async function(id, elementoClick) {
-  if (!confirm("¿Estás seguro de que deseas eliminar este radicado y sus archivos?")) {
+  const confirmado = await confirmarAccion(
+    '¿Estás seguro de que deseas eliminar este radicado y sus archivos?',
+    { titulo: 'Eliminar radicado', aceptarTexto: 'Eliminar' }
+  );
+  if (!confirmado) {
     return;
   }
 

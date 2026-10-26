@@ -2,7 +2,7 @@ import { establecerDependenciaActual } from '../../data/radicados.js';
 import { establecerFormularioVisible } from '../radicados/formulario.js';
 
 function mostrarVista(idVista) {
-  ['pantallaInicio', 'vista-dependencias', 'pantallaDependencia', 'pantallaIAS'].forEach(id => {
+  ['pantallaInicio', 'pantallaGeneracion', 'vista-dependencias', 'pantallaDependencia', 'pantallaIAS'].forEach(id => {
     const vista = document.getElementById(id);
     if (vista) vista.style.display = id === idVista ? 'block' : 'none';
   });
@@ -29,14 +29,7 @@ window.mostrarPantallaInicio = function() {
 
 window.mostrarGeneracionRadicados = function() {
   establecerDependenciaActual("");
-  mostrarVista('pantallaInicio');
-  document.getElementById('tituloPantallaPrincipal').textContent = 'Generación de Radicados';
-  document.getElementById('iconoPantallaPrincipal').className = 'bi bi-file-earmark-plus';
-  document.getElementById('subtituloPantallaPrincipal').textContent = 'Sistema de Generacion de Radicados de Salida';
-  document.getElementById('textoAccionFormulario').textContent = 'Generar nuevo radicado';
-  document.getElementById('ayudaFormulario').textContent = 'Diligencia el formulario para generar un nuevo radicado.';
-  document.getElementById('tituloFormularioRadicado').textContent = 'Generación de Radicado';
-  establecerFormularioVisible(true);
+  mostrarVista('pantallaGeneracion');
   activarMenu('generacion');
 };
 
