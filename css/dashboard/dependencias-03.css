@@ -229,6 +229,51 @@
   content: "";
 }
 
+#pantallaDependencia .competence-routing-note {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+#pantallaDependencia .competence-routing-toggle {
+  display: block;
+  margin: 3px auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 9px;
+  font-style: italic;
+  line-height: 1.25;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+#pantallaDependencia .competence-routing-toggle,
+#pantallaDependencia .competence-routing-note {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+#pantallaDependencia .competence-routing-toggle:hover,
+#pantallaDependencia .competence-routing-toggle:focus-visible {
+  color: #176b37;
+}
+
+#pantallaDependencia .competence-routing-toggle:focus-visible {
+  outline: 2px solid #176b37;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+#pantallaDependencia .competence-routing-note[hidden] {
+  display: none;
+}
+
 #pantallaDependencia .table-custom td:nth-child(1) .pdf-badge {
   width: 100%;
   max-width: 100%;

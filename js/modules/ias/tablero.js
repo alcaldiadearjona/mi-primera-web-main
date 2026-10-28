@@ -1,6 +1,7 @@
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db } from '../../config/firebase-config.js';
 import { mostrarAviso } from '../ui/avisos.js';
+import { establecerErrorIASInforme, establecerRegistrosIASInforme } from '../informes/tablero.js';
 
 const COLECCION_IAS = 'radicadosIAS';
 const ENTIDADES_IAS = [
@@ -270,10 +271,12 @@ export async function inicializarTableroIAS() {
   try {
     const snapshot = await getDocs(collection(db, COLECCION_IAS));
     registrosIAS = snapshot.docs.map(documento => ({ id: documento.id, ...documento.data() }));
+    establecerRegistrosIASInforme(registrosIAS);
     actualizarFiltroAnios(registrosIAS);
     renderizarTarjetas();
   } catch (error) {
     console.error('Error al cargar los radicados IAS:', error);
+    establecerErrorIASInforme();
     const contenedor = document.getElementById('tarjetasEntidadesIAS');
     const mensaje = document.createElement('p');
     mensaje.className = 'ias-empty-state ias-load-error';

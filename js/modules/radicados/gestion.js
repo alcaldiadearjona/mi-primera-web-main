@@ -1,12 +1,113 @@
-import { deleteDoc, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
+import { deleteDoc, doc, runTransaction, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { datosRadicados } from '../../data/radicados.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import { abreviarNombreDependencia } from '../../utils/helpers.js';
 import { confirmarAccion } from '../ui/avisos.js';
 
 export function inicializarAccionesRadicados() {
   document.getElementById('formEditar')?.addEventListener('submit', guardarEdicionRadicado);
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', actualizarEstadoFuncionarioPreview);
+  document.getElementById('alternarDependenciasRemision')?.addEventListener('click', alternarDesplegableRemision);
+  document.getElementById('dependenciasRemisionCompetencia')?.addEventListener('change', actualizarResumenRemision);
+  document.addEventListener('click', cerrarDesplegableRemisionAlClicExterno);
+  document.addEventListener('keydown', cerrarDesplegableRemisionConEscape);
+}
+
+function alternarDesplegableRemision() {
+  const boton = document.getElementById('alternarDependenciasRemision');
+  const lista = document.getElementById('dependenciasRemisionCompetencia');
+  if (!boton || !lista) return;
+  const expandido = boton.getAttribute('aria-expanded') === 'true';
+  boton.setAttribute('aria-expanded', String(!expandido));
+  lista.hidden = expandido;
+  boton.querySelector('i')?.classList.toggle('bi-chevron-down', expandido);
+  boton.querySelector('i')?.classList.toggle('bi-chevron-up', !expandido);
+}
+
+function cerrarDesplegableRemisionAlClicExterno(event) {
+  const boton = document.getElementById('alternarDependenciasRemision');
+  const lista = document.getElementById('dependenciasRemisionCompetencia');
+  if (!boton || !lista || lista.hidden) return;
+  if (boton.parentElement.contains(event.target)) return;
+  lista.hidden = true;
+  boton.setAttribute('aria-expanded', 'false');
+  boton.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
+}
+
+function cerrarDesplegableRemisionConEscape(event) {
+  if (event.key !== 'Escape') return;
+  const boton = document.getElementById('alternarDependenciasRemision');
+  const lista = document.getElementById('dependenciasRemisionCompetencia');
+  if (!boton || !lista || lista.hidden) return;
+  lista.hidden = true;
+  boton.setAttribute('aria-expanded', 'false');
+  boton.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
+  boton.focus();
+}
+
+function actualizarResumenRemision() {
+  const resumen = document.getElementById('resumenDependenciasRemision');
+  const selecciones = Array.from(
+    document.querySelectorAll('input[name="dependenciaDestinoCompetencia"]:checked')
+  );
+  if (!resumen) return;
+  resumen.textContent = selecciones.length
+    ? selecciones.map(casilla => abreviarNombreDependencia(casilla.value)).join(', ')
+    : 'Seleccionar dependencias destino';
+}
+
+function buscarRadicadoPorId(id) {
+  for (const [dependencia, registros] of Object.entries(datosRadicados)) {
+    const registro = registros.find(radicado => radicado.id === id);
+    if (registro) return { ...registro, dependencia };
+  }
+  return null;
+}
+
+function generarIdCopiaCompetencia(idOrigen, dependencia) {
+  const slug = dependencia
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `${idOrigen}__competencia__${slug}`;
+}
+
+function cargarOpcionesRemision(registro) {
+  const contenedor = document.getElementById('dependenciasRemisionCompetencia');
+  if (!contenedor) return;
+  contenedor.replaceChildren();
+  contenedor.scrollTop = 0;
+  const boton = document.getElementById('alternarDependenciasRemision');
+  if (boton) {
+    boton.setAttribute('aria-expanded', 'false');
+    boton.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
+  }
+  contenedor.hidden = true;
+
+  const destinosYaRemitidos = Array.isArray(registro.dependenciasDestino)
+    ? registro.dependenciasDestino
+    : [];
+  Object.keys(datosRadicados)
+    .filter(dependencia => dependencia !== registro.dependencia)
+    .forEach((dependencia, indice) => {
+      const etiqueta = document.createElement('label');
+      etiqueta.style.cssText = 'display:flex; align-items:center; gap:7px; padding:6px 7px; border-radius:6px; color:#334155; font-size:12px; cursor:pointer;';
+      const casilla = document.createElement('input');
+      casilla.type = 'checkbox';
+      casilla.name = 'dependenciaDestinoCompetencia';
+      casilla.value = dependencia;
+      casilla.id = `dependenciaDestinoCompetencia-${indice}`;
+      casilla.checked = destinosYaRemitidos.includes(dependencia);
+      casilla.disabled = casilla.checked;
+      if (casilla.disabled) etiqueta.style.cssText += 'opacity:.6; cursor:not-allowed;';
+      etiqueta.htmlFor = casilla.id;
+      etiqueta.append(casilla, document.createTextNode(abreviarNombreDependencia(dependencia)));
+      contenedor.append(etiqueta);
+    });
+  actualizarResumenRemision();
 }
 
 function actualizarEstadoFuncionarioPreview(event) {
@@ -46,7 +147,23 @@ window.eliminarRadicado = async function(id, elementoClick) {
   }
 
   try {
-    if (radicadoAEliminar && radicadoAEliminar.pdfUrl) {
+    const archivosRelacionados = Boolean(
+      radicadoAEliminar
+      && (
+        radicadoAEliminar.remisionOrigenId
+        || radicadoAEliminar.dependenciasDestino?.length
+      )
+    );
+    const todosRadicados = Object.values(datosRadicados).flat();
+    const pdfCompartido = Boolean(
+      radicadoAEliminar?.pdfUrl
+      && todosRadicados.some(radicado => radicado.id !== id && radicado.pdfUrl === radicadoAEliminar.pdfUrl)
+    );
+    const respuestaCompartida = Boolean(
+      radicadoAEliminar?.respuestaUrl
+      && todosRadicados.some(radicado => radicado.id !== id && radicado.respuestaUrl === radicadoAEliminar.respuestaUrl)
+    );
+    if (!archivosRelacionados && !pdfCompartido && radicadoAEliminar?.pdfUrl) {
       try {
         await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
@@ -60,7 +177,7 @@ window.eliminarRadicado = async function(id, elementoClick) {
       }
     }
 
-    if (radicadoAEliminar && radicadoAEliminar.respuestaUrl) {
+    if (!archivosRelacionados && !respuestaCompartida && radicadoAEliminar?.respuestaUrl) {
       try {
         await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
@@ -167,14 +284,7 @@ async function guardarEdicionRadicado(e) {
 // ==========================================
 
 window.abrirModalOtrosEstados = function(id) {
-  let item = null;
-  for (const dep in datosRadicados) {
-    const encontrado = datosRadicados[dep].find(r => r.id === id);
-    if (encontrado) {
-      item = encontrado;
-      break;
-    }
-  }
+  const item = buscarRadicadoPorId(id);
 
   if (item) {
     document.getElementById('modalEstadoDocId').value = item.id;
@@ -182,6 +292,7 @@ window.abrirModalOtrosEstados = function(id) {
     actualizarEstadoFuncionarioPreview({ currentTarget: document.getElementById('txtFuncionarioAsignado') });
     document.getElementById('selectOtrosEstados').value = item.otrosEstados || ''; // <--- Corregido a selectOtrosEstados
     document.getElementById('txtObservaciones').value = item.observaciones || '';
+    cargarOpcionesRemision(item);
     document.getElementById('modalOtrosEstados').style.display = 'flex';
   }
 };
@@ -207,22 +318,97 @@ window.guardarOtrosEstados = async function() {
   const funcionarioAsignado = document.getElementById('txtFuncionarioAsignado').value.trim();
   const otrosEstados = document.getElementById('selectOtrosEstados').value; // <--- Corregido a selectOtrosEstados
   const observaciones = document.getElementById('txtObservaciones').value;
+  const destinosSeleccionados = Array.from(
+    document.querySelectorAll('input[name="dependenciaDestinoCompetencia"]:checked:not(:disabled)')
+  ).map(casilla => casilla.value);
 
   try {
     const docRef = doc(db, "radicados", id);
-    await updateDoc(docRef, {
+    const camposGestion = {
       funcionarioAsignado,
       estado: funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE',
       otrosEstados: otrosEstados,
       observaciones: observaciones
-    });
+    };
 
-    alert("Gestión guardada correctamente.");
+    if (destinosSeleccionados.length > 0) {
+      const confirmado = await confirmarAccion(
+        `La solicitud se remitirá a ${destinosSeleccionados.map(abreviarNombreDependencia).join(', ')}. Se crearán copias VIGENTES con el mismo número de radicado y el original quedará cerrado.`,
+        { titulo: 'Remitir por Competencia', aceptarTexto: 'Remitir' }
+      );
+      if (!confirmado) return;
+
+      await runTransaction(db, async transaction => {
+        const snapshot = await transaction.get(docRef);
+        if (!snapshot.exists()) throw new Error('No se encontró el radicado original para remitir.');
+        const radicadoOriginal = snapshot.data();
+        const destinosPrevios = Array.isArray(radicadoOriginal.dependenciasDestino)
+          ? radicadoOriginal.dependenciasDestino
+          : [];
+        const destinosNuevos = destinosSeleccionados.filter(
+          dependencia => !destinosPrevios.includes(dependencia)
+        );
+        const fechaRemision = new Date().toISOString();
+
+        const copias = destinosNuevos.map(dependencia => ({
+          dependencia,
+          referencia: doc(
+            db, RADICADOS_COLLECTION, generarIdCopiaCompetencia(id, dependencia)
+          )
+        }));
+        const snapshotsCopias = await Promise.all(
+          copias.map(copia => transaction.get(copia.referencia))
+        );
+
+        copias.forEach((copia, indice) => {
+          const copiaExistente = snapshotsCopias[indice];
+          if (copiaExistente.exists()) {
+            if (copiaExistente.data().remisionOrigenId !== id) {
+              throw new Error(`Ya existe un radicado con el identificador de copia para ${copia.dependencia}.`);
+            }
+            return;
+          }
+          transaction.set(copia.referencia, {
+            ...radicadoOriginal,
+            dependencia: copia.dependencia,
+            estado: 'VIGENTE',
+            funcionarioAsignado: '',
+            otrosEstados: '',
+            respuestaUrl: '',
+            observaciones: '',
+            dependenciasDestino: [],
+            remisionOrigenId: id,
+            remisionOrigenDependencia: radicadoOriginal.dependencia || '',
+            remisionOrigenRadicado: radicadoOriginal.radicado || '',
+            fechaRemisionCompetencia: fechaRemision
+          });
+        });
+        transaction.update(docRef, {
+          ...camposGestion,
+          funcionarioAsignado: '',
+          estado: 'R. por C.',
+          dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],
+          fechaRemisionCompetencia: fechaRemision
+        });
+      });
+    } else {
+      const radicadoActual = buscarRadicadoPorId(id);
+      await updateDoc(docRef, {
+        ...camposGestion,
+        estado: radicadoActual?.estado === 'R. por C.'
+          ? 'R. por C.'
+          : camposGestion.estado
+      });
+    }
+
+    alert(destinosSeleccionados.length > 0
+      ? 'La PQRS fue remitida a las dependencias seleccionadas.'
+      : 'Gestión guardada correctamente.');
     cerrarModalOtrosEstados();
     await cargarDatosDesdeFirebase();
   } catch (error) {
     console.error("Error al guardar estado/observaciones:", error);
-    alert("Ocurrió un error al guardar los datos.");
+    alert(`No se pudo guardar la gestión: ${error.message}`);
   } finally {
     if (spinner) spinner.style.display = 'none';
     if (texto) texto.textContent = 'Guardar';

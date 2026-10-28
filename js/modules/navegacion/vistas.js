@@ -1,8 +1,9 @@
 import { establecerDependenciaActual } from '../../data/radicados.js';
+import { actualizarInformes, redimensionarGraficasInformes } from '../informes/tablero.js';
 import { establecerFormularioVisible } from '../radicados/formulario.js';
 
 function mostrarVista(idVista) {
-  ['pantallaInicio', 'pantallaGeneracion', 'vista-dependencias', 'pantallaDependencia', 'pantallaIAS'].forEach(id => {
+  ['pantallaInicio', 'pantallaGeneracion', 'vista-dependencias', 'pantallaDependencia', 'pantallaIAS', 'pantallaInformes'].forEach(id => {
     const vista = document.getElementById(id);
     if (vista) vista.style.display = id === idVista ? 'block' : 'none';
   });
@@ -38,6 +39,15 @@ window.mostrarIAS = function() {
   mostrarVista('pantallaIAS');
   establecerFormularioVisible(false);
   activarMenu('ias');
+};
+
+window.mostrarInformes = function() {
+  establecerDependenciaActual("");
+  mostrarVista('pantallaInformes');
+  actualizarInformes();
+  redimensionarGraficasInformes();
+  establecerFormularioVisible(false);
+  activarMenu('informes');
 };
 
 window.mostrarDependenciasMenu = function() {

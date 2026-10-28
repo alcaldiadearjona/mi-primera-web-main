@@ -267,3 +267,84 @@
     border-radius: 8px !important;
   }
 }
+
+@media (max-width: 1600px) {
+  #pantallaDependencia .detail-table-scroll {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #pantallaDependencia .detail-table-scroll-hint {
+    display: block;
+    margin: 0 0 8px;
+    color: #64748b;
+    font-size: 12px;
+    text-align: right;
+  }
+
+  #pantallaDependencia .table-custom {
+    width: 1400px;
+    min-width: 1400px;
+    table-layout: fixed !important;
+    font-size: 12px;
+  }
+
+  #pantallaDependencia .table-custom th,
+  #pantallaDependencia .table-custom td {
+    padding: 10px 6px !important;
+    font-size: 12px !important;
+    line-height: 1.4;
+    overflow-wrap: normal;
+  }
+
+  #pantallaDependencia .table-custom th {
+    font-size: 10px !important;
+    white-space: normal !important;
+  }
+
+  #pantallaDependencia .table-custom th:nth-child(1),
+  #pantallaDependencia .table-custom td:nth-child(1) { width: 75px !important; }
+  #pantallaDependencia .table-custom th:nth-child(2),
+  #pantallaDependencia .table-custom td:nth-child(2) { width: 110px !important; }
+  #pantallaDependencia .table-custom th:nth-child(3),
+  #pantallaDependencia .table-custom td:nth-child(3) { width: 100px !important; }
+  #pantallaDependencia .table-custom th:nth-child(4),
+  #pantallaDependencia .table-custom td:nth-child(4) { width: 100px !important; }
+  #pantallaDependencia .table-custom th:nth-child(5),
+  #pantallaDependencia .table-custom td:nth-child(5) { width: 130px !important; }
+  #pantallaDependencia .table-custom th:nth-child(6),
+  #pantallaDependencia .table-custom td:nth-child(6) { width: 105px !important; }
+  #pantallaDependencia .table-custom th:nth-child(7),
+  #pantallaDependencia .table-custom td:nth-child(7) { width: 72px !important; }
+  #pantallaDependencia .table-custom th:nth-child(8),
+  #pantallaDependencia .table-custom td:nth-child(8) { width: 145px !important; }
+  #pantallaDependencia .table-custom th:nth-child(9),
+  #pantallaDependencia .table-custom td:nth-child(9) { width: 160px !important; }
+  #pantallaDependencia .table-custom th:nth-child(10),
+  #pantallaDependencia .table-custom td:nth-child(10) { width: 140px !important; }
+  #pantallaDependencia .table-custom th:nth-child(11),
+  #pantallaDependencia .table-custom td:nth-child(11) { width: 130px !important; }
+  #pantallaDependencia .table-custom th:nth-child(12),
+  #pantallaDependencia .table-custom td:nth-child(12) { width: 125px !important; }
+}
+
+@media (max-width: 600px) {
+  #pantallaDependencia .detail-table-scroll-hint {
+    text-align: left;
+  }
+
+  #pantallaDependencia .detail-filters input,
+  #pantallaDependencia .detail-filters select,
+  #pantallaDependencia #filtroMes {
+    width: 100% !important;
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  #pantallaDependencia .detail-filter-button {
+    justify-content: center;
+  }
+}

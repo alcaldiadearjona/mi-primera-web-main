@@ -27,6 +27,7 @@ export const navegacionMarkup = String.raw`  <div class="mobile-toolbar">
         <a class="menu-item d-flex align-items-center gap-2" data-menu-view="dependencias" onclick="mostrarDependenciasMenu()"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias</a>
         <a class="menu-item d-flex align-items-center gap-2" data-menu-view="generacion" onclick="mostrarGeneracionRadicados()"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> Generación de Radicados</a>
         <a class="menu-item d-flex align-items-center gap-2" data-menu-view="ias" onclick="mostrarIAS()"><i class="bi bi-bank" aria-hidden="true"></i> IAS</a>
+        <a class="menu-item d-flex align-items-center gap-2" data-menu-view="informes" onclick="mostrarInformes()"><i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i> Informes</a>
       </nav>
     </div>
 

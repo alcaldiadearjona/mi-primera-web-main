@@ -36,6 +36,103 @@
   box-shadow: 0 0 0 3px rgba(0, 168, 56, 0.1);
 }
 
+.pqrs-dependency-selector {
+  position: relative;
+}
+
+#alternarDependenciasPqrs {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+#alternarDependenciasPqrs:focus-visible {
+  border-color: #00a838;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(0, 168, 56, 0.14);
+}
+
+#resumenDependenciasPqrs {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#opcionesDependenciasPqrs {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 5px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #d8e1e9;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+}
+
+#opcionesDependenciasPqrs[hidden] {
+  display: none;
+}
+
+.pqrs-dependency-option {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 7px;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.pqrs-dependency-option > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pqrs-dependency-option:hover {
+  background: #f1f8f4;
+}
+
+#contenedorFormulario #pqrsForm #opcionesDependenciasPqrs .pqrs-dependency-option input[type="checkbox"] {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  flex: 0 0 16px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 3px;
+  box-shadow: none !important;
+  accent-color: #078c4b;
+}
+
 .dependencias-filter-chip {
   display: inline-flex;
   min-height: 40px;
@@ -244,4 +341,3 @@
 #vista-dependencias > .view-card:first-child::after {
   display: none;
 }
-

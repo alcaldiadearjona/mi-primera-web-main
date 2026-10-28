@@ -1,4 +1,5 @@
-#pantallaGeneracion > .generation-header {
+#pantallaGeneracion > .generation-header,
+#pantallaInformes > .reports-header {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(0, 168, 56, 0.12);
@@ -12,25 +13,30 @@
   box-shadow: 0 14px 30px -8px rgba(20, 46, 36, 0.18), 0 4px 10px rgba(0, 168, 56, 0.1);
 }
 
-#pantallaGeneracion > .generation-header::after {
+#pantallaGeneracion > .generation-header::after,
+#pantallaInformes > .reports-header::after {
   display: none;
 }
 
-#pantallaGeneracion > .generation-header .top-header-content {
+#pantallaGeneracion > .generation-header .top-header-content,
+#pantallaInformes > .reports-header .top-header-content {
   position: relative;
   z-index: 1;
   max-width: 70%;
 }
 
-#pantallaGeneracion > .generation-header h1 {
+#pantallaGeneracion > .generation-header h1,
+#pantallaInformes > .reports-header h1 {
   color: #1f2937;
 }
 
-#pantallaGeneracion > .generation-header p {
+#pantallaGeneracion > .generation-header p,
+#pantallaInformes > .reports-header p {
   color: #334155;
 }
 
-#pantallaGeneracion > .generation-header h1 i {
+#pantallaGeneracion > .generation-header h1 i,
+#pantallaInformes > .reports-header h1 i {
   color: var(--institutional-green);
 }
 
@@ -894,7 +900,8 @@
     margin-left: auto;
   }
 
-  #pantallaGeneracion > .generation-header .top-header-content {
+  #pantallaGeneracion > .generation-header .top-header-content,
+  #pantallaInformes > .reports-header .top-header-content {
     max-width: 78%;
   }
 

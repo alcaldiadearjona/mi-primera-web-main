@@ -1,14 +1,21 @@
 export const iasMarkup = String.raw`<div id="pantallaIAS" style="display: none;">
-      <header class="top-header">
+      <header class="top-header institutional-header">
         <div class="top-header-content">
           <h1><i class="bi bi-bank" aria-hidden="true"></i> IAS</h1>
           <p>Atención a Contraloría, Procuraduría y demás entes de control</p>
         </div>
+        <div class="institutional-header-art" aria-hidden="true">
+          <img src="assets/images/bandera-header.png" alt="">
+        </div>
+        <span class="institutional-header-accent" aria-hidden="true"></span>
       </header>
 
       <section class="ias-page" aria-label="Entidades IAS">
         <div class="dependencias-toolbar ias-toolbar">
-          <input id="buscarEntidadIAS" type="search" placeholder="Buscar entidad, N° radicado o remitente..." aria-label="Buscar entidad, número de radicado o remitente">
+          <span style="font-size: 13px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-search" aria-hidden="true"></i> Buscar:
+          </span>
+          <input id="buscarEntidadIAS" type="text" placeholder="Buscar entidad, N° radicado o remitente..." aria-label="Buscar entidad, número de radicado o remitente">
           <button id="limpiarBusquedaIAS" class="dependencias-filter-chip" type="button" aria-label="Limpiar búsqueda IAS">
             <i class="bi bi-sliders" aria-hidden="true"></i>
             <span>Filtros</span>

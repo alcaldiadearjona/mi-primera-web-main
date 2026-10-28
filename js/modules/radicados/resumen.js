@@ -2,7 +2,9 @@ import { datosRadicados } from '../../data/radicados.js';
 import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
 export function actualizarResumenRadicados() {
-  const radicados = Object.values(datosRadicados).flat();
+  const radicados = Object.values(datosRadicados)
+    .flat()
+    .filter(radicado => !radicado.remisionOrigenId);
   const radicadosConEstado = radicados.map((radicado) => ({
     radicado,
     estado: evaluarEstadoAutomatico(
@@ -12,7 +14,7 @@ export function actualizarResumenRadicados() {
       radicado.estado
     )
   }));
-  const resueltas = radicadosConEstado.filter(({ estado }) => estado.texto === 'CERRADO').length;
+  const resueltas = radicadosConEstado.filter(({ estado }) => estado.clase === 'status-cerrado').length;
 
   document.getElementById('resumenTotal').textContent = String(radicados.length);
   document.getElementById('resumenEnTramite').textContent = String(radicados.length - resueltas);

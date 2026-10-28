@@ -1,9 +1,13 @@
 export const inicioMarkup = String.raw`<div id="pantallaInicio">
-      <header class="top-header">
+      <header class="top-header institutional-header">
         <div class="top-header-content">
           <h1><i id="iconoPantallaPrincipal" class="bi bi-folder2-open" aria-hidden="true"></i> <span id="tituloPantallaPrincipal">Ventanilla Única</span></h1>
           <p id="subtituloPantallaPrincipal">Sistema Institucional de Radicación de Correspondencia y PQRS</p>
         </div>
+        <div class="institutional-header-art" aria-hidden="true">
+          <img src="assets/images/bandera-header.png" alt="">
+        </div>
+        <span class="institutional-header-accent" aria-hidden="true"></span>
       </header>
 
       <div class="dashboard-layout">
@@ -29,8 +33,15 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             </div>
 
             <div class="form-group">
-              <label for="dependencia">Dependencia Destino</label>
-              <select id="dependencia" required>
+              <label id="etiquetaDependenciaDestino" for="alternarDependenciasPqrs">Dependencias Destino</label>
+              <div id="selectorDependenciasPqrs" class="pqrs-dependency-selector">
+                <button id="alternarDependenciasPqrs" type="button" aria-expanded="false" aria-controls="opcionesDependenciasPqrs">
+                  <span id="resumenDependenciasPqrs">-- Seleccionar Dependencias --</span>
+                  <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div id="opcionesDependenciasPqrs" class="pqrs-dependency-options" role="group" aria-labelledby="etiquetaDependenciaDestino" hidden></div>
+              </div>
+              <select id="dependencia" hidden aria-hidden="true" tabindex="-1">
                 <option value="">-- Seleccionar Dependencia --</option>
                 <option value="Secretaría de Gobierno">Secretaría de Gobierno</option>
                 <option value="Secretaría de Planeación">Secretaría de Planeación</option>

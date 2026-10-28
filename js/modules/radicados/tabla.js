@@ -1,4 +1,4 @@
-import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
 // Función auxiliar para convertir textos a formato Título
 function aTitulo(texto) {
@@ -89,7 +89,9 @@ export function renderizarTablaRadicados(lista) {
       'status-extemporanea': 'Extemporánea',
       'status-tramite': 'En Trámite'
     };
-    const textoEstado = etiquetasEstado[estadoObj.clase] || estadoObj.texto;
+    const textoEstado = estadoObj.texto === 'R. por C.'
+      ? estadoObj.texto
+      : etiquetasEstado[estadoObj.clase] || estadoObj.texto;
 
     // Validacion para ti PDF
     const tienePdf = reg.pdfUrl && reg.pdfUrl.trim() !== '' && reg.pdfUrl.startsWith('http');
@@ -171,18 +173,49 @@ if (reg.respuestaUrl) {
       </td>
       
       <td>
-        <button onclick="prepararEdicion('${reg.id}')" style="background:#2563eb; color:white; border:none; width:34px; height:34px; border-radius:8px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 4 4 4"></path><path d="M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"></path><path d="m14.5 6.5 3 3"></path></svg>
-        </button>
-        <button onclick="abrirModalOtrosEstados('${reg.id}')" style="background:#00a838; color:white; border:none; width:34px; height:34px; border-radius:8px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Gestionar / Agregar Estado" aria-label="Gestionar / Agregar Estado">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-        <button onclick="eliminarRadicado('${reg.id}', this)" style="background:#dc2626; color:white; border:none; width:34px; height:34px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Eliminar" aria-label="Eliminar">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
-        </button>
-      </td>
-      <td>${columnaRespuestaHtml}</td>
+  <button onclick="prepararEdicion('${reg.id}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 4 4 4"></path><path d="M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"></path><path d="m14.5 6.5 3 3"></path></svg>
+  </button>
+  <button onclick="abrirModalOtrosEstados('${reg.id}')" style="background:#00a838; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Gestionar / Agregar Estado" aria-label="Gestionar / Agregar Estado">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  </button>
+  <button onclick="eliminarRadicado('${reg.id}', this)" style="background:#dc2626; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Eliminar" aria-label="Eliminar">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+  </button>
+</td>
+<td>${columnaRespuestaHtml}</td>
     `;
+
+    const dependenciasDestino = Array.isArray(reg.dependenciasDestino) ? reg.dependenciasDestino : [];
+    const textoRemision = dependenciasDestino.length
+? `Remitido a: ${dependenciasDestino.map(abreviarNombreDependencia).join(', ')}`
+: reg.remisionOrigenDependencia
+  ? `Recibido de: ${abreviarNombreDependencia(reg.remisionOrigenDependencia)}`
+  : '';
+    if (textoRemision) {
+const botonRemision = document.createElement('button');
+botonRemision.className = 'competence-routing-toggle';
+botonRemision.type = 'button';
+botonRemision.textContent = dependenciasDestino.length ? 'Ver destino' : 'Ver origen';
+botonRemision.setAttribute('aria-expanded', 'false');
+botonRemision.addEventListener('mousedown', event => event.preventDefault());
+
+const detalleRemision = document.createElement('small');
+detalleRemision.className = 'competence-routing-note';
+detalleRemision.textContent = textoRemision;
+detalleRemision.hidden = true;
+
+botonRemision.addEventListener('click', () => {
+  const mostrarDetalle = detalleRemision.hidden;
+  detalleRemision.hidden = !mostrarDetalle;
+  botonRemision.setAttribute('aria-expanded', String(mostrarDetalle));
+  botonRemision.textContent = mostrarDetalle
+    ? 'Ocultar'
+    : dependenciasDestino.length ? 'Ver destino' : 'Ver origen';
+});
+
+tr.cells[5].append(botonRemision, detalleRemision);
+    }
 
     const funcionarioCell = document.createElement('td');
     funcionarioCell.className = 'assigned-official-cell';

@@ -49,7 +49,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
           <time id="periodoActual"></time>
         </div>
 
-        <p class="detail-table-scroll-hint">La tabla se ajusta al ancho de tu pantalla.</p>
+        <p class="detail-table-scroll-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
 
         <div class="detail-table-scroll">
           <table class="table-custom">

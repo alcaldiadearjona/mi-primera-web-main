@@ -4,6 +4,10 @@ import { datosRadicados, dependenciaActual, establecerDatosRadicados } from '../
 import { sumarDiasHabilesColombia } from '../utils/helpers.js';
 import { actualizarContadores, actualizarResumenRadicados } from '../modules/radicados/resumen.js';
 import { abrirDependencia } from '../modules/radicados/detalle.js';
+import {
+  establecerErrorDependenciasInforme,
+  establecerDependenciasInforme
+} from '../modules/informes/tablero.js';
 
 export async function cargarDatosDesdeFirebase() {
   const filtrosDetalle = dependenciaActual
@@ -63,13 +67,19 @@ export async function cargarDatosDesdeFirebase() {
           pdfUrl: item.pdfUrl || '',
           respuestaUrl: item.respuestaUrl || '',
           otrosEstados: item.otrosEstados || '',
-          observaciones: item.observaciones || ''
+          observaciones: item.observaciones || '',
+          dependenciasDestino: Array.isArray(item.dependenciasDestino) ? item.dependenciasDestino : [],
+          remisionOrigenId: item.remisionOrigenId || '',
+          remisionOrigenDependencia: item.remisionOrigenDependencia || '',
+          remisionOrigenRadicado: item.remisionOrigenRadicado || '',
+          fechaRemisionCompetencia: item.fechaRemisionCompetencia || ''
         });
       }
     });
 
     actualizarContadores();
     actualizarResumenRadicados();
+    establecerDependenciasInforme();
     if (dependenciaActual) {
       abrirDependencia(dependenciaActual);
       if (filtrosDetalle) {
@@ -91,6 +101,7 @@ export async function cargarDatosDesdeFirebase() {
     }
   } catch (err) {
     console.error("Error cargando desde Firebase:", err);
+    establecerErrorDependenciasInforme();
     const resumenRecientes = document.getElementById('resumenRecientes');
     if (resumenRecientes) {
       resumenRecientes.textContent = 'No fue posible cargar el resumen de radicados.';

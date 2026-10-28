@@ -1,8 +1,14 @@
 export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style="display: none;">
       <!-- Tarjeta principal -->
-      <div class="view-card card shadow-sm" style="margin-bottom: 25px;">
-        <h2 class="section-title" style="margin: 0; font-size: 25px; color: #0f172a;"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias Municipales</h2>
-        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Selecciona una dependencia para gestionar sus trámites y correspondencia.</p>
+      <div class="view-card card shadow-sm institutional-header dependencies-header" style="margin-bottom: 25px;">
+        <div class="top-header-content">
+          <h2 class="section-title"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias Municipales</h2>
+          <p>Selecciona una dependencia para gestionar sus trámites y correspondencia.</p>
+        </div>
+        <div class="institutional-header-art" aria-hidden="true">
+          <img src="assets/images/bandera-header.png" alt="">
+        </div>
+        <span class="institutional-header-accent" aria-hidden="true"></span>
       </div>
 
       <!-- Buscador -->

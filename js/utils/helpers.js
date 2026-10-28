@@ -101,6 +101,21 @@ export function sumarDiasHabilesColombia(fechaInicioStr, diasHabiles) {
   return formatearIso(fecha);
 }
 
+export function abreviarNombreDependencia(nombre) {
+  const abreviaturas = {
+    'Oficina de Gestion del Riesgo y Desastres': 'Of. Gestión del Riesgo',
+    'Oficina Juridica': 'Of. Jurídica',
+    'Despacho del Alcalde': 'Despacho Alcalde',
+    'Talento Humano': 'Talento Humano',
+    'Control Interno': 'Control Interno',
+    'Secretaría de Transito y Transporte': 'S. Tránsito',
+    'Gestion Social': 'Gestión Social',
+    'Sisben': 'Sisbén'
+  };
+  if (abreviaturas[nombre]) return abreviaturas[nombre];
+  return nombre.replace(/^Secretaría de\s+/, 'S. ').replace(/^Oficina de\s+/, 'Of. ');
+}
+
 // EVALUACIÓN DE ESTADO AUTOMÁTICO (Filtro estricto para CERRADO)
 export function evaluarEstadoAutomatico(fechaVencimientoStr, respuestaUrl = null, otrosEstados = null, estadoBase = null) {
   // 1. Convertir 'otrosEstados' a texto limpio para comparar de forma segura
@@ -117,15 +132,19 @@ export function evaluarEstadoAutomatico(fechaVencimientoStr, respuestaUrl = null
 
   const esParaConocimiento = otroEstadoTexto.includes("para conocimiento");
   const noRequiereRespuesta = otroEstadoTexto.includes("no requiere respuesta");
+  const estadoNormalizado = estadoBase
+    ? estadoBase.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()
+    : "";
+
+  if (/^r\.\s*por\s*c\.$/.test(estadoNormalizado)) {
+    return { texto: "R. por C.", clase: "status-cerrado" };
+  }
 
   // 3. SOLO pasa a CERRADO si tiene una URL real o si se eligió una de las dos opciones explícitas
   if (tieneRespuestaValida || esParaConocimiento || noRequiereRespuesta) {
     return { texto: "CERRADO", clase: "status-cerrado" };
   }
 
-  const estadoNormalizado = estadoBase
-    ? estadoBase.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()
-    : "";
   if (estadoNormalizado === "en tramite") {
     return { texto: "EN TRÁMITE", clase: "status-tramite" };
   }

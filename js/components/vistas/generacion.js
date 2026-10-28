@@ -1,9 +1,13 @@
 export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="display: none;">
-      <header class="top-header generation-header">
+      <header class="top-header generation-header institutional-header">
         <div class="top-header-content">
           <h1><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> Generación de Radicados</h1>
           <p>Sistema de Generación de Radicados de Salida</p>
         </div>
+        <div class="institutional-header-art" aria-hidden="true">
+          <img src="assets/images/bandera-header.png" alt="">
+        </div>
+        <span class="institutional-header-accent" aria-hidden="true"></span>
       </header>
 
       <section class="generation-page" aria-labelledby="accionesGeneracion">
