@@ -62,7 +62,7 @@
 
 @container dashboard-summary (max-width: 500px) {
   .dashboard-stats {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -213,7 +213,6 @@
 
 @media (max-width: 600px) {
   .dashboard-stats {
-    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     margin-bottom: 14px;
   }
@@ -243,5 +242,37 @@
   .recent-open {
     grid-column: 2;
     grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 500px) {
+  .summary-card {
+    min-height: 0;
+    padding: 9px;
+  }
+
+  .summary-card-top {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .summary-badge {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .summary-card h3 {
+    margin: 4px 0;
+    font-size: 23px;
+  }
+
+  .summary-card-bottom {
+    justify-content: flex-start;
+  }
+
+  .summary-trend {
+    display: none;
   }
 }

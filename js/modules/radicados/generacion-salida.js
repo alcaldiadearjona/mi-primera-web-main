@@ -6,6 +6,7 @@ import {
   updateDoc
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
+import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { completarClaveIdempotencia, obtenerClaveIdempotencia } from '../../utils/idempotencia.js';
 import { confirmarAccion, mostrarAviso } from '../ui/avisos.js';
@@ -334,6 +335,7 @@ async function descargarPlanillaGeneracion(registros) {
     for (let columna = 1; columna <= 9; columna += 1) {
       const celda = fila.getCell(columna);
       celda.style = { ...filaModelo.getCell(columna).style };
+      asegurarBordesCeldaExcel(celda);
       celda.value = null;
     }
 

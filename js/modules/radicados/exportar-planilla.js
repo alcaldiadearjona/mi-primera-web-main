@@ -1,4 +1,5 @@
 import { datosRadicados } from '../../data/radicados.js';
+import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
 
 const RUTA_PLANTILLA = new URL(
   '../../../assets/plantillas/Planilla de Recibido de Comunicaciones Entrantes.xlsx',
@@ -125,7 +126,9 @@ async function descargarPlanilla(registros) {
       fila.height = filaModelo.height;
     }
     for (let columna = 1; columna <= 10; columna += 1) {
-      fila.getCell(columna).style = { ...filaModelo.getCell(columna).style };
+      const celda = fila.getCell(columna);
+      celda.style = { ...filaModelo.getCell(columna).style };
+      asegurarBordesCeldaExcel(celda);
     }
 
     fila.getCell('A').value = registro.radicado || '';
