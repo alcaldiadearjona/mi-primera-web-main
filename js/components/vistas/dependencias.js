@@ -22,6 +22,10 @@ export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style=
           <span>Filtros</span>
           <span class="dependencias-filter-clear" aria-hidden="true"><i class="bi bi-x"></i></span>
         </button>
+        <button id="abrirExportarPlanilla" class="received-register-button" type="button">
+          <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
+          Descargar planilla
+        </button>
       </div>
 
       <div class="dependencias-grid" id="contenedorDependencias">
@@ -86,6 +90,86 @@ export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style=
           <span id="cant-Gestion Social" style="font-size: 13px; color: #64748b; font-weight: 600; display: block; margin-top: 8px;">0 radicados</span>
         </div>
       </div>
+      <dialog id="modalExportarPlanilla" class="received-register-dialog" aria-labelledby="tituloModalPlanilla">
+        <form id="formExportarPlanilla" class="received-register-dialog-card">
+          <div class="received-register-dialog-heading">
+            <span class="received-register-dialog-icon"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i></span>
+            <div>
+              <h2 id="tituloModalPlanilla">Generar planilla general de recibidos</h2>
+              <p>Combina los filtros que necesites para preparar el Excel.</p>
+            </div>
+            <button id="cerrarModalPlanilla" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+          </div>
+          <div class="received-register-filters">
+            <section class="received-register-filter-section" aria-labelledby="tituloFiltroRadicado">
+              <h3 id="tituloFiltroRadicado"><i class="bi bi-hash" aria-hidden="true"></i> Rango de radicados <span>Opcional</span></h3>
+              <div class="received-register-range">
+            <label>
+                  Desde
+                  <input id="radicadoDesdePlanilla" name="radicadoDesde" type="text" placeholder="Ej.: R-2026-03148" autocomplete="off">
+            </label>
+            <label>
+                  Hasta
+                  <input id="radicadoHastaPlanilla" name="radicadoHasta" type="text" placeholder="Ej.: R-2026-03160" autocomplete="off">
+            </label>
+              </div>
+            </section>
+            <section class="received-register-filter-section" aria-labelledby="tituloFiltroFecha">
+              <h3 id="tituloFiltroFecha"><i class="bi bi-calendar3" aria-hidden="true"></i> Fecha de radicación <span>Opcional</span></h3>
+              <div class="received-register-range received-register-date-range">
+                <label>
+                  Desde
+                  <input id="fechaDesdePlanilla" name="fechaDesde" type="date">
+                </label>
+                <label>
+                  Hasta
+                  <input id="fechaHastaPlanilla" name="fechaHasta" type="date">
+                </label>
+              </div>
+              <div class="received-register-range received-register-period-range">
+                <label>
+                  Mes
+                  <select id="mesPlanilla" name="mes">
+                    <option value="">Todos los meses</option>
+                    <option value="01">Enero</option>
+                    <option value="02">Febrero</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Mayo</option>
+                    <option value="06">Junio</option>
+                    <option value="07">Julio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                </label>
+                <label>
+                  Año
+                  <input id="anoPlanilla" name="ano" type="number" min="1900" max="9999" step="1" placeholder="Ej.: 2026">
+                </label>
+              </div>
+            </section>
+            <section class="received-register-filter-section" aria-labelledby="tituloFiltroDependencia">
+              <h3 id="tituloFiltroDependencia"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias <span>Puedes elegir varias</span></h3>
+              <label class="received-register-select-all">
+                <input id="todasDependenciasPlanilla" type="checkbox" checked>
+                Todas las dependencias
+              </label>
+              <div id="dependenciasPlanilla" class="received-register-dependencies" aria-label="Selecciona las dependencias"></div>
+            </section>
+          </div>
+          <p id="errorExportarPlanilla" class="received-register-error" role="alert" hidden></p>
+          <div class="received-register-dialog-actions">
+            <button id="cancelarExportarPlanilla" class="received-register-cancel" type="button">Cancelar</button>
+            <button id="confirmarExportarPlanilla" class="received-register-submit" type="submit">
+              <i class="bi bi-download" aria-hidden="true"></i>
+              Descargar Excel
+            </button>
+          </div>
+        </form>
+      </dialog>
     </div>
 
     <!-- VISTA 3: PANTALLA DE LA DEPENDENCIA SELECCIONADA -->

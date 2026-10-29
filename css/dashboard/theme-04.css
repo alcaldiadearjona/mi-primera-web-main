@@ -55,6 +55,17 @@
   color: #2782c9;
 }
 
+.dashboard-summary {
+  container-name: dashboard-summary;
+  container-type: inline-size;
+}
+
+@container dashboard-summary (max-width: 500px) {
+  .dashboard-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .recent-card {
   padding: 18px;
   border: 1px solid #e3eaf0;

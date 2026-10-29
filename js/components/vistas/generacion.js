@@ -11,6 +11,11 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
       </header>
 
       <section class="generation-page" aria-labelledby="accionesGeneracion">
+        <div class="generation-export-toolbar">
+          <button id="abrirExportarGeneracion" class="generation-register-export-button" type="button">
+            <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Descargar planilla
+          </button>
+        </div>
         <div class="generation-dashboard">
           <div class="dashboard-form-column generation-form-column">
             <h2 id="accionesGeneracion" class="section-title">
@@ -37,6 +42,25 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
 
                 <form id="formGeneracionSalida">
                 <div class="generation-form-grid">
+                <fieldset class="generation-mode-selector generation-full-width">
+                  <legend>Tipo de generación</legend>
+                  <label>
+                    <input id="modoGeneracionIndividual" name="modoRadicado" type="radio" value="individual" checked>
+                    Un radicado
+                  </label>
+                  <label>
+                    <input id="modoGeneracionMasiva" name="modoRadicado" type="radio" value="masivo">
+                    Generación masiva (registra inicio y fin del rango)
+                  </label>
+                </fieldset>
+
+                <div id="grupoCantidadMasiva" class="form-group generation-full-width" hidden>
+                  <label for="cantidadRadicadosSalida">Cantidad <span aria-hidden="true">*</span></label>
+                  <input id="cantidadRadicadosSalida" name="cantidadRadicados" type="number" min="2" max="400" step="1" inputmode="numeric" placeholder="Indica cuántos consecutivos incluye el rango" disabled>
+                  <span id="ayudaCantidadRadicados" class="generation-field-hint">Máximo 400 consecutivos por lote. En la tabla se guardarán el primer y el último radicado del rango.</span>
+                </div>
+
+                <div id="grupoDatosRadicadoSalida" class="generation-form-grid generation-full-width">
                 <div class="form-group">
                   <label for="destinatarioSalida">Nombre y Datos del Destinatario <span aria-hidden="true">*</span></label>
                   <input id="destinatarioSalida" name="destinatario" type="text" placeholder="Ej: Nombre completo, cargo, entidad, dirección" required>
@@ -80,11 +104,11 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                 </div>
 
                 <div class="form-group generation-full-width">
-                  <label for="anexosSalida">Anexos <span aria-hidden="true">*</span></label>
-                  <input id="anexosSalida" name="anexos" type="text" placeholder="Ej: 2 documentos, 1 informe, etc." required>
+                  <label for="anexosSalida">Número de anexos del oficio <span aria-hidden="true">*</span></label>
+                  <input id="anexosSalida" name="anexos" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej.: 2" required>
                 </div>
 
-                <div class="form-group generation-full-width">
+                <div id="grupoArchivosSalida" class="form-group generation-full-width">
                   <label for="archivosSalida">Adjuntar Archivo(s)</label>
                   <div class="generation-file-picker">
                     <label class="generation-file-button" for="archivosSalida">
@@ -98,6 +122,8 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                   <ul id="listaArchivosSalida" class="generation-file-list" aria-live="polite"></ul>
                 </div>
                 </div>
+                </div>
+                <p id="avisoAdjuntosMasivos" class="generation-field-hint generation-full-width" hidden></p>
 
                 <div class="generation-form-footer">
                   <button type="submit" class="btn-guardar generation-submit">
@@ -185,6 +211,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                   <tr>
                     <th>N° Radicado</th>
                     <th>F. Generación</th>
+                    <th>Hora de generación</th>
                     <th>Destinatario</th>
                     <th>Asunto</th>
                     <th>Folios</th>
@@ -246,8 +273,8 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                 <input id="foliosEditarSalida" type="number" min="1" step="1" required>
               </div>
               <div class="form-group generation-full-width">
-                <label for="anexosEditarSalida">Anexos *</label>
-                <input id="anexosEditarSalida" type="text" required>
+                <label for="anexosEditarSalida">Número de anexos del oficio *</label>
+                <input id="anexosEditarSalida" type="number" min="0" step="1" inputmode="numeric" required>
               </div>
               <div class="form-group generation-full-width">
                 <label>Archivos adjuntos</label>
@@ -268,5 +295,47 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
           </form>
         </div>
       </div>
+      <dialog id="modalExportarGeneracion" class="received-register-dialog" aria-labelledby="tituloModalExportarGeneracion">
+        <form id="formExportarGeneracion" class="received-register-dialog-card">
+          <div class="received-register-dialog-heading">
+            <span class="received-register-dialog-icon"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i></span>
+            <div>
+              <h2 id="tituloModalExportarGeneracion">Descargar registro de radicados</h2>
+              <p>Selecciona una fecha, un mes o un año para incluir.</p>
+            </div>
+            <button id="cerrarModalExportarGeneracion" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+          </div>
+          <div class="received-register-filters">
+            <label class="received-register-period-selector">
+              Filtrar por
+              <select id="tipoPeriodoExportarGeneracion" name="tipoPeriodo">
+                <option value="fecha">Fecha específica</option>
+                <option value="mes">Mes completo</option>
+                <option value="ano">Año completo</option>
+              </select>
+            </label>
+            <label id="grupoFechaExportarGeneracion" class="received-register-period-selector">
+              Fecha de generación
+              <input id="fechaExportarGeneracion" name="fecha" type="date" required>
+            </label>
+            <label id="grupoMesExportarGeneracion" class="received-register-period-selector" hidden>
+              Mes de generación
+              <input id="mesExportarGeneracion" name="mes" type="month" disabled>
+            </label>
+            <label id="grupoAnoExportarGeneracion" class="received-register-period-selector" hidden>
+              Año de generación
+              <input id="anoExportarGeneracion" name="ano" type="number" min="2000" max="9999" step="1" placeholder="Ej.: 2026" disabled>
+            </label>
+          </div>
+          <p id="errorExportarGeneracion" class="received-register-error" role="alert" hidden></p>
+          <div class="received-register-dialog-actions">
+            <button id="cancelarExportarGeneracion" class="received-register-cancel" type="button">Cancelar</button>
+            <button id="confirmarExportarGeneracion" class="received-register-submit" type="submit">
+              <i class="bi bi-download" aria-hidden="true"></i>
+              Descargar Excel
+            </button>
+          </div>
+        </form>
+      </dialog>
     </div>
 `;

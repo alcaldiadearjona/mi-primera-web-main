@@ -12,9 +12,15 @@ import { confirmarAccion, mostrarAviso } from '../ui/avisos.js';
 
 const MAX_ARCHIVOS = 10;
 const MAX_TAMANO_ARCHIVO = 10 * 1024 * 1024;
+const MAX_RADICADOS_POR_LOTE = 400;
 const COLECCION_SALIDA = 'radicadosSalida';
 const COLECCION_SECUENCIAS_SALIDA = 'radicadosSalidaSecuencias';
 const STORAGE_SOLICITUDES_PENDIENTES = 'radicadosSalida:solicitudesPendientes';
+const RUTA_PLANTILLA_SALIDA = new URL(
+  '../../../assets/plantillas/Registro de Radicación de Comunicaciones Oficiales Salientes.xlsx',
+  import.meta.url
+);
+const URL_EXCELJS_SALIDA = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
 const TIPOS_ARCHIVO_COMPATIBLES = new Set([
   'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'
 ]);
@@ -23,6 +29,7 @@ let radicadosSalida = [];
 let mesAbierto = '';
 let filtroGeneracion = '';
 let solicitudGeneracionEnCurso = false;
+let cargaExcelJsSalida;
 const solicitudesGeneracionCompletadas = new Set();
 
 window.toggleFormularioGeneracion = function() {
@@ -43,6 +50,44 @@ function formatearTamano(bytes) {
 function obtenerMes(fecha) {
   const coincidencia = typeof fecha === 'string' ? fecha.match(/^(\d{4})-(\d{2})/) : null;
   return coincidencia ? `${coincidencia[1]}-${coincidencia[2]}` : '';
+}
+
+function obtenerFechaBogota(fecha) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Bogota'
+  }).format(fecha);
+}
+
+function obtenerHoraBogota(fecha) {
+  return new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).format(fecha);
+}
+
+function obtenerFechaRegistro(registro) {
+  return registro.fechaGeneracion || (registro.creadoEn ? obtenerFechaBogota(new Date(registro.creadoEn)) : '');
+}
+
+function obtenerHoraRegistro(registro) {
+  return registro.horaGeneracion || (registro.creadoEn ? obtenerHoraBogota(new Date(registro.creadoEn)) : '');
+}
+
+function formatearConteoAnexos(valor) {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const cantidad = Number(valor);
+  return Number.isInteger(cantidad) && cantidad >= 0 ? cantidad : '';
+}
+
+function formatearMayusculasIniciales(valor) {
+  return String(valor || '')
+    .toLocaleLowerCase('es-CO')
+    .replace(/(^|[\s-])(\p{L})/gu, (coincidencia, separador, letra) => (
+      `${separador}${letra.toLocaleUpperCase('es-CO')}`
+    ));
 }
 
 function obtenerEtiquetaMes(mesKey) {
@@ -117,6 +162,51 @@ function enlazarDependenciaOtra(selector, grupo, input) {
   actualizar();
 }
 
+function actualizarModoGeneracion() {
+  const modoSeleccionado = document.querySelector('input[name="modoRadicado"]:checked')?.value || 'individual';
+  const esGeneracionMasiva = modoSeleccionado === 'masivo';
+  const grupoCantidadMasiva = document.getElementById('grupoCantidadMasiva');
+  const cantidadMasivaInput = document.getElementById('cantidadRadicadosSalida');
+  const grupoDatos = document.getElementById('grupoDatosRadicadoSalida');
+  const inputArchivos = document.getElementById('archivosSalida');
+  const grupoArchivos = document.getElementById('grupoArchivosSalida');
+  const avisoAdjuntosMasivos = document.getElementById('avisoAdjuntosMasivos');
+
+  if (grupoCantidadMasiva) grupoCantidadMasiva.hidden = modoSeleccionado === 'individual';
+  if (cantidadMasivaInput) {
+    cantidadMasivaInput.disabled = modoSeleccionado === 'individual';
+    cantidadMasivaInput.required = modoSeleccionado !== 'individual';
+    cantidadMasivaInput.placeholder = esGeneracionMasiva
+      ? 'Indica cuántos consecutivos incluye el rango'
+      : 'Indica cuántos radicados generar';
+  }
+  if (grupoDatos) {
+    grupoDatos.hidden = false;
+    grupoDatos.querySelectorAll('input, select, textarea').forEach(control => {
+      control.disabled = false;
+    });
+  }
+  if (inputArchivos) inputArchivos.disabled = esGeneracionMasiva;
+  if (grupoArchivos) {
+    const selectorArchivo = grupoArchivos.querySelector('label[for="archivosSalida"]');
+    const selectorVisual = grupoArchivos.querySelector('.generation-file-picker');
+    const listaVisual = grupoArchivos.querySelector('#listaArchivosSalida');
+    if (selectorArchivo) selectorArchivo.hidden = esGeneracionMasiva;
+    if (selectorVisual) selectorVisual.hidden = esGeneracionMasiva;
+    if (listaVisual) listaVisual.hidden = esGeneracionMasiva;
+  }
+  if (avisoAdjuntosMasivos) {
+    avisoAdjuntosMasivos.hidden = !esGeneracionMasiva;
+    avisoAdjuntosMasivos.textContent = esGeneracionMasiva
+      ? 'Se guardarán solo dos filas con la misma información: el primer y el último consecutivo del rango. Los números intermedios quedarán incluidos en la secuencia, sin crear filas individuales. No se permiten archivos adjuntos.'
+      : '';
+  }
+  const etiquetaBoton = document.querySelector('#textoGenerarSalida strong');
+  if (etiquetaBoton && !solicitudGeneracionEnCurso) {
+    etiquetaBoton.textContent = esGeneracionMasiva ? 'Generar Radicados Masivos' : 'Generar Radicado';
+  }
+}
+
 function mostrarResultadoGeneracion(tipo, titulo, mensaje, radicado = '', opciones = {}) {
   const mensajeCompleto = radicado ? `${mensaje}\n${radicado}` : mensaje;
   void mostrarAviso(mensajeCompleto, { tipo, titulo, ...opciones });
@@ -133,6 +223,10 @@ export function inicializarFormularioGeneracionSalida() {
   const inputArchivosEditar = document.getElementById('archivosEditarSalida');
   const ayudaArchivosEditar = document.getElementById('archivosEditarSalidaAyuda');
   const listaArchivosEditar = document.getElementById('listaArchivosEditarSalida');
+  formulario?.querySelectorAll('input[name="modoRadicado"]').forEach(opcion => {
+    opcion.addEventListener('change', actualizarModoGeneracion);
+  });
+  actualizarModoGeneracion();
 
   if (selectorDependencia && grupoOtraDependencia && inputOtraDependencia) {
     enlazarDependenciaOtra(selectorDependencia, grupoOtraDependencia, inputOtraDependencia);
@@ -172,7 +266,239 @@ export function inicializarFormularioGeneracionSalida() {
     if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
   });
 
+  inicializarExportacionGeneracion();
   cargarRadicadosSalida();
+}
+
+function cargarExcelJsSalida() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (cargaExcelJsSalida) return cargaExcelJsSalida;
+
+  cargaExcelJsSalida = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = URL_EXCELJS_SALIDA;
+    script.async = true;
+    script.onload = () => {
+      if (window.ExcelJS) {
+        resolve(window.ExcelJS);
+      } else {
+        reject(new Error('La biblioteca de Excel no quedó disponible.'));
+      }
+    };
+    script.onerror = () => reject(new Error('No fue posible cargar la biblioteca para generar el Excel.'));
+    document.head.appendChild(script);
+  }).catch(error => {
+    cargaExcelJsSalida = null;
+    throw error;
+  });
+
+  return cargaExcelJsSalida;
+}
+
+function obtenerConsecutivoRadicado(registro) {
+  const coincidencia = String(registro.radicado || '').match(/(\d+)$/);
+  return coincidencia ? Number(coincidencia[1]) : Number(registro.numeroSecuencia) || 0;
+}
+
+function ordenarRadicadosParaPlanilla(registros) {
+  return [...registros].sort((a, b) => {
+    const diferenciaAnio = Number(a.anio || obtenerFechaRegistro(a).slice(0, 4))
+      - Number(b.anio || obtenerFechaRegistro(b).slice(0, 4));
+    if (diferenciaAnio) return diferenciaAnio;
+    const diferenciaNumero = obtenerConsecutivoRadicado(a) - obtenerConsecutivoRadicado(b);
+    if (diferenciaNumero) return diferenciaNumero;
+    return `${obtenerFechaRegistro(a)} ${obtenerHoraRegistro(a)}`
+      .localeCompare(`${obtenerFechaRegistro(b)} ${obtenerHoraRegistro(b)}`);
+  });
+}
+
+async function descargarPlanillaGeneracion(registros) {
+  const [ExcelJS, respuestaPlantilla] = await Promise.all([
+    cargarExcelJsSalida(),
+    fetch(RUTA_PLANTILLA_SALIDA)
+  ]);
+  if (!respuestaPlantilla.ok) {
+    throw new Error(`No fue posible abrir la plantilla (${respuestaPlantilla.status}).`);
+  }
+
+  const libro = new ExcelJS.Workbook();
+  await libro.xlsx.load(await respuestaPlantilla.arrayBuffer());
+  const hoja = libro.getWorksheet('F03') || libro.worksheets[0];
+  if (!hoja) throw new Error('La plantilla no contiene una hoja de cálculo.');
+  const filaModelo = hoja.getRow(8);
+
+  registros.forEach((registro, indice) => {
+    const filaNumero = indice + 8;
+    const fila = hoja.getRow(filaNumero);
+    if (filaNumero > 247) fila.height = filaModelo.height;
+    for (let columna = 1; columna <= 9; columna += 1) {
+      const celda = fila.getCell(columna);
+      celda.style = { ...filaModelo.getCell(columna).style };
+      celda.value = null;
+    }
+
+    fila.getCell('A').value = registro.radicado || '';
+    const fechaGeneracion = obtenerFechaRegistro(registro);
+    fila.getCell('B').value = fechaGeneracion
+      ? new Date(`${fechaGeneracion}T00:00:00.000Z`)
+      : '';
+    fila.getCell('C').value = obtenerHoraRegistro(registro);
+    fila.getCell('D').value = formatearMayusculasIniciales(registro.destinatario);
+    fila.getCell('E').value = formatearMayusculasIniciales(registro.asunto);
+    const celdaFolios = fila.getCell('F');
+    celdaFolios.value = registro.folios ?? '';
+    celdaFolios.alignment = {
+      ...celdaFolios.alignment,
+      horizontal: 'center',
+      vertical: 'middle'
+    };
+    const celdaAnexos = fila.getCell('G');
+    celdaAnexos.value = formatearConteoAnexos(registro.anexos);
+    celdaAnexos.numFmt = '0';
+    celdaAnexos.alignment = {
+      ...celdaAnexos.alignment,
+      horizontal: 'center',
+      vertical: 'middle'
+    };
+    fila.getCell('H').value = formatearMayusculasIniciales(
+      registro.dependencia === 'Otro'
+        ? registro.dependenciaOtra || 'Otro'
+        : registro.dependencia
+    );
+    const celdaDependencia = fila.getCell('H');
+    celdaDependencia.alignment = {
+      ...celdaDependencia.alignment,
+      vertical: 'middle',
+      wrapText: true,
+      shrinkToFit: false
+    };
+    const anchoDependencia = Math.max(1, Math.floor(hoja.getColumn(8).width || 30));
+    const palabrasDependencia = String(celdaDependencia.value || '').split(/\s+/).filter(Boolean);
+    let lineasDependencia = 1;
+    let caracteresEnLinea = 0;
+    palabrasDependencia.forEach(palabra => {
+      if (caracteresEnLinea && caracteresEnLinea + palabra.length + 1 > anchoDependencia) {
+        lineasDependencia += 1;
+        caracteresEnLinea = 0;
+      }
+      if (palabra.length > anchoDependencia) {
+        lineasDependencia += Math.ceil(palabra.length / anchoDependencia) - 1;
+        caracteresEnLinea = palabra.length % anchoDependencia || anchoDependencia;
+      } else {
+        caracteresEnLinea += (caracteresEnLinea ? 1 : 0) + palabra.length;
+      }
+    });
+    fila.height = Math.max(fila.height || filaModelo.height || 44.25, lineasDependencia * 15 + 8);
+
+    if (registro.estado === 'ANULADO') {
+      for (let columna = 1; columna <= 8; columna += 1) {
+        const celda = fila.getCell(columna);
+        celda.font = {
+          ...celda.font,
+          color: { argb: 'FFFF0000' }
+        };
+      }
+    }
+  });
+
+  const contenido = await libro.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([contenido], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  }));
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = `Registro_de_Radicacion_de_Comunicaciones_Oficiales_Salientes_(${obtenerFechaBogota(new Date())}).xlsx`;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function inicializarExportacionGeneracion() {
+  const modal = document.getElementById('modalExportarGeneracion');
+  const formulario = document.getElementById('formExportarGeneracion');
+  const botonAbrir = document.getElementById('abrirExportarGeneracion');
+  const botonCerrar = document.getElementById('cerrarModalExportarGeneracion');
+  const botonCancelar = document.getElementById('cancelarExportarGeneracion');
+  const botonDescargar = document.getElementById('confirmarExportarGeneracion');
+  const tipoPeriodo = document.getElementById('tipoPeriodoExportarGeneracion');
+  const grupoFecha = document.getElementById('grupoFechaExportarGeneracion');
+  const grupoMes = document.getElementById('grupoMesExportarGeneracion');
+  const grupoAno = document.getElementById('grupoAnoExportarGeneracion');
+  const fechaInput = document.getElementById('fechaExportarGeneracion');
+  const mesInput = document.getElementById('mesExportarGeneracion');
+  const anoInput = document.getElementById('anoExportarGeneracion');
+  const error = document.getElementById('errorExportarGeneracion');
+  if (!modal || !formulario || !botonAbrir || !tipoPeriodo || !fechaInput || !mesInput || !anoInput || !error) return;
+
+  const actualizarPeriodo = () => {
+    const esFecha = tipoPeriodo.value === 'fecha';
+    const esMes = tipoPeriodo.value === 'mes';
+    grupoFecha.hidden = !esFecha;
+    fechaInput.disabled = !esFecha;
+    fechaInput.required = esFecha;
+    grupoMes.hidden = !esMes;
+    mesInput.disabled = !esMes;
+    mesInput.required = esMes;
+    grupoAno.hidden = tipoPeriodo.value !== 'ano';
+    anoInput.disabled = tipoPeriodo.value !== 'ano';
+    anoInput.required = tipoPeriodo.value === 'ano';
+  };
+  tipoPeriodo.addEventListener('change', actualizarPeriodo);
+
+  botonAbrir.addEventListener('click', () => {
+    formulario.reset();
+    tipoPeriodo.value = 'fecha';
+    fechaInput.value = obtenerFechaBogota(new Date());
+    mesInput.value = obtenerFechaBogota(new Date()).slice(0, 7);
+    actualizarPeriodo();
+    error.hidden = true;
+    modal.showModal();
+    fechaInput.focus();
+  });
+  const cerrar = () => modal.close();
+  botonCerrar?.addEventListener('click', cerrar);
+  botonCancelar?.addEventListener('click', cerrar);
+
+  formulario.addEventListener('submit', async event => {
+    event.preventDefault();
+    error.hidden = true;
+    if (!formulario.reportValidity()) return;
+
+    const seleccion = tipoPeriodo.value === 'fecha'
+      ? fechaInput.value
+      : tipoPeriodo.value === 'mes'
+        ? mesInput.value
+        : anoInput.value.trim();
+    const registros = ordenarRadicadosParaPlanilla(radicadosSalida.filter(registro => {
+      const fecha = obtenerFechaRegistro(registro);
+      return tipoPeriodo.value === 'fecha'
+        ? fecha === seleccion
+        : fecha.startsWith(seleccion);
+    }));
+
+    if (registros.length === 0) {
+      error.textContent = 'No se encontraron radicados para el periodo seleccionado.';
+      error.hidden = false;
+      return;
+    }
+
+    botonDescargar.disabled = true;
+    botonDescargar.setAttribute('aria-busy', 'true');
+    botonDescargar.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Preparando Excel…';
+    try {
+      await descargarPlanillaGeneracion(registros);
+      cerrar();
+    } catch (errorDescarga) {
+      console.error('Error al generar la planilla de radicados salientes:', errorDescarga);
+      error.textContent = errorDescarga.message || 'No fue posible generar la planilla.';
+      error.hidden = false;
+    } finally {
+      botonDescargar.disabled = false;
+      botonDescargar.removeAttribute('aria-busy');
+      botonDescargar.innerHTML = '<i class="bi bi-download" aria-hidden="true"></i> Descargar Excel';
+    }
+  });
 }
 
 async function subirArchivosSalida(archivos) {
@@ -275,15 +601,12 @@ function marcarSolicitudCompletada(huella, clave) {
 }
 
 async function asignarNumeroYGuardar(datos, claveIdempotencia) {
-  const anio = new Date().getFullYear();
+  const ahora = new Date();
+  const fechaGeneracion = obtenerFechaBogota(ahora);
+  const horaGeneracion = obtenerHoraBogota(ahora);
+  const anio = Number(fechaGeneracion.slice(0, 4));
   const secuenciaRef = doc(db, COLECCION_SECUENCIAS_SALIDA, String(anio));
   const radicadoRef = doc(db, COLECCION_SALIDA, claveIdempotencia);
-  const ahora = new Date();
-  const fechaGeneracion = [
-    ahora.getFullYear(),
-    String(ahora.getMonth() + 1).padStart(2, '0'),
-    String(ahora.getDate()).padStart(2, '0')
-  ].join('-');
 
   return runTransaction(db, async transaccion => {
     const radicadoExistente = await transaccion.get(radicadoRef);
@@ -301,7 +624,8 @@ async function asignarNumeroYGuardar(datos, claveIdempotencia) {
 
     const secuenciaActual = await transaccion.get(secuenciaRef);
     const ultimoNumero = secuenciaActual.exists() ? Number(secuenciaActual.data().ultimo) : 0;
-    if (!Number.isSafeInteger(ultimoNumero) || ultimoNumero < 0) {
+    if (!Number.isSafeInteger(ultimoNumero) || ultimoNumero < 0
+      || !Number.isSafeInteger(ultimoNumero + 1)) {
       throw new Error(`La secuencia de radicados de ${anio} no es válida.`);
     }
     const numero = ultimoNumero + 1;
@@ -314,12 +638,95 @@ async function asignarNumeroYGuardar(datos, claveIdempotencia) {
       anio,
       mes: obtenerMes(fechaGeneracion),
       fechaGeneracion,
+      horaGeneracion,
       creadoEn: ahora.toISOString(),
       actualizadoEn: ahora.toISOString()
     };
-    transaccion.set(secuenciaRef, { anio, ultimo: numero });
+    transaccion.set(secuenciaRef, { anio, ultimo: numero }, { merge: true });
     transaccion.set(radicadoRef, registro);
     return { id: radicadoRef.id, ...registro, esReintento: false };
+  });
+}
+
+async function asignarRadicadosMasivosYGuardar(datos, claveIdempotencia, cantidad) {
+  const ahora = new Date();
+  const fechaGeneracion = obtenerFechaBogota(ahora);
+  const horaGeneracion = obtenerHoraBogota(ahora);
+  const anio = Number(fechaGeneracion.slice(0, 4));
+  const secuenciaRef = doc(db, COLECCION_SECUENCIAS_SALIDA, String(anio));
+  const inicioRef = doc(db, COLECCION_SALIDA, `${claveIdempotencia}-inicio`);
+  const finRef = doc(db, COLECCION_SALIDA, `${claveIdempotencia}-fin`);
+
+  return runTransaction(db, async transaccion => {
+    const [secuenciaSnapshot, inicioSnapshot, finSnapshot] = await Promise.all([
+      transaccion.get(secuenciaRef),
+      transaccion.get(inicioRef),
+      transaccion.get(finRef)
+    ]);
+
+    if (inicioSnapshot.exists() || finSnapshot.exists()) {
+      const registroInicioExistente = inicioSnapshot.data();
+      const registroFinExistente = finSnapshot.data();
+      const loteCompleto = inicioSnapshot.exists()
+        && finSnapshot.exists()
+        && registroInicioExistente.claveIdempotencia === claveIdempotencia
+        && registroFinExistente.claveIdempotencia === claveIdempotencia
+        && registroInicioExistente.tipoLoteRadicados === 'extremos'
+        && registroFinExistente.tipoLoteRadicados === 'extremos'
+        && registroInicioExistente.extremoLote === 'inicio'
+        && registroFinExistente.extremoLote === 'fin'
+        && registroInicioExistente.cantidadLote === cantidad
+        && registroFinExistente.cantidadLote === cantidad
+        && registroInicioExistente.anio === registroFinExistente.anio
+        && Number.isSafeInteger(registroInicioExistente.numeroSecuencia)
+        && registroFinExistente.numeroSecuencia === registroInicioExistente.numeroSecuencia + cantidad - 1
+        && registroInicioExistente.radicado === `R-${registroInicioExistente.anio}-${String(registroInicioExistente.numeroSecuencia).padStart(5, '0')}`
+        && registroFinExistente.radicado === `R-${registroFinExistente.anio}-${String(registroFinExistente.numeroSecuencia).padStart(5, '0')}`;
+      if (!loteCompleto) {
+        throw new Error('El lote masivo ya existe de forma incompleta o con datos diferentes. Verifica los radicados antes de reintentar.');
+      }
+      return [
+        { id: inicioSnapshot.id, ...inicioSnapshot.data(), esReintento: true },
+        { id: finSnapshot.id, ...finSnapshot.data(), esReintento: true }
+      ];
+    }
+
+    const ultimoNumero = secuenciaSnapshot.exists()
+      ? Number(secuenciaSnapshot.data().ultimo)
+      : 0;
+    const numeroFinal = ultimoNumero + cantidad;
+    if (!Number.isSafeInteger(ultimoNumero) || ultimoNumero < 0
+      || !Number.isSafeInteger(numeroFinal + 1)) {
+      throw new Error(`La secuencia de radicados de ${anio} no es válida para generar ${cantidad} consecutivos.`);
+    }
+
+    const numeroInicial = ultimoNumero + 1;
+    const crearRegistroExtremo = (numero, extremo) => ({
+      ...datos,
+      archivos: [],
+      claveIdempotencia,
+      cantidadLote: cantidad,
+      tipoLoteRadicados: 'extremos',
+      extremoLote: extremo,
+      radicado: `R-${anio}-${String(numero).padStart(5, '0')}`,
+      numeroSecuencia: numero,
+      anio,
+      mes: obtenerMes(fechaGeneracion),
+      fechaGeneracion,
+      horaGeneracion,
+      creadoEn: ahora.toISOString(),
+      actualizadoEn: ahora.toISOString()
+    });
+    const registroInicio = crearRegistroExtremo(numeroInicial, 'inicio');
+    const registroFin = crearRegistroExtremo(numeroFinal, 'fin');
+
+    transaccion.set(secuenciaRef, { anio, ultimo: numeroFinal }, { merge: true });
+    transaccion.set(inicioRef, registroInicio);
+    transaccion.set(finRef, registroFin);
+    return [
+      { id: inicioRef.id, ...registroInicio, esReintento: false },
+      { id: finRef.id, ...registroFin, esReintento: false }
+    ];
   });
 }
 
@@ -330,10 +737,38 @@ function establecerEstadoBoton(boton, spinner, texto, cargando, textoCargando, t
   etiqueta.textContent = cargando ? textoCargando : textoNormal;
 }
 
+function limpiarFormularioGeneracion(formulario) {
+  formulario.reset();
+  actualizarModoGeneracion();
+  document.getElementById('dependenciaOtraGroup').hidden = true;
+  document.getElementById('dependenciaOtra').required = false;
+  document.getElementById('listaArchivosSalida').replaceChildren();
+  document.getElementById('archivosSalidaAyuda').textContent =
+    'Sube hasta 10 archivos compatibles. Tamaño máximo por archivo: 10 MB.';
+  document.getElementById('archivosSalidaAyuda').classList.remove('generation-file-error');
+}
+
 async function guardarRadicadoSalida(event) {
   event.preventDefault();
   if (solicitudGeneracionEnCurso) return;
   const formulario = event.currentTarget;
+  const modoSeleccionado = formulario.querySelector('input[name="modoRadicado"]:checked')?.value || 'individual';
+  const esGeneracionMasiva = modoSeleccionado === 'masivo';
+  const requiereCantidad = esGeneracionMasiva;
+  const cantidadRadicados = requiereCantidad
+    ? Number(document.getElementById('cantidadRadicadosSalida').value)
+    : 1;
+  if (requiereCantidad
+    && (!Number.isInteger(cantidadRadicados)
+      || cantidadRadicados < 2
+      || cantidadRadicados > MAX_RADICADOS_POR_LOTE)) {
+    mostrarResultadoGeneracion(
+      'warning',
+      'Cantidad no válida',
+      `Indica una cantidad entera entre 2 y ${MAX_RADICADOS_POR_LOTE} radicados.`
+    );
+    return;
+  }
   if (!navigator.onLine) {
     mostrarResultadoGeneracion(
       'warning',
@@ -344,7 +779,7 @@ async function guardarRadicadoSalida(event) {
   }
 
   const inputArchivos = document.getElementById('archivosSalida');
-  const archivos = Array.from(inputArchivos.files || []);
+  const archivos = esGeneracionMasiva ? [] : Array.from(inputArchivos.files || []);
   const errorArchivos = validarArchivos(archivos);
   if (errorArchivos) {
     mostrarResultadoGeneracion('error', 'Revisa los archivos', errorArchivos);
@@ -356,10 +791,14 @@ async function guardarRadicadoSalida(event) {
   const texto = document.getElementById('textoGenerarSalida');
   const archivosSubidos = [];
   let registroGuardado = null;
+  let registrosGuardados = [];
   let claveIdempotencia = '';
   let huellaSolicitud = '';
   let intentoGuardarFirestore = false;
   let errorAlCerrarProteccion = null;
+  const nombreAccion = esGeneracionMasiva
+    ? `Generando lote de ${cantidadRadicados} radicados...`
+    : 'Generando...';
   solicitudGeneracionEnCurso = true;
   const estadoControles = Array.from(formulario.elements, control => ({
     control,
@@ -368,30 +807,52 @@ async function guardarRadicadoSalida(event) {
   estadoControles.forEach(({ control }) => {
     control.disabled = true;
   });
-  establecerEstadoBoton(boton, spinner, texto, true, 'Generando...', 'Generar Radicado');
+  establecerEstadoBoton(
+    boton,
+    spinner,
+    texto,
+    true,
+    nombreAccion,
+    esGeneracionMasiva ? 'Generar Radicados Masivos' : 'Generar Radicado'
+  );
 
   try {
     const dependenciaSeleccionada = document.getElementById('dependenciaSalida').value;
     const datos = {
-      destinatario: document.getElementById('destinatarioSalida').value.trim(),
-      asunto: document.getElementById('asuntoSalida').value.trim(),
+      destinatario: formatearMayusculasIniciales(document.getElementById('destinatarioSalida').value.trim()),
+      asunto: formatearMayusculasIniciales(document.getElementById('asuntoSalida').value.trim()),
       folios: Number(document.getElementById('foliosSalida').value),
-      anexos: document.getElementById('anexosSalida').value.trim(),
-      dependencia: dependenciaSeleccionada,
+      anexos: Number(document.getElementById('anexosSalida').value),
+      dependencia: dependenciaSeleccionada === 'Otro'
+        ? dependenciaSeleccionada
+        : formatearMayusculasIniciales(dependenciaSeleccionada),
       dependenciaOtra: dependenciaSeleccionada === 'Otro'
-        ? document.getElementById('dependenciaOtra').value.trim()
+        ? formatearMayusculasIniciales(document.getElementById('dependenciaOtra').value.trim())
         : ''
     };
-    huellaSolicitud = await calcularHuellaSolicitud(datos, archivos);
+    const datosParaHuella = esGeneracionMasiva
+      ? { tipo: 'generacion-masiva-extremos', cantidadRadicados, ...datos }
+      : datos;
+    huellaSolicitud = await calcularHuellaSolicitud(datosParaHuella, archivos);
     claveIdempotencia = obtenerClaveSolicitud(huellaSolicitud);
 
-    const adjuntos = await subirArchivosSalida(archivos);
+    const adjuntos = esGeneracionMasiva ? [] : await subirArchivosSalida(archivos);
     archivosSubidos.push(...adjuntos);
     intentoGuardarFirestore = true;
-    registroGuardado = await asignarNumeroYGuardar({
-      ...datos,
-      archivos: adjuntos
-    }, claveIdempotencia);
+    if (esGeneracionMasiva) {
+      registrosGuardados = await asignarRadicadosMasivosYGuardar(
+        datos,
+        claveIdempotencia,
+        cantidadRadicados
+      );
+      registroGuardado = registrosGuardados[0];
+    } else {
+      registroGuardado = await asignarNumeroYGuardar({
+        ...datos,
+        archivos: adjuntos
+      }, claveIdempotencia);
+      registrosGuardados = [registroGuardado];
+    }
 
     try {
       marcarSolicitudCompletada(huellaSolicitud, claveIdempotencia);
@@ -407,21 +868,16 @@ async function guardarRadicadoSalida(event) {
       }
     }
 
+    const idsGuardados = new Set(registrosGuardados.map(registro => registro.id));
     radicadosSalida = [
-      registroGuardado,
-      ...radicadosSalida.filter(registro => registro.id !== registroGuardado.id)
+      ...registrosGuardados,
+      ...radicadosSalida.filter(registro => !idsGuardados.has(registro.id))
     ];
     renderizarCarpetasMes(radicadosSalida);
     renderizarRecientesSalida(radicadosSalida);
     if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
 
-    formulario.reset();
-    document.getElementById('dependenciaOtraGroup').hidden = true;
-    document.getElementById('dependenciaOtra').required = false;
-    document.getElementById('listaArchivosSalida').replaceChildren();
-    document.getElementById('archivosSalidaAyuda').textContent =
-      'Sube hasta 10 archivos compatibles. Tamaño máximo por archivo: 10 MB.';
-    document.getElementById('archivosSalidaAyuda').classList.remove('generation-file-error');
+    limpiarFormularioGeneracion(formulario);
     const recargaExitosa = await cargarRadicadosSalida();
     if (!recargaExitosa) {
       renderizarCarpetasMes(radicadosSalida);
@@ -429,31 +885,44 @@ async function guardarRadicadoSalida(event) {
       if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
       mostrarResultadoGeneracion(
         'warning',
-        'Radicado guardado',
-        'Se guardó correctamente, pero no fue posible actualizar la lista desde Firestore. Recarga la página o revisa los permisos de lectura.',
-        registroGuardado.radicado
+        esGeneracionMasiva ? 'Lote masivo guardado' : 'Radicado guardado',
+        esGeneracionMasiva
+          ? `Se guardó el lote masivo desde ${registrosGuardados[0].radicado} hasta ${registrosGuardados[1].radicado}, pero no fue posible actualizar la lista desde Firestore. Recarga la página o revisa los permisos de lectura.`
+          : 'Se guardó correctamente, pero no fue posible actualizar la lista desde Firestore. Recarga la página o revisa los permisos de lectura.',
+        esGeneracionMasiva ? '' : registroGuardado.radicado
       );
       return;
     }
+    const primerRadicadoLote = esGeneracionMasiva ? registrosGuardados[0].radicado : '';
+    const ultimoRadicadoLote = esGeneracionMasiva ? registrosGuardados[1].radicado : '';
+    const siguienteNumeroLote = esGeneracionMasiva
+      ? `R-${registrosGuardados[1].anio}-${String(registrosGuardados[1].numeroSecuencia + 1).padStart(5, '0')}`
+      : '';
     mostrarResultadoGeneracion(
       errorAlCerrarProteccion ? 'warning' : 'success',
-      errorAlCerrarProteccion ? 'Radicado guardado' : '¡Radicado generado!',
-      errorAlCerrarProteccion
-        ? 'El radicado se guardó, pero no se pudo actualizar la protección local contra envíos repetidos. Verifica la lista antes de volver a enviar.'
-        : registroGuardado.esReintento
-          ? 'Se recuperó el radicado creado por el envío anterior. No se generó un número nuevo.'
-          : 'La comunicación se guardó correctamente y ya está organizada en la carpeta del mes correspondiente.',
-      registroGuardado.radicado,
-      errorAlCerrarProteccion ? {} : { radicadoSalida: registroGuardado.radicado }
+      esGeneracionMasiva
+        ? errorAlCerrarProteccion ? 'Lote masivo guardado' : '¡Lote masivo generado!'
+        : errorAlCerrarProteccion ? 'Radicado guardado' : '¡Radicado generado!',
+      esGeneracionMasiva
+        ? `${registrosGuardados.every(registro => registro.esReintento) ? 'Se recuperó el lote solicitado' : 'Se generaron sus radicados masivos'}. En la tabla quedan dos filas, desde ${primerRadicadoLote} hasta ${ultimoRadicadoLote}, con la misma información (${cantidadRadicados} consecutivos en total). El siguiente número disponible será ${siguienteNumeroLote}.${errorAlCerrarProteccion ? ' Verifica la tabla antes de volver a enviar.' : ''}`
+        : errorAlCerrarProteccion
+          ? 'El radicado se guardó, pero no se pudo actualizar la protección local contra envíos repetidos. Verifica la lista antes de volver a enviar.'
+          : registroGuardado.esReintento
+            ? 'Se recuperó el radicado creado por el envío anterior. No se generó un número nuevo.'
+            : 'La comunicación se guardó correctamente y ya está organizada en la carpeta del mes correspondiente.',
+      esGeneracionMasiva ? '' : registroGuardado.radicado,
+      errorAlCerrarProteccion || esGeneracionMasiva ? {} : { radicadoSalida: registroGuardado.radicado }
     );
   } catch (error) {
     console.error('Error al generar el radicado de salida:', error);
     if (registroGuardado) {
       mostrarResultadoGeneracion(
         'warning',
-        'Radicado guardado',
-        `Se guardó correctamente, pero ocurrió un error al actualizar la pantalla: ${error.message}`,
-        registroGuardado.radicado
+        esGeneracionMasiva ? 'Lote masivo guardado' : 'Radicado guardado',
+        esGeneracionMasiva
+          ? `El lote se guardó desde ${registrosGuardados[0].radicado} hasta ${registrosGuardados[1].radicado}, pero ocurrió un error al actualizar la pantalla. Recarga la vista para ver las dos filas. Detalle: ${error.message}`
+          : `Se guardó correctamente, pero ocurrió un error al actualizar la pantalla: ${error.message}`,
+        esGeneracionMasiva ? '' : registroGuardado.radicado
       );
       return;
     }
@@ -464,17 +933,29 @@ async function guardarRadicadoSalida(event) {
       }
     }
     let detalle = error.code === 'permission-denied'
-      ? `${error.message} Verifica que las reglas de Firestore permitan crear documentos en "${COLECCION_SALIDA}" y leer/escribir en "${COLECCION_SECUENCIAS_SALIDA}".`
+      ? esGeneracionMasiva
+        ? `${error.message} Verifica que las reglas de Firestore permitan leer y actualizar "${COLECCION_SECUENCIAS_SALIDA}" y crear documentos en "${COLECCION_SALIDA}".`
+        : `${error.message} Verifica que las reglas de Firestore permitan crear documentos en "${COLECCION_SALIDA}" y leer/escribir en "${COLECCION_SECUENCIAS_SALIDA}".`
       : error.message;
     if (intentoGuardarFirestore && !registroGuardado) {
-      detalle += ' Conservamos este envío como pendiente de confirmación. Reintenta con el mismo formulario; usará la misma clave para no crear otro radicado si Firestore alcanzó a guardar el primero.';
+      detalle += esGeneracionMasiva
+        ? ' Conservamos este lote como pendiente de confirmación. Reintenta con los mismos datos y cantidad; si Firestore ya lo guardó, se recuperarán las mismas dos filas y no se consumirán consecutivos adicionales.'
+        : ' Conservamos este envío como pendiente de confirmación. Reintenta con el mismo formulario; usará la misma clave para no crear otro radicado si Firestore alcanzó a guardar el primero.';
     }
-    mostrarResultadoGeneracion('error', 'No se pudo generar', detalle);
+    mostrarResultadoGeneracion(
+      'error',
+      esGeneracionMasiva ? 'No se pudo generar el lote' : 'No se pudo generar',
+      detalle
+    );
   } finally {
     estadoControles.forEach(({ control, deshabilitado }) => {
       control.disabled = deshabilitado;
     });
-    establecerEstadoBoton(boton, spinner, texto, false, '', 'Generar Radicado');
+    actualizarModoGeneracion();
+    const textoNormal = formulario.querySelector('input[name="modoRadicado"]:checked')?.value === 'masivo'
+      ? 'Generar Radicados Masivos'
+      : 'Generar Radicado';
+    establecerEstadoBoton(boton, spinner, texto, false, '', textoNormal);
     solicitudGeneracionEnCurso = false;
   }
 }
@@ -484,11 +965,14 @@ async function cargarRadicadosSalida() {
   const contenedorRecientes = document.getElementById('generacionRecientes');
   try {
     const snapshot = await getDocs(collection(db, COLECCION_SALIDA));
-    radicadosSalida = snapshot.docs.map(documento => ({
-      id: documento.id,
-      ...documento.data(),
-      archivos: Array.isArray(documento.data().archivos) ? documento.data().archivos : []
-    })).sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''));
+    radicadosSalida = snapshot.docs
+      .filter(documento => documento.data().tipoRegistro !== 'reserva-consecutivos')
+      .map(documento => ({
+        id: documento.id,
+        ...documento.data(),
+        archivos: Array.isArray(documento.data().archivos) ? documento.data().archivos : []
+      }))
+      .sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''));
     renderizarCarpetasMes(radicadosSalida);
     renderizarRecientesSalida(radicadosSalida);
     if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
@@ -621,13 +1105,14 @@ function cerrarCarpetaGeneracion() {
 }
 
 function renderizarDetalleCarpeta(mes) {
-  const todosLosRegistros = radicadosSalida
-    .filter(registro => (registro.mes || obtenerMes(registro.fechaGeneracion)) === mes)
-    .sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''));
+  const todosLosRegistros = ordenarRadicadosParaPlanilla(radicadosSalida
+    .filter(registro => (registro.mes || obtenerMes(obtenerFechaRegistro(registro))) === mes))
+    .reverse();
   const registros = filtroGeneracion
     ? todosLosRegistros.filter(registro => [
         registro.radicado,
-        registro.fechaGeneracion,
+        obtenerFechaRegistro(registro),
+        obtenerHoraRegistro(registro),
         registro.destinatario,
         registro.asunto,
         registro.folios,
@@ -649,7 +1134,7 @@ function renderizarDetalleCarpeta(mes) {
   if (registros.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
-    celda.colSpan = 10;
+    celda.colSpan = 11;
     celda.textContent = 'Esta carpeta no tiene radicados.';
     fila.append(celda);
     tbody.append(fila);
@@ -661,13 +1146,15 @@ function renderizarDetalleCarpeta(mes) {
 
 function crearFilaTabla(registro) {
   const fila = document.createElement('tr');
+  if (registro.estado === 'ANULADO') fila.classList.add('is-annulled-row');
   const valores = [
     registro.radicado || '',
-    registro.fechaGeneracion || '',
+    obtenerFechaRegistro(registro),
+    obtenerHoraRegistro(registro),
     registro.destinatario || '',
     registro.asunto || '',
     String(registro.folios ?? ''),
-    registro.anexos || '',
+    String(registro.anexos ?? ''),
     registro.dependencia === 'Otro' ? registro.dependenciaOtra || 'Otro' : registro.dependencia || '',
     registro.estado === 'ANULADO' ? 'ANULADO' : 'VIGENTE'
   ];
@@ -679,7 +1166,7 @@ function crearFilaTabla(registro) {
       numero.textContent = valor;
       celda.replaceChildren(numero);
     }
-    if (indice === 7) {
+    if (indice === 8) {
       const estado = document.createElement('span');
       estado.className = `generation-status-badge${valor === 'ANULADO' ? ' is-annulled' : ''}`;
       estado.textContent = valor;
@@ -741,12 +1228,15 @@ function abrirModalEdicionSalida(registro) {
   document.getElementById('destinatarioEditarSalida').value = registro.destinatario || '';
   document.getElementById('asuntoEditarSalida').value = registro.asunto || '';
   document.getElementById('foliosEditarSalida').value = registro.folios ?? '';
-  document.getElementById('anexosEditarSalida').value = registro.anexos || '';
+  document.getElementById('anexosEditarSalida').value = registro.anexos ?? '';
   const selector = document.getElementById('dependenciaEditarSalida');
   const valorDependencia = registro.dependencia === 'Otro'
     ? 'Otro'
     : registro.dependencia || '';
-  selector.value = valorDependencia;
+  const opcionDependencia = Array.from(selector.options).find(opcion => (
+    opcion.value.toLocaleLowerCase('es-CO') === valorDependencia.toLocaleLowerCase('es-CO')
+  ));
+  selector.value = opcionDependencia?.value || valorDependencia;
   const inputOtra = document.getElementById('dependenciaOtraEditar');
   inputOtra.value = registro.dependenciaOtra || '';
   inputOtra.required = valorDependencia === 'Otro';
@@ -807,13 +1297,15 @@ async function guardarEdicionRadicadoSalida(event) {
     archivosSubidos.push(...adjuntosNuevos);
     const dependenciaSeleccionada = document.getElementById('dependenciaEditarSalida').value;
     await updateDoc(doc(db, COLECCION_SALIDA, id), {
-      destinatario: document.getElementById('destinatarioEditarSalida').value.trim(),
-      asunto: document.getElementById('asuntoEditarSalida').value.trim(),
+      destinatario: formatearMayusculasIniciales(document.getElementById('destinatarioEditarSalida').value.trim()),
+      asunto: formatearMayusculasIniciales(document.getElementById('asuntoEditarSalida').value.trim()),
       folios: Number(document.getElementById('foliosEditarSalida').value),
-      anexos: document.getElementById('anexosEditarSalida').value.trim(),
-      dependencia: dependenciaSeleccionada,
+      anexos: Number(document.getElementById('anexosEditarSalida').value),
+      dependencia: dependenciaSeleccionada === 'Otro'
+        ? dependenciaSeleccionada
+        : formatearMayusculasIniciales(dependenciaSeleccionada),
       dependenciaOtra: dependenciaSeleccionada === 'Otro'
-        ? document.getElementById('dependenciaOtraEditar').value.trim()
+        ? formatearMayusculasIniciales(document.getElementById('dependenciaOtraEditar').value.trim())
         : '',
       archivos: [...(registro.archivos || []), ...adjuntosNuevos],
       actualizadoEn: new Date().toISOString()
