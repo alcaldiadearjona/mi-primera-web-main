@@ -39,6 +39,12 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
               </select>
               <button class="detail-filter-button" type="button" onclick="aplicarFiltrosRadicados()"><i class="bi bi-funnel" aria-hidden="true"></i> Filtrar</button>
             </div>
+            <div class="received-register-actions">
+              <button id="abrirExportarPlanilla" class="received-register-button" type="button">
+                <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
+                Descargar planilla de recibidos
+              </button>
+            </div>
           </div>
 
           <span class="detail-status-tag" style="font-size: 12px; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 6px 12px; border-radius: 6px;">ESTADO GENERAL DE RADICADOS</span>
@@ -67,6 +73,8 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
                 <th>Funcionario Asignado</th>
                 <th>Acciones</th>
                 <th>Respuesta</th>
+                <th>F. Carga Respuesta</th>
+                <th>Tipo de petición *</th>
               </tr>
             </thead>
             <tbody id="cuerpoTablaExclusiva">
@@ -75,6 +83,37 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
           </table>
         </div>
       </div>
+      <dialog id="modalExportarPlanilla" class="received-register-dialog" aria-labelledby="tituloModalPlanilla">
+        <form id="formExportarPlanilla" class="received-register-dialog-card">
+          <div class="received-register-dialog-heading">
+            <span class="received-register-dialog-icon"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i></span>
+            <div>
+              <h2 id="tituloModalPlanilla">Generar planilla de recibidos</h2>
+              <p>Indica el rango de radicados que deseas incluir.</p>
+            </div>
+            <button id="cerrarModalPlanilla" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+          </div>
+          <p id="dependenciaPlanilla" class="received-register-dependency"></p>
+          <div class="received-register-range">
+            <label>
+              Desde el radicado
+              <input id="radicadoDesdePlanilla" name="radicadoDesde" type="text" placeholder="Ej.: R-2026-03148" required autocomplete="off">
+            </label>
+            <label>
+              Hasta el radicado
+              <input id="radicadoHastaPlanilla" name="radicadoHasta" type="text" placeholder="Ej.: R-2026-03160" required autocomplete="off">
+            </label>
+          </div>
+          <p id="errorExportarPlanilla" class="received-register-error" role="alert" hidden></p>
+          <div class="received-register-dialog-actions">
+            <button id="cancelarExportarPlanilla" class="received-register-cancel" type="button">Cancelar</button>
+            <button id="confirmarExportarPlanilla" class="received-register-submit" type="submit">
+              <i class="bi bi-download" aria-hidden="true"></i>
+              Descargar Excel
+            </button>
+          </div>
+        </form>
+      </dialog>
     </div>
 
 `;

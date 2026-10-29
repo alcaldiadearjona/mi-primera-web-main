@@ -16,6 +16,7 @@ import './modules/dependencias/busqueda.js';
 import { inicializarNavegacion } from './modules/navegacion/vistas.js';
 import { inicializarFormulario } from './modules/radicados/formulario.js';
 import { inicializarFormularioGeneracionSalida } from './modules/radicados/generacion-salida.js';
+import { inicializarExportacionPlanilla } from './modules/radicados/exportar-planilla.js';
 import { inicializarTableroIAS } from './modules/ias/tablero.js';
 import { inicializarInformes } from './modules/informes/tablero.js';
 import { inicializarAccionesRadicados } from './modules/radicados/gestion.js';
@@ -47,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   inicializarSesion();
   inicializarFormulario();
   inicializarFormularioGeneracionSalida();
+  inicializarExportacionPlanilla();
   inicializarTableroIAS();
   inicializarInformes();
   inicializarAccionesRadicados();

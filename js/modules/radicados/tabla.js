@@ -1,5 +1,15 @@
 import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
+export const TIPOS_PETICION = [
+  'Derecho de petición',
+  'Queja',
+  'Reclamo',
+  'Solicitud',
+  'Consulta',
+  'Invitación',
+  'Otro'
+];
+
 // Función auxiliar para convertir textos a formato Título
 function aTitulo(texto) {
   if (!texto) return '';
@@ -20,7 +30,7 @@ export function renderizarTablaRadicados(lista) {
   );
 
   if (lista.length === 0 && hayFiltrosActivos) {
-    tbody.innerHTML = `<tr><td colspan="12" style="text-align: center; color: #94a3b8; padding: 30px;">No se encontraron radicados con los filtros seleccionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align: center; color: #94a3b8; padding: 30px;">No se encontraron radicados con los filtros seleccionados.</td></tr>`;
     return;
   }
 
@@ -58,7 +68,7 @@ export function renderizarTablaRadicados(lista) {
       const filaMes = document.createElement('tr');
       filaMes.className = 'month-group-row';
       filaMes.innerHTML = `
-        <th colspan="12">
+        <th colspan="14">
           <button class="month-group-toggle" type="button" aria-expanded="false" onclick="toggleMonthGroup(this)">
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
             <span>${grupo.etiqueta}</span>
@@ -74,7 +84,7 @@ export function renderizarTablaRadicados(lista) {
       filaVacia.className = 'month-record-row month-empty-row';
       filaVacia.dataset.monthGroup = mesKey;
       filaVacia.hidden = !esMesActual;
-      filaVacia.innerHTML = '<td colspan="12">No se encontraron radicados.</td>';
+      filaVacia.innerHTML = '<td colspan="14">No se encontraron radicados.</td>';
       tbody.appendChild(filaVacia);
       return;
     }
@@ -92,6 +102,16 @@ export function renderizarTablaRadicados(lista) {
     const textoEstado = estadoObj.texto === 'R. por C.'
       ? estadoObj.texto
       : etiquetasEstado[estadoObj.clase] || estadoObj.texto;
+    const opcionesTipoPeticion = TIPOS_PETICION
+      .map(tipo => `<option value="${tipo}"${reg.tipoPeticion === tipo ? ' selected' : ''}>${tipo}</option>`)
+      .join('');
+    const tieneTipoPeticion = TIPOS_PETICION.includes(reg.tipoPeticion);
+    const fechaCargaRespuesta = typeof reg.fechaCargaRespuesta === 'string'
+      ? reg.fechaCargaRespuesta
+      : '';
+    const fechaCargaRespuestaVisible = /^\d{4}-\d{2}-\d{2}$/.test(fechaCargaRespuesta)
+      ? `${fechaCargaRespuesta.slice(8, 10)}/${fechaCargaRespuesta.slice(5, 7)}/${fechaCargaRespuesta.slice(0, 4)}`
+      : '-';
 
     // Validacion para ti PDF
     const tienePdf = reg.pdfUrl && reg.pdfUrl.trim() !== '' && reg.pdfUrl.startsWith('http');
@@ -176,7 +196,7 @@ if (reg.respuestaUrl) {
   <button onclick="prepararEdicion('${reg.id}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 4 4 4"></path><path d="M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"></path><path d="m14.5 6.5 3 3"></path></svg>
   </button>
-  <button onclick="abrirModalOtrosEstados('${reg.id}')" style="background:#00a838; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Gestionar / Agregar Estado" aria-label="Gestionar / Agregar Estado">
+  <button class="other-states-button" onclick="abrirModalOtrosEstados('${reg.id}')" style="background:#00a838; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="${tieneTipoPeticion ? 'Gestionar / Agregar Estado' : 'Selecciona primero el tipo de petición'}" aria-label="Gestionar / Agregar Estado" ${tieneTipoPeticion ? '' : 'disabled'}>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
   </button>
   <button onclick="eliminarRadicado('${reg.id}', this)" style="background:#dc2626; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Eliminar" aria-label="Eliminar">
@@ -184,6 +204,15 @@ if (reg.respuestaUrl) {
   </button>
 </td>
 <td>${columnaRespuestaHtml}</td>
+<td>${fechaCargaRespuestaVisible}</td>
+<td>
+  <div class="petition-type-field">
+    <select class="tipo-peticion-select" aria-label="Tipo de petición para el radicado ${reg.radicado || ''}" aria-required="true" required onchange="guardarTipoPeticionRadicado('${reg.id}', this)">
+      <option value="">Selecciona un tipo</option>
+      ${opcionesTipoPeticion}
+    </select>
+  </div>
+</td>
     `;
 
     const dependenciasDestino = Array.isArray(reg.dependenciasDestino) ? reg.dependenciasDestino : [];

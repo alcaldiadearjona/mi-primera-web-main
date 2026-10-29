@@ -66,6 +66,8 @@ export async function cargarDatosDesdeFirebase() {
           funcionarioAsignado: item.funcionarioAsignado || '',
           pdfUrl: item.pdfUrl || '',
           respuestaUrl: item.respuestaUrl || '',
+          fechaCargaRespuesta: item.fechaCargaRespuesta || '',
+          tipoPeticion: item.tipoPeticion || '',
           otrosEstados: item.otrosEstados || '',
           observaciones: item.observaciones || '',
           dependenciasDestino: Array.isArray(item.dependenciasDestino) ? item.dependenciasDestino : [],

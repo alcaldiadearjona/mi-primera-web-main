@@ -286,8 +286,8 @@
   }
 
   #pantallaDependencia .table-custom {
-    width: 1400px;
-    min-width: 1400px;
+    width: 1700px;
+    min-width: 1700px;
     table-layout: fixed !important;
     font-size: 12px;
   }
@@ -329,6 +329,10 @@
   #pantallaDependencia .table-custom td:nth-child(11) { width: 130px !important; }
   #pantallaDependencia .table-custom th:nth-child(12),
   #pantallaDependencia .table-custom td:nth-child(12) { width: 125px !important; }
+  #pantallaDependencia .table-custom th:nth-child(13),
+  #pantallaDependencia .table-custom td:nth-child(13) { width: 115px !important; }
+  #pantallaDependencia .table-custom th:nth-child(14),
+  #pantallaDependencia .table-custom td:nth-child(14) { width: 180px !important; }
 }
 
 @media (max-width: 600px) {
@@ -347,4 +351,95 @@
   #pantallaDependencia .detail-filter-button {
     justify-content: center;
   }
+}
+
+#pantallaDependencia .petition-type-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+#pantallaDependencia .petition-type-field::after {
+  position: absolute;
+  top: 20px;
+  right: 15px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid #244735;
+  border-bottom: 2px solid #244735;
+  border-radius: 1px;
+  content: "";
+  pointer-events: none;
+  transform: rotate(45deg);
+  transition: transform 0.22s ease, border-color 0.22s ease;
+}
+
+#pantallaDependencia .petition-type-field:focus-within::after {
+  border-color: #34704d;
+  transform: translateY(4px) rotate(225deg);
+}
+
+#pantallaDependencia .tipo-peticion-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 8px 34px 8px 9px;
+  border: 1px solid #d4e5d9;
+  border-radius: 13px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff calc(100% - 43px), #d2e8d8 calc(100% - 43px), #d2e8d8 100%);
+  color: #244735;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(36, 71, 53, 0.06), inset 0 1px 0 #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+#pantallaDependencia .tipo-peticion-select:hover {
+  border-color: #a8c9b1;
+  box-shadow: 0 5px 12px rgba(36, 71, 53, 0.1), inset 0 1px 0 #ffffff;
+}
+
+#pantallaDependencia .tipo-peticion-select:focus-visible {
+  border-color: #78a987;
+  box-shadow: 0 0 0 3px rgba(168, 201, 177, 0.28), 0 5px 12px rgba(36, 71, 53, 0.1);
+}
+
+#pantallaDependencia .tipo-peticion-select:invalid {
+  color: #557060;
+  font-weight: 550;
+}
+
+#pantallaDependencia .tipo-peticion-select option {
+  padding: 10px 12px;
+  background-color: #ffffff;
+  color: #244735;
+  font-size: 13px;
+}
+
+#pantallaDependencia .tipo-peticion-select option:checked {
+  background: linear-gradient(#d2e8d8, #d2e8d8);
+  color: #244735;
+}
+
+#pantallaDependencia .tipo-peticion-select option:hover {
+  background-color: #d2e8d8;
+  color: #244735;
+}
+
+#pantallaDependencia .other-states-button:disabled {
+  cursor: not-allowed !important;
+  filter: grayscale(0.65);
+  opacity: 0.42;
+  box-shadow: none !important;
+}
+
+#pantallaDependencia .other-states-button:disabled:hover {
+  transform: none !important;
+  filter: grayscale(0.65);
 }

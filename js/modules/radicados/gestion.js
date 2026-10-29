@@ -4,6 +4,7 @@ import { datosRadicados } from '../../data/radicados.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { abreviarNombreDependencia } from '../../utils/helpers.js';
 import { confirmarAccion } from '../ui/avisos.js';
+import { TIPOS_PETICION } from './tabla.js';
 
 export function inicializarAccionesRadicados() {
   document.getElementById('formEditar')?.addEventListener('submit', guardarEdicionRadicado);
@@ -287,6 +288,10 @@ window.abrirModalOtrosEstados = function(id) {
   const item = buscarRadicadoPorId(id);
 
   if (item) {
+    if (!TIPOS_PETICION.includes(item.tipoPeticion)) {
+      alert('Selecciona el tipo de petición antes de gestionar otros estados.');
+      return;
+    }
     document.getElementById('modalEstadoDocId').value = item.id;
     document.getElementById('txtFuncionarioAsignado').value = item.funcionarioAsignado || '';
     actualizarEstadoFuncionarioPreview({ currentTarget: document.getElementById('txtFuncionarioAsignado') });
@@ -302,6 +307,13 @@ window.cerrarModalOtrosEstados = function() {
 };
 
 window.guardarOtrosEstados = async function() {
+  const id = document.getElementById('modalEstadoDocId').value;
+  const radicado = buscarRadicadoPorId(id);
+  if (!TIPOS_PETICION.includes(radicado?.tipoPeticion)) {
+    alert('Selecciona el tipo de petición antes de guardar otros estados.');
+    return;
+  }
+
   const boton = document.getElementById('btnGuardarOtrosEstados');
   const spinner = document.getElementById('spinnerGuardarOtrosEstados');
   const texto = document.getElementById('textoGuardarOtrosEstados');
@@ -314,7 +326,6 @@ window.guardarOtrosEstados = async function() {
   if (spinner) spinner.style.display = 'inline-block';
   if (texto) texto.textContent = 'Guardando...';
 
-  const id = document.getElementById('modalEstadoDocId').value;
   const funcionarioAsignado = document.getElementById('txtFuncionarioAsignado').value.trim();
   const otrosEstados = document.getElementById('selectOtrosEstados').value; // <--- Corregido a selectOtrosEstados
   const observaciones = document.getElementById('txtObservaciones').value;

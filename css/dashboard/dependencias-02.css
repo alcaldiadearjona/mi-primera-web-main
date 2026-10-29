@@ -229,29 +229,33 @@
 }
 
 #pantallaDependencia .table-custom th:nth-child(1),
-#pantallaDependencia .table-custom td:nth-child(1) { width: 6% !important; }
+#pantallaDependencia .table-custom td:nth-child(1) { width: 5% !important; }
 #pantallaDependencia .table-custom th:nth-child(2),
-#pantallaDependencia .table-custom td:nth-child(2) { width: 10% !important; }
+#pantallaDependencia .table-custom td:nth-child(2) { width: 8% !important; }
 #pantallaDependencia .table-custom th:nth-child(3),
-#pantallaDependencia .table-custom td:nth-child(3) { width: 7% !important; }
+#pantallaDependencia .table-custom td:nth-child(3) { width: 6% !important; }
 #pantallaDependencia .table-custom th:nth-child(4),
-#pantallaDependencia .table-custom td:nth-child(4) { width: 7% !important; }
+#pantallaDependencia .table-custom td:nth-child(4) { width: 6% !important; }
 #pantallaDependencia .table-custom th:nth-child(5),
-#pantallaDependencia .table-custom td:nth-child(5) { width: 10% !important; }
+#pantallaDependencia .table-custom td:nth-child(5) { width: 8% !important; }
 #pantallaDependencia .table-custom th:nth-child(6),
-#pantallaDependencia .table-custom td:nth-child(6) { width: 10% !important; }
+#pantallaDependencia .table-custom td:nth-child(6) { width: 8% !important; }
 #pantallaDependencia .table-custom th:nth-child(7),
-#pantallaDependencia .table-custom td:nth-child(7) { width: 5% !important; }
+#pantallaDependencia .table-custom td:nth-child(7) { width: 4% !important; }
 #pantallaDependencia .table-custom th:nth-child(8),
-#pantallaDependencia .table-custom td:nth-child(8) { width: 11% !important; }
+#pantallaDependencia .table-custom td:nth-child(8) { width: 9% !important; }
 #pantallaDependencia .table-custom th:nth-child(9),
-#pantallaDependencia .table-custom td:nth-child(9) { width: 7% !important; }
+#pantallaDependencia .table-custom td:nth-child(9) { width: 6% !important; }
 #pantallaDependencia .table-custom th:nth-child(10),
-#pantallaDependencia .table-custom td:nth-child(10) { width: 8% !important; }
+#pantallaDependencia .table-custom td:nth-child(10) { width: 7% !important; }
 #pantallaDependencia .table-custom th:nth-child(11),
-#pantallaDependencia .table-custom td:nth-child(11) { width: 10% !important; }
+#pantallaDependencia .table-custom td:nth-child(11) { width: 8% !important; }
 #pantallaDependencia .table-custom th:nth-child(12),
-#pantallaDependencia .table-custom td:nth-child(12) { width: 9% !important; }
+#pantallaDependencia .table-custom td:nth-child(12) { width: 7% !important; }
+#pantallaDependencia .table-custom th:nth-child(13),
+#pantallaDependencia .table-custom td:nth-child(13) { width: 8% !important; }
+#pantallaDependencia .table-custom th:nth-child(14),
+#pantallaDependencia .table-custom td:nth-child(14) { width: 10% !important; }
 
 @media (min-width: 901px) {
   #pantallaDependencia > .view-card {

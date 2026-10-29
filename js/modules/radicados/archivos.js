@@ -4,10 +4,86 @@ import { datosRadicados } from '../../data/radicados.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { confirmarAccion } from '../ui/avisos.js';
+import { TIPOS_PETICION } from './tabla.js';
+
+const guardadosTipoPeticionPendientes = new Map();
+
+window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
+  const tipoPeticion = selectElement.value;
+  const radicado = Object.values(datosRadicados)
+    .flat()
+    .find(reg => reg.id === idRadicado);
+  if (!radicado || (tipoPeticion && !TIPOS_PETICION.includes(tipoPeticion))) {
+    alert('No fue posible guardar el tipo de petición seleccionado.');
+    return false;
+  }
+
+  const tipoAnterior = radicado.tipoPeticion || '';
+  const fila = selectElement.closest('tr');
+  const botonOtrosEstados = fila?.querySelector('.other-states-button');
+  const indicacionTipoPeticion = fila?.querySelector('.petition-type-hint');
+  selectElement.disabled = true;
+  if (botonOtrosEstados) botonOtrosEstados.disabled = true;
+  if (indicacionTipoPeticion) indicacionTipoPeticion.textContent = 'Guardando tipo...';
+  const guardado = updateDoc(doc(db, "radicados", idRadicado), { tipoPeticion })
+    .then(() => {
+      radicado.tipoPeticion = tipoPeticion;
+      if (botonOtrosEstados) {
+        botonOtrosEstados.disabled = !TIPOS_PETICION.includes(tipoPeticion);
+        botonOtrosEstados.title = tipoPeticion
+          ? 'Gestionar / Agregar Estado'
+          : 'Selecciona primero el tipo de petición';
+      }
+      if (indicacionTipoPeticion) {
+        indicacionTipoPeticion.textContent = tipoPeticion ? 'Tipo definido' : 'Requerido para gestionar';
+      }
+      return true;
+    })
+    .catch(error => {
+      console.error("Error al guardar el tipo de petición:", error);
+      selectElement.value = tipoAnterior;
+      if (botonOtrosEstados) botonOtrosEstados.disabled = !TIPOS_PETICION.includes(tipoAnterior);
+      if (indicacionTipoPeticion) {
+        indicacionTipoPeticion.textContent = tipoAnterior ? 'Tipo definido' : 'Requerido para gestionar';
+      }
+      alert("No fue posible guardar el tipo de petición: " + error.message);
+      return false;
+    })
+    .finally(() => {
+      selectElement.disabled = false;
+      guardadosTipoPeticionPendientes.delete(idRadicado);
+    });
+
+  guardadosTipoPeticionPendientes.set(idRadicado, guardado);
+  return guardado;
+};
 
 window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
   const file = inputElement.files ? inputElement.files[0] : null;
   if (!file) return;
+
+  const selectTipoPeticion = inputElement.closest('tr')?.querySelector('.tipo-peticion-select');
+  if (!selectTipoPeticion?.value) {
+    alert('Selecciona el tipo de petición antes de cargar la respuesta.');
+    inputElement.value = '';
+    selectTipoPeticion?.focus();
+    return;
+  }
+
+  const guardadoPendiente = guardadosTipoPeticionPendientes.get(idRadicado);
+  if (guardadoPendiente && !(await guardadoPendiente)) {
+    inputElement.value = '';
+    return;
+  }
+
+  const radicado = Object.values(datosRadicados)
+    .flat()
+    .find(reg => reg.id === idRadicado);
+  if (!radicado?.tipoPeticion) {
+    alert('Guarda el tipo de petición antes de cargar la respuesta.');
+    inputElement.value = '';
+    return;
+  }
 
   const tdCell = inputElement.closest('td');
   const contenidoOriginal = tdCell.innerHTML;
@@ -77,6 +153,12 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
       const radicadoRef = doc(db, "radicados", idRadicado);
       await updateDoc(radicadoRef, {
         respuestaUrl,
+        fechaCargaRespuesta: new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'America/Bogota',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(new Date()),
         estado: 'CERRADO'
       });
 
@@ -134,6 +216,7 @@ window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
 
     await updateDoc(doc(db, "radicados", idRadicado), {
       respuestaUrl: "",
+      fechaCargaRespuesta: "",
       estado: radicado.funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE'
     });
 
