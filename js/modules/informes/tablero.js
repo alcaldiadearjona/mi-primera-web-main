@@ -1,5 +1,5 @@
 import { datosRadicados } from '../../data/radicados.js';
-import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/+esm';
@@ -210,7 +210,7 @@ function informesVisibles() {
   return document.getElementById('pantallaInformes')?.style.display !== 'none';
 }
 
-function dividirEtiqueta(etiqueta, limite = 13) {
+function dividirEtiqueta(etiqueta, limite = 9) {
   const lineas = [];
   let linea = '';
   String(etiqueta).split(/\s+/).forEach(palabra => {
@@ -236,7 +236,9 @@ function renderizarRanking(registros) {
   canvas.setAttribute('aria-label', `Radicados por ${origen === 'ias' ? 'IAS' : 'Dependencia'}`);
   if (!puedeMostrar) return;
 
-  const labels = lista.map(([nombre]) => nombre);
+  const labels = lista.map(([nombre]) => (
+    origen === 'dependencias' ? abreviarNombreDependencia(nombre) : nombre
+  ));
   const valores = lista.map(([, total]) => total);
   const maximo = Math.max(...valores);
   if (!graficas.ranking) {

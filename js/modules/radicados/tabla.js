@@ -30,7 +30,7 @@ export function renderizarTablaRadicados(lista) {
   );
 
   if (lista.length === 0 && hayFiltrosActivos) {
-    tbody.innerHTML = `<tr><td colspan="14" style="text-align: center; color: #94a3b8; padding: 30px;">No se encontraron radicados con los filtros seleccionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: #94a3b8; padding: 30px;">No se encontraron radicados con los filtros seleccionados.</td></tr>`;
     return;
   }
 
@@ -68,7 +68,7 @@ export function renderizarTablaRadicados(lista) {
       const filaMes = document.createElement('tr');
       filaMes.className = 'month-group-row';
       filaMes.innerHTML = `
-        <th colspan="14">
+        <th colspan="15">
           <button class="month-group-toggle" type="button" aria-expanded="false" onclick="toggleMonthGroup(this)">
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
             <span>${grupo.etiqueta}</span>
@@ -84,7 +84,7 @@ export function renderizarTablaRadicados(lista) {
       filaVacia.className = 'month-record-row month-empty-row';
       filaVacia.dataset.monthGroup = mesKey;
       filaVacia.hidden = !esMesActual;
-      filaVacia.innerHTML = '<td colspan="14">No se encontraron radicados.</td>';
+      filaVacia.innerHTML = '<td colspan="15">No se encontraron radicados.</td>';
       tbody.appendChild(filaVacia);
       return;
     }
@@ -213,6 +213,7 @@ if (reg.respuestaUrl) {
     </select>
   </div>
 </td>
+<td>${reg.tipoCanal || '-'}</td>
     `;
 
     const dependenciasDestino = Array.isArray(reg.dependenciasDestino) ? reg.dependenciasDestino : [];

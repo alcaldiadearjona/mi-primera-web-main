@@ -57,6 +57,7 @@ export async function cargarDatosDesdeFirebase() {
           dependencia: dep,
           radicado: item.radicado,
           estado: item.estado || 'VIGENTE',
+          tipoCanal: item.tipoCanal || '',
           fechaRadicacion: item.fechaRadicacion || '',
           fechaEntregaManual: item.fechaEntregaManual || '',
           fechaVencimiento: item.fechaVencimiento || item.fechaEntrega || sumarDiasHabilesColombia(item.fechaRadicacion, item.diasHabiles || 15),

@@ -6,6 +6,15 @@ import { abreviarNombreDependencia } from '../../utils/helpers.js';
 import { confirmarAccion } from '../ui/avisos.js';
 import { TIPOS_PETICION } from './tabla.js';
 
+function obtenerFechaActualBogota() {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
+}
+
 export function inicializarAccionesRadicados() {
   document.getElementById('formEditar')?.addEventListener('submit', guardarEdicionRadicado);
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', actualizarEstadoFuncionarioPreview);
@@ -332,6 +341,10 @@ window.guardarOtrosEstados = async function() {
   const destinosSeleccionados = Array.from(
     document.querySelectorAll('input[name="dependenciaDestinoCompetencia"]:checked:not(:disabled)')
   ).map(casilla => casilla.value);
+  const fechaGestion = obtenerFechaActualBogota();
+  const debeActualizarFechaRespuesta = Boolean(
+    otrosEstados && (!radicado.fechaCargaRespuesta || otrosEstados !== radicado.otrosEstados)
+  );
 
   try {
     const docRef = doc(db, "radicados", id);
@@ -339,7 +352,8 @@ window.guardarOtrosEstados = async function() {
       funcionarioAsignado,
       estado: funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE',
       otrosEstados: otrosEstados,
-      observaciones: observaciones
+      observaciones: observaciones,
+      ...(debeActualizarFechaRespuesta ? { fechaCargaRespuesta: fechaGestion } : {})
     };
 
     if (destinosSeleccionados.length > 0) {
@@ -386,6 +400,7 @@ window.guardarOtrosEstados = async function() {
             funcionarioAsignado: '',
             otrosEstados: '',
             respuestaUrl: '',
+            fechaCargaRespuesta: '',
             observaciones: '',
             dependenciasDestino: [],
             remisionOrigenId: id,
@@ -398,6 +413,7 @@ window.guardarOtrosEstados = async function() {
           ...camposGestion,
           funcionarioAsignado: '',
           estado: 'R. por C.',
+          fechaCargaRespuesta: fechaGestion,
           dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],
           fechaRemisionCompetencia: fechaRemision
         });

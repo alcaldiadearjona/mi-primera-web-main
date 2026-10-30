@@ -69,6 +69,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
                 <th>Respuesta</th>
                 <th>F. Carga Respuesta</th>
                 <th>Tipo de petición *</th>
+                <th>Tipo de Canal</th>
               </tr>
             </thead>
             <tbody id="cuerpoTablaExclusiva">

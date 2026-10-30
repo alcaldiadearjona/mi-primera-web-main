@@ -286,8 +286,8 @@
   }
 
   #pantallaDependencia .table-custom {
-    width: 1700px;
-    min-width: 1700px;
+    width: 1820px;
+    min-width: 1820px;
     table-layout: fixed !important;
     font-size: 12px;
   }
@@ -333,6 +333,8 @@
   #pantallaDependencia .table-custom td:nth-child(13) { width: 115px !important; }
   #pantallaDependencia .table-custom th:nth-child(14),
   #pantallaDependencia .table-custom td:nth-child(14) { width: 180px !important; }
+  #pantallaDependencia .table-custom th:nth-child(15),
+  #pantallaDependencia .table-custom td:nth-child(15) { width: 125px !important; }
 }
 
 @media (max-width: 600px) {

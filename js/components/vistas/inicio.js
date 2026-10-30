@@ -62,6 +62,15 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             </div>
 
             <div class="form-group">
+              <label for="tipoCanal">Tipo de Canal</label>
+              <select id="tipoCanal" required>
+                <option value="">-- Seleccionar tipo de canal --</option>
+                <option value="Virtual">Virtual</option>
+                <option value="Presencial">Presencial</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label for="estadoSolicitud">Estado Inicial</label>
               <select id="estadoSolicitud" required>
                 <option value="VIGENTE">VIGENTE</option>

@@ -151,6 +151,7 @@ async function guardarRadicado(e) {
     const nuevoRadicado = {
       radicado: document.getElementById('radicado').value.trim(),
       estado: 'VIGENTE',
+      tipoCanal: document.getElementById('tipoCanal').value,
       fechaRadicacion: document.getElementById('fechaRadicacion').value,
       fechaEntregaManual: document.getElementById('fechaEntregaManual').value,
       diasHabiles: document.getElementById('diasHabiles').value,
