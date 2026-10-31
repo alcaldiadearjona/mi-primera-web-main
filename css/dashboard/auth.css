@@ -22,25 +22,25 @@
   width: fit-content;
   max-width: 100%;
   margin: 0 0 14px auto;
-  padding: 7px 12px;
+  padding: 9px 15px;
   flex-direction: row;
   align-items: baseline;
-  gap: 5px;
+  gap: 7px;
   border: 1px solid #d5e8dc;
-  border-left: 3px solid #16804a;
-  border-radius: 8px;
-  box-shadow: none;
+  border-left: 4px solid #16804a;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(22, 80, 48, .07);
 }
 
 .session-greeting-label {
-  color: #64748b;
-  font-size: 12px;
+  color: #526477;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .session-greeting strong {
   color: #244735;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.2;
 }
 

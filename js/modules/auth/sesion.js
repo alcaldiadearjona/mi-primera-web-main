@@ -9,6 +9,7 @@ import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import {
   establecerSesionUsuario,
   esAdministrador,
+  esControlInterno,
   esFuncionario,
   limpiarSesionUsuario,
   obtenerCredencialLogin,
@@ -38,10 +39,11 @@ function mostrarErrorLogin(mensaje) {
 
 function obtenerMensajeErrorAutenticacion(error) {
   const mensajes = {
-    'auth/invalid-email': 'El correo interno de esta cuenta no es válido. Verifica cómo fue creada en Firebase Authentication.',
-    'auth/invalid-credential': 'Firebase no encontró una cuenta con ese usuario o la contraseña no coincide. La cuenta debe existir en Firebase Authentication con el correo interno configurado para ese usuario.',
-    'auth/user-not-found': 'No existe esa cuenta en Firebase Authentication. Créala con el correo interno indicado en la guía de configuración.',
-    'auth/wrong-password': 'La contraseña no coincide con la registrada para esa cuenta en Firebase Authentication.',
+    'auth/invalid-email': 'Usuario o Contraseña Incorrecta.',
+    'auth/invalid-credential': 'Usuario o Contraseña Incorrecta.',
+    'auth/invalid-login-credentials': 'Usuario o Contraseña Incorrecta.',
+    'auth/user-not-found': 'Usuario o Contraseña Incorrecta.',
+    'auth/wrong-password': 'Usuario o Contraseña Incorrecta.',
     'auth/too-many-requests': 'Firebase bloqueó temporalmente los intentos. Espera unos minutos e inténtalo de nuevo.',
     'auth/network-request-failed': 'No se pudo conectar con Firebase. Revisa tu conexión a Internet e inténtalo de nuevo.',
     'auth/operation-not-allowed': 'Falta habilitar el proveedor: en Firebase Console abre Authentication > Sign-in method, activa Correo electrónico/Contraseña y guarda los cambios.',
@@ -74,21 +76,27 @@ function mostrarPantallaDespuesDeLogin() {
   document.getElementById('pantallaInicio').style.display = 'block';
   document.getElementById('vista-dependencias').style.display = 'none';
 
-  const nombre = esAdministrador()
-    ? 'Administrador'
-    : obtenerDependenciaSesion();
+  const nombre = esControlInterno()
+    ? 'Control Interno'
+    : esAdministrador()
+      ? 'Administrador'
+      : obtenerDependenciaSesion();
   const saludo = document.getElementById('saludoSesion');
   const nombreSaludo = document.getElementById('nombreSaludoSesion');
   if (nombreSaludo) nombreSaludo.textContent = nombre;
-  if (saludo) saludo.hidden = !esFuncionario();
+  if (saludo) saludo.hidden = !esFuncionario() && !esControlInterno();
   const saludoDetalle = document.getElementById('saludoDependenciaDetalle');
   const nombreSaludoDetalle = document.getElementById('nombreSaludoDependenciaDetalle');
   if (nombreSaludoDetalle) nombreSaludoDetalle.textContent = nombre;
-  if (saludoDetalle) saludoDetalle.hidden = !esFuncionario();
+  if (saludoDetalle) saludoDetalle.hidden = !esFuncionario() && !esControlInterno();
 
   const rolMenu = document.getElementById('rolSesionMenu');
   const nombreMenu = document.getElementById('nombreSesionMenu');
-  if (rolMenu) rolMenu.textContent = esAdministrador() ? 'Administrador' : 'Funcionario';
+  if (rolMenu) {
+    rolMenu.textContent = esAdministrador() && !esControlInterno()
+      ? 'Administrador'
+      : 'Funcionario';
+  }
   if (nombreMenu) nombreMenu.textContent = nombre;
 
   document.querySelectorAll('.admin-only').forEach(elemento => {

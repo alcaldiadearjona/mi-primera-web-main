@@ -45,6 +45,44 @@ select:not([multiple]):not([size]):not(.tipo-peticion-select) option {
   width: 100%;
 }
 
+#pantallaDependencia .petition-type-field {
+  width: max-content;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+#pantallaDependencia .tipo-peticion-select {
+  width: max-content;
+  field-sizing: content;
+  max-width: none;
+  min-width: 0;
+  padding-right: 32px;
+  padding-left: 10px;
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff calc(100% - 32px), #d2e8d8 calc(100% - 32px), #d2e8d8 100%);
+  font-size: 12px;
+}
+
+#pantallaIAS .ias-table {
+  width: 1985px !important;
+  min-width: 1985px;
+}
+
+#pantallaIAS .petition-type-field {
+  width: max-content;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+#pantallaIAS .tipo-peticion-select {
+  width: max-content;
+  field-sizing: content;
+  max-width: none;
+  min-width: 0;
+  padding-right: 32px;
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff calc(100% - 32px), #d2e8d8 calc(100% - 32px), #d2e8d8 100%);
+  font-size: 12px;
+}
+
 .table-custom select:not([multiple]):not([size]) {
   min-height: 40px !important;
   padding: 8px 34px 8px 11px !important;

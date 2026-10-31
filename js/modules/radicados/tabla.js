@@ -202,7 +202,7 @@ if (soloLecturaIAS) {
       ? `<span>${reg.tipoPeticion || '-'}</span>`
       : `
         <div class="petition-type-field">
-          <select class="tipo-peticion-select" aria-label="Tipo de petición para el radicado ${reg.radicado || ''}" aria-required="true" required onchange="guardarTipoPeticionRadicado('${reg.id}', this)">
+          <select class="tipo-peticion-select" title="${reg.tipoPeticion || 'Selecciona un tipo de petición'}" aria-label="Tipo de petición para el radicado ${reg.radicado || ''}" aria-required="true" required onchange="guardarTipoPeticionRadicado('${reg.id}', this)">
             <option value="">Selecciona un tipo</option>
             ${opcionesTipoPeticion}
           </select>

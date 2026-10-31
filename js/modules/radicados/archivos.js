@@ -27,6 +27,9 @@ function recargarDatosRegistro(registro) {
 
 window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
   const tipoPeticion = selectElement.value;
+  const tipoPeticionTexto = selectElement.selectedOptions[0]?.textContent.trim()
+    || 'Selecciona un tipo de petición';
+  selectElement.title = tipoPeticionTexto;
   const radicado = buscarRadicado(idRadicado, selectElement);
   if (!radicado || (tipoPeticion && !TIPOS_PETICION.includes(tipoPeticion))) {
     alert('No fue posible guardar el tipo de petición seleccionado.');
@@ -53,6 +56,7 @@ window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
     .catch(error => {
       console.error("Error al guardar el tipo de petición:", error);
       selectElement.value = tipoAnterior;
+      selectElement.title = tipoAnterior || 'Selecciona un tipo de petición';
       if (indicacionTipoPeticion) {
         indicacionTipoPeticion.textContent = tipoAnterior ? 'Tipo definido' : 'Requerido para gestionar';
       }
