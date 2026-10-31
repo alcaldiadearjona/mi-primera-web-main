@@ -109,7 +109,7 @@ function renderizarTarjetas() {
     const tarjeta = document.createElement('button');
     tarjeta.type = 'button';
     tarjeta.className = 'ias-entity-card';
-    const puedeAbrir = !esFuncionario();
+    const puedeAbrir = !esFuncionario() || puedeGestionarIAS();
     tarjeta.disabled = !puedeAbrir;
     tarjeta.setAttribute('aria-label', puedeAbrir
       ? `${entidad.nombre}, ${cantidad} radicados. Abrir entidad.`
@@ -158,7 +158,7 @@ function actualizarFiltroAnios(registros) {
 }
 
 function abrirEntidad(id) {
-  if (esFuncionario()) {
+  if (esFuncionario() && !puedeGestionarIAS()) {
     void mostrarAviso('Los funcionarios pueden ver las entidades IAS, pero no ingresar a sus radicados.', {
       tipo: 'warning',
       titulo: 'Acceso restringido'
@@ -375,7 +375,7 @@ export async function recargarDatosIAS() {
 
 export async function inicializarTableroIAS() {
   if (!puedeConsultarIAS()) return;
-  if (esFuncionario()) {
+  if (esFuncionario() && !puedeGestionarIAS()) {
     renderizarTarjetas();
     return;
   }

@@ -80,11 +80,11 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
         <h4 id="tituloRemisionCompetencia" style="margin: 0 0 5px; font-size: 14px; color: #334155;">Remitir por Competencia</h4>
         <p style="margin: 0 0 10px; color: #64748b; font-size: 12px;">Selecciona una o varias dependencias. Se creará una copia VIGENTE con el mismo número de radicado y esta solicitud quedará cerrada.</p>
         <div style="position: relative;">
-          <button id="alternarDependenciasRemision" type="button" aria-expanded="false" aria-controls="dependenciasRemisionCompetencia" style="display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; color:#334155; font:inherit; font-size:13px; text-align:left; cursor:pointer;">
-            <span id="resumenDependenciasRemision" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Seleccionar dependencias destino</span>
+          <button id="alternarDependenciasRemision" type="button" aria-expanded="false" aria-controls="dependenciasRemisionCompetencia">
+            <span id="resumenDependenciasRemision">Seleccionar dependencias destino</span>
             <i class="bi bi-chevron-down" aria-hidden="true"></i>
           </button>
-          <div id="dependenciasRemisionCompetencia" role="group" aria-label="Dependencias destino para remisión por competencia" hidden style="position:absolute; z-index:2; top:calc(100% + 4px); left:0; right:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(145px, 1fr)); gap:5px; max-height:170px; overflow-y:auto; padding:8px; border:1px solid #d8e1e9; border-radius:8px; background:#fff; box-shadow:0 8px 20px rgba(15,23,42,.14);"></div>
+          <div id="dependenciasRemisionCompetencia" role="group" aria-label="Dependencias destino para remisión por competencia" hidden></div>
         </div>
       </section>
 
@@ -92,7 +92,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
 
       <div style="margin-top: 16px;">
         <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px;">Otros Estados:</label>
-        <select id="selectOtrosEstados" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px;">
+        <select id="selectOtrosEstados">
           <option value="">-- Seleccionar --</option>
           <option value="Para Conocimiento">Para Conocimiento</option>
           <option value="No Requiere Respuesta">No Requiere Respuesta</option>

@@ -5,6 +5,7 @@ import {
   evaluarEstadoAutomatico,
   formatearIso,
   obtenerFestivosColombia,
+  obtenerRadicadosProximosAVencer,
   siguienteLunes,
   sumarDiasHabilesColombia
 } from '../js/utils/helpers.js';
@@ -76,4 +77,27 @@ test('evaluarEstadoAutomatico clasifica fechas vencidas, próximas y vigentes', 
   assert.equal(evaluarEstadoAutomatico(fecha(0)).clase, 'status-proximo');
   assert.equal(evaluarEstadoAutomatico(fecha(2)).clase, 'status-proximo');
   assert.equal(evaluarEstadoAutomatico(fecha(3)).clase, 'status-vigente');
+});
+
+test('obtenerRadicadosProximosAVencer filtra y ordena los radicados por fecha', () => {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fecha = dias => {
+    const resultado = new Date(hoy);
+    resultado.setDate(resultado.getDate() + dias);
+    return formatearIso(resultado);
+  };
+  const radicados = [
+    { radicado: 'vence-en-dos', fechaVencimiento: fecha(2) },
+    { radicado: 'vence-manana', fechaVencimiento: fecha(1) },
+    { radicado: 'vence-hoy', fechaVencimiento: fecha(0) },
+    { radicado: 'en-tramite', fechaVencimiento: fecha(1), estado: 'EN TRAMITE' },
+    { radicado: 'fuera-del-plazo', fechaVencimiento: fecha(3) },
+    { radicado: 'cerrado', fechaVencimiento: fecha(1), respuestaUrl: 'https://example.com/respuesta' }
+  ];
+
+  assert.deepEqual(
+    obtenerRadicadosProximosAVencer(radicados).map(({ radicado }) => radicado.radicado),
+    ['vence-hoy', 'vence-manana', 'en-tramite', 'vence-en-dos']
+  );
 });

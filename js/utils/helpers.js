@@ -170,6 +170,36 @@ export function evaluarEstadoAutomatico(fechaVencimientoStr, respuestaUrl = null
   }
 }
 
+export function obtenerRadicadosProximosAVencer(radicados) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  return radicados
+    .filter(radicado => typeof radicado.fechaVencimiento === 'string' && radicado.fechaVencimiento)
+    .map(radicado => {
+      const estado = evaluarEstadoAutomatico(
+        radicado.fechaVencimiento,
+        radicado.respuestaUrl,
+        radicado.otrosEstados,
+        radicado.estado
+      );
+      const [anio, mes, dia] = radicado.fechaVencimiento.split('-').map(Number);
+      const fechaVencimiento = new Date(anio, mes - 1, dia);
+      fechaVencimiento.setHours(0, 0, 0, 0);
+      const diasRestantes = Math.round((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+
+      return { radicado, estado, diasRestantes };
+    })
+    .filter(({ estado, diasRestantes }) => (
+      estado.clase !== 'status-cerrado' && diasRestantes >= 0 && diasRestantes <= 2
+    ))
+    .map(({ radicado }) => ({
+      radicado,
+      estado: { texto: 'PRÓXIMO A VENCER', clase: 'status-proximo' }
+    }))
+    .sort((a, b) => a.radicado.fechaVencimiento.localeCompare(b.radicado.fechaVencimiento));
+}
+
 export function convertirABase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

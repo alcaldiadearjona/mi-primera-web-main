@@ -1,10 +1,12 @@
 import { datosRadicados } from '../../data/radicados.js';
 import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
-import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import { evaluarEstadoAutomatico, obtenerRadicadosProximosAVencer } from '../../utils/helpers.js';
 
 export function actualizarResumenRadicados() {
-  const radicados = Object.values(datosRadicados)
-    .flat()
+  const dependenciaSesion = obtenerDependenciaSesion();
+  const radicados = (esFuncionario()
+    ? datosRadicados[dependenciaSesion] || []
+    : Object.values(datosRadicados).flat())
     .filter(radicado => !radicado.remisionOrigenId);
   const radicadosConEstado = radicados.map((radicado) => ({
     radicado,
@@ -24,20 +26,26 @@ export function actualizarResumenRadicados() {
   const contenedor = document.getElementById('resumenRecientes');
   if (!contenedor) return;
 
-  const recientes = radicadosConEstado
-    .sort((a, b) => (b.radicado.fechaRadicacion || '').localeCompare(a.radicado.fechaRadicacion || ''))
+  const subtitulo = document.getElementById('subtituloRecientes');
+  if (subtitulo) {
+    subtitulo.textContent = esFuncionario()
+      ? `En ${dependenciaSesion}`
+      : 'En todas las dependencias';
+  }
+
+  const proximosAVencer = obtenerRadicadosProximosAVencer(radicados)
     .slice(0, 4);
   contenedor.replaceChildren();
 
-  if (recientes.length === 0) {
+  if (proximosAVencer.length === 0) {
     const mensaje = document.createElement('p');
     mensaje.className = 'recent-empty';
-    mensaje.textContent = 'Aún no hay PQRS registradas.';
+    mensaje.textContent = 'No hay radicados próximos a vencer.';
     contenedor.appendChild(mensaje);
     return;
   }
 
-  recientes.forEach(({ radicado, estado }) => {
+  proximosAVencer.forEach(({ radicado, estado }) => {
     const fila = document.createElement('article');
     fila.className = 'recent-item';
 
@@ -50,7 +58,7 @@ export function actualizarResumenRadicados() {
 
     const numero = document.createElement('span');
     numero.className = 'recent-item-number';
-    numero.textContent = radicado.radicado || 'Sin número de radicado';
+    numero.textContent = `${radicado.radicado || 'Sin número de radicado'} · Vence ${radicado.fechaVencimiento}`;
 
     detalles.append(remitente, numero);
 
@@ -61,7 +69,7 @@ export function actualizarResumenRadicados() {
     const abrir = document.createElement('button');
     abrir.className = 'recent-open';
     abrir.type = 'button';
-    abrir.setAttribute('aria-label', `Abrir radicados de ${radicado.dependencia}`);
+    abrir.setAttribute('aria-label', `Abrir radicados de ${radicado.dependencia || dependenciaSesion}`);
     abrir.innerHTML = '<i class="bi bi-arrow-up-right" aria-hidden="true"></i>';
     abrir.addEventListener('click', () => window.abrirDependencia(radicado.dependencia));
 

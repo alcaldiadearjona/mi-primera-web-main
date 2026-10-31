@@ -7,6 +7,7 @@ import { recargarDatosIAS } from '../ias/tablero.js';
 import { abreviarNombreDependencia } from '../../utils/helpers.js';
 import {
   esAdministrador,
+  puedeEditarRadicado,
   puedeGestionarIAS,
   puedeGestionarRadicado
 } from '../auth/roles.js';
@@ -122,7 +123,7 @@ function cargarOpcionesRemision(registro) {
     .filter(dependencia => dependencia !== registro.dependencia)
     .forEach((dependencia, indice) => {
       const etiqueta = document.createElement('label');
-      etiqueta.style.cssText = 'display:flex; align-items:center; gap:7px; padding:6px 7px; border-radius:6px; color:#334155; font-size:12px; cursor:pointer;';
+      etiqueta.className = 'dependency-dropdown-option';
       const casilla = document.createElement('input');
       casilla.type = 'checkbox';
       casilla.name = 'dependenciaDestinoCompetencia';
@@ -130,7 +131,7 @@ function cargarOpcionesRemision(registro) {
       casilla.id = `dependenciaDestinoCompetencia-${indice}`;
       casilla.checked = destinosYaRemitidos.includes(dependencia);
       casilla.disabled = casilla.checked;
-      if (casilla.disabled) etiqueta.style.cssText += 'opacity:.6; cursor:not-allowed;';
+      etiqueta.classList.toggle('is-disabled', casilla.disabled);
       etiqueta.htmlFor = casilla.id;
       etiqueta.append(casilla, document.createTextNode(abreviarNombreDependencia(dependencia)));
       contenedor.append(etiqueta);
@@ -319,8 +320,8 @@ window.eliminarRadicado = async function(id, elementoClick) {
 };
 
 window.prepararEdicion = function(id, coleccion = '') {
-  if (!esAdministrador()) return;
   const item = buscarRadicadoPorId(id, coleccion);
+  if (!puedeEditarRadicado(item)) return;
 
   if (item) {
     if (document.getElementById('editDocId')) {
@@ -348,13 +349,13 @@ window.cerrarModalEditar = function() {
 
 async function guardarEdicionRadicado(e) {
   e.preventDefault();
-  if (!esAdministrador()) {
-    alert('No tienes permiso para editar este radicado.');
-    return;
-  }
   const id = document.getElementById('editDocId').value;
   const coleccion = document.getElementById('editDocId').dataset.collection || '';
   const radicado = buscarRadicadoPorId(id, coleccion);
+  if (!puedeEditarRadicado(radicado)) {
+    alert('No tienes permiso para editar este radicado.');
+    return;
+  }
   if (!radicado) return;
   const boton = document.getElementById('btnGuardarEditar');
   const spinner = document.getElementById('spinnerGuardarEdicion');

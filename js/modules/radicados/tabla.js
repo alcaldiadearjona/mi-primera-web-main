@@ -1,6 +1,7 @@
 import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
 import {
   esAdministrador,
+  puedeEditarRadicado,
   puedeGestionarIAS,
   puedeGestionarRadicado
 } from '../auth/roles.js';
@@ -156,6 +157,7 @@ export function renderizarTablaRadicados(
     const puedeGestionarRegistro = coleccion === 'radicadosIAS'
       ? puedeGestionarIAS()
       : puedeGestionarRadicado(reg.dependencia);
+    const puedeEditarRegistro = puedeEditarRadicado({ ...reg, coleccion });
     const soloLecturaIAS = coleccion === 'radicadosIAS' && !puedeGestionarRegistro;
     const fechaCargaRespuesta = typeof reg.fechaCargaRespuesta === 'string'
       ? reg.fechaCargaRespuesta
@@ -260,7 +262,7 @@ if (soloLecturaIAS) {
       </td>
       
       <td>
-  ${esAdministrador() ? `<button onclick="prepararEdicion('${reg.id}', '${coleccion}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
+  ${puedeEditarRegistro ? `<button onclick="prepararEdicion('${reg.id}', '${coleccion}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 4 4 4"></path><path d="M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"></path><path d="m14.5 6.5 3 3"></path></svg>
   </button>` : ''}
   ${puedeGestionarRegistro ? `
@@ -348,9 +350,6 @@ tr.cells[5].append(botonRemision, detalleRemision);
       tr.cells[10]?.replaceChildren();
     } else if (!esAdministrador()) {
       tr.querySelector('button[onclick^="eliminarRadicado"]')?.remove();
-    }
-    if (!esAdministrador()) {
-      tr.querySelector('.response-delete-button')?.remove();
     }
     tbody.appendChild(tr);
   }); // Cierra el forEach de reg (radicados)

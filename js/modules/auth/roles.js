@@ -55,20 +55,35 @@ export function obtenerUsuarioSesion() {
   return usuarioSesion;
 }
 
+export function esControlInterno() {
+  return perfilSesion?.rol === 'funcionario'
+    && perfilSesion.dependencia === 'Control Interno';
+}
+
+export function esJuridica() {
+  return perfilSesion?.rol === 'funcionario'
+    && perfilSesion.dependencia === 'Oficina Juridica';
+}
+
 export function esAdministrador() {
-  return perfilSesion?.rol === 'administrador';
+  return perfilSesion?.rol === 'administrador' || esControlInterno();
 }
 
 export function esFuncionario() {
-  return perfilSesion?.rol === 'funcionario';
+  return perfilSesion?.rol === 'funcionario' && !esControlInterno();
 }
 
 export function puedeGestionarIAS() {
-  return esAdministrador();
+  return esAdministrador() || esJuridica();
 }
 
 export function puedeConsultarIAS() {
   return esAdministrador() || esFuncionario();
+}
+
+export function puedeEditarRadicado(registro) {
+  return esAdministrador()
+    || (registro?.coleccion === 'radicadosIAS' && puedeGestionarIAS());
 }
 
 export function puedeGestionarRadicado(dependencia) {

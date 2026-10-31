@@ -5,7 +5,11 @@ import { convertirABase64 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
 import { confirmarAccion } from '../ui/avisos.js';
-import { esAdministrador } from '../auth/roles.js';
+import {
+  esAdministrador,
+  puedeGestionarIAS,
+  puedeGestionarRadicado
+} from '../auth/roles.js';
 import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
 
 const guardadosTipoPeticionPendientes = new Map();
@@ -186,22 +190,25 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
 };
 
 window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
-  if (!esAdministrador()) {
-    alert('Solo el administrador puede eliminar archivos de respuesta.');
+  const radicado = buscarRadicado(idRadicado, botonEliminar);
+  if (!radicado || !radicado.respuestaUrl) {
+    alert("No se encontró el archivo de respuesta para eliminar.");
     return;
   }
+  const puedeEliminarRespuesta = esAdministrador()
+    || (obtenerColeccionRegistro(radicado) === 'radicadosIAS'
+      ? puedeGestionarIAS()
+      : puedeGestionarRadicado(radicado.dependencia));
+  if (!puedeEliminarRespuesta) {
+    alert('No tienes permiso para eliminar este archivo de respuesta.');
+    return;
+  }
+
   const confirmado = await confirmarAccion(
     '¿Estás seguro de que deseas eliminar el archivo de respuesta de Google Drive?',
     { titulo: 'Eliminar archivo de respuesta', aceptarTexto: 'Eliminar' }
   );
   if (!confirmado) {
-    return;
-  }
-
-  const radicado = buscarRadicado(idRadicado, botonEliminar);
-
-  if (!radicado || !radicado.respuestaUrl) {
-    alert("No se encontró el archivo de respuesta para eliminar.");
     return;
   }
 

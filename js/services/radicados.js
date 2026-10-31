@@ -115,7 +115,7 @@ export async function cargarDatosDesdeFirebase() {
     establecerErrorDependenciasInforme();
     const resumenRecientes = document.getElementById('resumenRecientes');
     if (resumenRecientes) {
-      resumenRecientes.textContent = 'No fue posible cargar el resumen de radicados.';
+      resumenRecientes.textContent = 'No fue posible cargar los vencimientos.';
     }
   }
 }

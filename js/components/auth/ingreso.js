@@ -29,7 +29,7 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
       <form onsubmit="iniciarSesion(event)" style="display: flex; flex-direction: column; gap: 18px; text-align: left;">
         <div>
           <label for="loginRol" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Rol</label>
-          <select id="loginRol" required style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;">
+          <select id="loginRol" required>
             <option value="funcionario">Funcionario</option>
             <option value="administrador">Administrador</option>
           </select>

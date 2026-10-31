@@ -19,7 +19,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
               <input type="text" id="inputBuscar" oninput="aplicarFiltrosRadicados()" placeholder="Buscar radicado, remitente o funcionario..." style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 230px; outline: none; background: white;">
 
               <!-- Selector de Año -->
-              <select id="filtroAno" onchange="aplicarFiltrosRadicados()" style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; color: #334155; font-weight: 600; cursor: pointer; background: white;">
+              <select id="filtroAno" onchange="aplicarFiltrosRadicados()">
                 <option value="">Todos los Años</option>
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
@@ -27,7 +27,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
               </select>
 
               <!-- Selector de Mes -->
-              <select id="filtroMes" onchange="aplicarFiltrosRadicados()" style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; color: #334155; font-weight: 600; cursor: pointer; background: white;">
+              <select id="filtroMes" onchange="aplicarFiltrosRadicados()">
                 <option value="">Todos los Meses</option>
                 <option value="01">Enero</option>
                 <option value="02">Febrero</option>

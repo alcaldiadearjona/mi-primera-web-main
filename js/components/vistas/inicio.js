@@ -178,13 +178,13 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
           <section class="recent-card" aria-labelledby="tituloRecientes">
             <div class="recent-card-heading">
               <div>
-                <h2 id="tituloRecientes">Radicados recientes</h2>
-                <p>Últimas solicitudes recibidas</p>
+                <h2 id="tituloRecientes">Próximos a vencer</h2>
+                <p id="subtituloRecientes">Vencimientos de la dependencia de esta sesión</p>
               </div>
-              <i class="bi bi-clock-history" aria-hidden="true"></i>
+              <i class="bi bi-clock" aria-hidden="true"></i>
             </div>
             <div id="resumenRecientes" class="recent-list" aria-live="polite">
-              <p class="recent-empty">Cargando radicados...</p>
+              <p class="recent-empty">Cargando vencimientos...</p>
             </div>
           </section>
         </aside>

@@ -18,7 +18,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return hasProfile() && profile().rol == 'administrador';
+      return hasProfile()
+        && (
+          profile().rol == 'administrador'
+          || (profile().rol == 'funcionario' && profile().dependencia == 'Control Interno')
+        );
     }
 
     function isFuncionario() {
@@ -31,12 +35,18 @@ service cloud.firestore {
         && profile().dependencia == dependencia;
     }
 
+    function isLegal() {
+      return hasProfile()
+        && profile().rol == 'funcionario'
+        && profile().dependencia == 'Oficina Juridica';
+    }
+
     function canReadIAS() {
-      return isAdmin();
+      return isAdmin() || isLegal();
     }
 
     function canManageIAS() {
-      return isAdmin();
+      return isAdmin() || isLegal();
     }
 
     match /usuarios/{userId} {
@@ -96,10 +106,7 @@ service cloud.firestore {
           )
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaUrl'])
-            || (
-              request.resource.data.respuestaUrl is string
-              && request.resource.data.respuestaUrl.size() > 0
-            )
+            || request.resource.data.respuestaUrl is string
           )
         );
       allow delete: if isAdmin();
@@ -169,10 +176,7 @@ service cloud.firestore {
           )
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaUrl'])
-            || (
-              request.resource.data.respuestaUrl is string
-              && request.resource.data.respuestaUrl.size() > 0
-            )
+            || request.resource.data.respuestaUrl is string
           )
         );
       allow delete: if isAdmin();
