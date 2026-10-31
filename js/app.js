@@ -14,18 +14,10 @@ import { inicializarAvisos } from './modules/ui/avisos.js';
 import { inicializarSesion } from './modules/auth/sesion.js';
 import './modules/dependencias/busqueda.js';
 import { inicializarNavegacion } from './modules/navegacion/vistas.js';
-import { inicializarFormulario } from './modules/radicados/formulario.js';
-import { inicializarFormularioGeneracionSalida } from './modules/radicados/generacion-salida.js';
-import { inicializarExportacionPlanilla } from './modules/radicados/exportar-planilla.js';
-import { inicializarExportacionInformes } from './modules/radicados/exportar-informes.js';
-import { inicializarTableroIAS } from './modules/ias/tablero.js';
-import { inicializarInformes } from './modules/informes/tablero.js';
-import { inicializarAccionesRadicados } from './modules/radicados/gestion.js';
 import './modules/radicados/archivos.js';
 import './modules/radicados/detalle.js';
 import './modules/radicados/tabla.js';
 import './modules/radicados/resumen.js';
-import { cargarDatosDesdeFirebase } from './services/radicados.js';
 
 
 document.body.insertAdjacentHTML('beforeend', [
@@ -47,13 +39,5 @@ inicializarAvisos();
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSesion();
-  inicializarFormulario();
-  inicializarFormularioGeneracionSalida();
-  inicializarExportacionPlanilla();
-  inicializarExportacionInformes();
-  inicializarTableroIAS();
-  inicializarInformes();
-  inicializarAccionesRadicados();
   inicializarNavegacion();
-  cargarDatosDesdeFirebase();
 });

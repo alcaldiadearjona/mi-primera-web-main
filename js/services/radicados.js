@@ -1,6 +1,7 @@
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, RADICADOS_COLLECTION } from '../config/firebase-config.js';
 import { datosRadicados, dependenciaActual, establecerDatosRadicados } from '../data/radicados.js';
+import { esAdministrador, esFuncionario, obtenerDependenciaSesion } from '../modules/auth/roles.js';
 import { sumarDiasHabilesColombia } from '../utils/helpers.js';
 import { actualizarContadores, actualizarResumenRadicados } from '../modules/radicados/resumen.js';
 import { abrirDependencia } from '../modules/radicados/detalle.js';
@@ -24,7 +25,14 @@ export async function cargarDatosDesdeFirebase() {
     : null;
 
   try {
-    const querySnapshot = await getDocs(collection(db, RADICADOS_COLLECTION));
+    const registrosRef = collection(db, RADICADOS_COLLECTION);
+    const consulta = esAdministrador()
+      ? registrosRef
+      : esFuncionario()
+        ? query(registrosRef, where('dependencia', '==', obtenerDependenciaSesion()))
+        : null;
+    if (!consulta) throw new Error('Se requiere una sesión autorizada para consultar los radicados.');
+    const querySnapshot = await getDocs(consulta);
     console.log(`Consulta Firestore a "${RADICADOS_COLLECTION}": ${querySnapshot.size} documentos encontrados.`);
     if (querySnapshot.empty) {
       console.warn(`No se encontraron documentos en la colección "${RADICADOS_COLLECTION}". Verifica que el nombre coincida con la colección real en Firestore.`);

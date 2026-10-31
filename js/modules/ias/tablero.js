@@ -1,10 +1,14 @@
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { db } from '../../config/firebase-config.js';
+import { addDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
+import { establecerRegistrosIAS } from '../../data/ias.js';
+import { esFuncionario, puedeConsultarIAS, puedeGestionarIAS } from '../auth/roles.js';
+import { convertirABase64, sumarDiasHabilesColombia } from '../../utils/helpers.js';
+import { renderizarTablaRadicados } from '../radicados/tabla.js';
 import { mostrarAviso } from '../ui/avisos.js';
 import { establecerErrorIASInforme, establecerRegistrosIASInforme } from '../informes/tablero.js';
 
 const COLECCION_IAS = 'radicadosIAS';
-const ENTIDADES_IAS = [
+export const ENTIDADES_IAS = [
   {
     id: 'fiscalia',
     nombre: 'Fiscalía General de la Nación',
@@ -105,7 +109,11 @@ function renderizarTarjetas() {
     const tarjeta = document.createElement('button');
     tarjeta.type = 'button';
     tarjeta.className = 'ias-entity-card';
-    tarjeta.setAttribute('aria-label', `${entidad.nombre}, ${cantidad} radicados. Abrir entidad.`);
+    const puedeAbrir = !esFuncionario();
+    tarjeta.disabled = !puedeAbrir;
+    tarjeta.setAttribute('aria-label', puedeAbrir
+      ? `${entidad.nombre}, ${cantidad} radicados. Abrir entidad.`
+      : `${entidad.nombre}. Acceso restringido.`);
 
     const informacion = document.createElement('span');
     informacion.className = 'ias-entity-info';
@@ -115,7 +123,9 @@ function renderizarTarjetas() {
     nombre.textContent = entidad.nombre;
     const conteo = document.createElement('span');
     conteo.className = 'ias-entity-count';
-    conteo.textContent = `${cantidad} ${cantidad === 1 ? 'radicado' : 'radicados'}`;
+    conteo.textContent = puedeAbrir
+      ? `${cantidad} ${cantidad === 1 ? 'radicado' : 'radicados'}`
+      : 'Acceso restringido';
 
     const contenedorIcono = document.createElement('span');
     contenedorIcono.className = 'ias-entity-icon';
@@ -127,7 +137,7 @@ function renderizarTarjetas() {
     encabezado.append(nombre, contenedorIcono);
     informacion.append(encabezado, conteo);
     tarjeta.append(informacion);
-    tarjeta.addEventListener('click', () => abrirEntidad(entidad.id));
+    if (puedeAbrir) tarjeta.addEventListener('click', () => abrirEntidad(entidad.id));
     return tarjeta;
   }));
 }
@@ -148,6 +158,13 @@ function actualizarFiltroAnios(registros) {
 }
 
 function abrirEntidad(id) {
+  if (esFuncionario()) {
+    void mostrarAviso('Los funcionarios pueden ver las entidades IAS, pero no ingresar a sus radicados.', {
+      tipo: 'warning',
+      titulo: 'Acceso restringido'
+    });
+    return;
+  }
   const entidad = ENTIDADES_IAS.find(item => item.id === id);
   if (!entidad) return;
   entidadSeleccionada = id;
@@ -157,8 +174,14 @@ function abrirEntidad(id) {
   document.getElementById('buscarRadicadoIAS').value = '';
   document.getElementById('filtroAnoIAS').value = '';
   document.getElementById('filtroMesIAS').value = '';
+  document.getElementById('pantallaIAS').classList.add('ias-detail-open');
   document.getElementById('tarjetasEntidadesIAS').hidden = true;
-  document.getElementById('tituloDetalleIAS').textContent = entidad.nombre;
+  const titulo = document.getElementById('tituloDetalleIAS');
+  titulo.textContent = entidad.nombre;
+  const iconoTitulo = document.createElement('i');
+  iconoTitulo.className = 'detail-dependency-icon bi bi-bank';
+  iconoTitulo.setAttribute('aria-hidden', 'true');
+  titulo.prepend(iconoTitulo);
   document.getElementById('detalleEntidadIAS').hidden = false;
   renderizarTabla();
 }
@@ -168,6 +191,7 @@ function volverATarjetas() {
   filtroTexto = '';
   filtroAno = '';
   filtroMes = '';
+  document.getElementById('pantallaIAS').classList.remove('ias-detail-open');
   document.getElementById('detalleEntidadIAS').hidden = true;
   document.getElementById('tarjetasEntidadesIAS').hidden = false;
 }
@@ -206,45 +230,168 @@ function renderizarTabla() {
 
   document.getElementById('conteoDetalleIAS').textContent =
     `${registrosFiltrados.length} de ${registrosEntidad.length} ${registrosEntidad.length === 1 ? 'radicado' : 'radicados'}`;
-  const cuerpo = document.getElementById('cuerpoTablaIAS');
-  cuerpo.replaceChildren();
+  renderizarTablaRadicados(
+    registrosFiltrados,
+    'cuerpoTablaIAS',
+    Boolean(filtroTexto || filtroAno || filtroMes)
+  );
+  if (filtroTexto || filtroAno || filtroMes) {
+    document.querySelectorAll('#cuerpoTablaIAS .month-group-toggle').forEach(boton => {
+      window.toggleMonthGroup(boton);
+    });
+  }
+}
 
-  if (registrosFiltrados.length === 0) {
-    const fila = document.createElement('tr');
-    const celda = document.createElement('td');
-    celda.colSpan = 5;
-    celda.textContent = registrosEntidad.length
-      ? 'No se encontraron radicados con los filtros seleccionados.'
-      : 'Esta entidad aún no tiene radicados registrados.';
-    fila.append(celda);
-    cuerpo.append(fila);
+function actualizarFechaVencimientoIA() {
+  const fecha = document.getElementById('fechaRadicacionIA')?.value;
+  const dias = document.getElementById('diasHabilesIA')?.value;
+  const vencimiento = document.getElementById('fechaVencimientoIA');
+  if (fecha && dias && vencimiento) {
+    vencimiento.value = sumarDiasHabilesColombia(fecha, dias);
+  }
+}
+
+function actualizarFormularioIA() {
+  const contenedor = document.getElementById('contenedorFormularioIA');
+  const boton = document.getElementById('toggleFormularioIA');
+  if (!contenedor || !boton) return;
+  const expandido = boton.getAttribute('aria-expanded') === 'true';
+  contenedor.style.display = expandido ? 'none' : 'block';
+  boton.setAttribute('aria-expanded', String(!expandido));
+  boton.classList.toggle('is-collapsed', expandido);
+}
+
+async function guardarNuevaIA(event) {
+  event.preventDefault();
+  if (!puedeGestionarIAS()) {
+    alert('No tienes permiso para registrar comunicaciones IAS.');
     return;
   }
+  const formulario = document.getElementById('formNuevaIA');
+  if (!formulario.reportValidity()) return;
 
-  registrosFiltrados.forEach(registro => {
-    const fila = document.createElement('tr');
-    const valores = [
-      registro.radicado || registro.numeroRadicado || '',
-      obtenerFecha(registro),
-      registro.remitente || registro.destinatario || '',
-      registro.asunto || '',
-      registro.estado || 'VIGENTE'
-    ];
-    valores.forEach((valor, indice) => {
-      const celda = document.createElement('td');
-      celda.textContent = String(valor);
-      if (indice === 0 && valor) {
-        const numero = document.createElement('strong');
-        numero.textContent = String(valor);
-        celda.replaceChildren(numero);
+  const boton = document.getElementById('btnGuardarIA');
+  const texto = document.getElementById('textoBtnGuardarIA');
+  const archivo = document.getElementById('solicitudPdfIA').files[0];
+  if (archivo && !/\.pdf$/i.test(archivo.name)) {
+    alert('La solicitud escaneada debe ser un archivo PDF.');
+    return;
+  }
+  boton.disabled = true;
+  boton.setAttribute('aria-busy', 'true');
+  texto.textContent = archivo ? 'Subiendo PDF...' : 'Guardando IA...';
+  let guardada = false;
+
+  try {
+    let pdfUrl = '';
+    if (archivo) {
+      const base64 = await convertirABase64(archivo);
+      const respuesta = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          archivoBase64: base64.split(',')[1] || '',
+          nombreArchivo: `IA_${document.getElementById('radicadoIA').value.trim()}_${archivo.name}`
+        })
+      });
+      const datosArchivo = await respuesta.json();
+      if (!respuesta.ok || datosArchivo.status !== 'success') {
+        throw new Error(datosArchivo.message || `Error HTTP ${respuesta.status} al subir el PDF.`);
       }
-      fila.append(celda);
-    });
-    cuerpo.append(fila);
+      pdfUrl = datosArchivo.url;
+    }
+
+    texto.textContent = 'Guardando IA...';
+    const destino = document.getElementById('destinoIA').value;
+    const nuevoRegistro = {
+      radicado: document.getElementById('radicadoIA').value.trim(),
+      entidadIAS: destino,
+      destino,
+      tipoCanal: document.getElementById('tipoCanalIA').value,
+      estado: document.getElementById('estadoInicialIA').value,
+      fechaRadicacion: document.getElementById('fechaRadicacionIA').value,
+      diasHabiles: document.getElementById('diasHabilesIA').value,
+      fechaVencimiento: document.getElementById('fechaVencimientoIA').value,
+      remitente: document.getElementById('remitenteIA').value.trim(),
+      asunto: document.getElementById('asuntoIA').value.trim(),
+      pdfUrl,
+      funcionarioAsignado: '',
+      tipoPeticion: '',
+      otrosEstados: '',
+      observaciones: '',
+      respuestaUrl: '',
+      fechaCargaRespuesta: ''
+    };
+    await addDoc(collection(db, COLECCION_IAS), nuevoRegistro);
+    guardada = true;
+    formulario.reset();
+    const hoy = new Date().toISOString().slice(0, 10);
+    document.getElementById('fechaRadicacionIA').value = hoy;
+    document.getElementById('diasHabilesIA').value = '15';
+    actualizarFechaVencimientoIA();
+    await recargarDatosIAS();
+    alert(`La IA ${nuevoRegistro.radicado} se guardó en ${destino}.`);
+  } catch (error) {
+    console.error('Error al guardar la IA:', error);
+    alert(guardada
+      ? `La IA se guardó en Firestore, pero no se pudo actualizar la tabla: ${error.message}`
+      : `No fue posible guardar la IA: ${error.message}`);
+  } finally {
+    boton.disabled = false;
+    boton.removeAttribute('aria-busy');
+    texto.textContent = 'Guardar IA';
+  }
+}
+
+export async function recargarDatosIAS() {
+  if (!puedeConsultarIAS()) {
+    throw new Error('No tienes permiso para consultar los registros IAS.');
+  }
+  const snapshot = await getDocs(collection(db, COLECCION_IAS));
+  registrosIAS = snapshot.docs.map(documento => {
+    const datos = documento.data();
+    return {
+      ...datos,
+      id: documento.id,
+      radicado: datos.radicado || datos.numeroRadicado || '',
+      entidadIAS: datos.entidadIAS || datos.entidad || datos.ente || '',
+      fechaRadicacion: obtenerFecha(datos),
+      fechaVencimiento: datos.fechaVencimiento
+        || datos.fechaEntrega
+        || sumarDiasHabilesColombia(obtenerFecha(datos), datos.diasHabiles || 15),
+      tipoCanal: datos.tipoCanal || '',
+      remitente: datos.remitente || datos.destinatario || '',
+      asunto: datos.asunto || '',
+      estado: datos.estado || 'VIGENTE',
+      diasHabiles: datos.diasHabiles || 15,
+      coleccion: COLECCION_IAS
+    };
   });
+  establecerRegistrosIAS(registrosIAS);
+  establecerRegistrosIASInforme(registrosIAS);
+  actualizarFiltroAnios(registrosIAS);
+  renderizarTarjetas();
+  if (entidadSeleccionada) renderizarTabla();
 }
 
 export async function inicializarTableroIAS() {
+  if (!puedeConsultarIAS()) return;
+  if (esFuncionario()) {
+    renderizarTarjetas();
+    return;
+  }
+  const selectorDestino = document.getElementById('destinoIA');
+  if (puedeGestionarIAS()) {
+    ENTIDADES_IAS.forEach(entidad => {
+      selectorDestino.add(new Option(entidad.nombre, entidad.nombre));
+    });
+    document.getElementById('toggleFormularioIA')?.addEventListener('click', actualizarFormularioIA);
+    document.getElementById('formNuevaIA')?.addEventListener('submit', guardarNuevaIA);
+    document.getElementById('fechaRadicacionIA')?.addEventListener('input', actualizarFechaVencimientoIA);
+    document.getElementById('diasHabilesIA')?.addEventListener('input', actualizarFechaVencimientoIA);
+    const hoy = new Date().toISOString().slice(0, 10);
+    document.getElementById('fechaRadicacionIA').value = hoy;
+    actualizarFechaVencimientoIA();
+  }
   document.getElementById('volverEntidadesIAS')?.addEventListener('click', volverATarjetas);
   document.getElementById('buscarEntidadIAS')?.addEventListener('input', event => {
     busquedaEntidadIAS = normalizar(event.currentTarget.value);
@@ -269,11 +416,7 @@ export async function inicializarTableroIAS() {
   });
 
   try {
-    const snapshot = await getDocs(collection(db, COLECCION_IAS));
-    registrosIAS = snapshot.docs.map(documento => ({ id: documento.id, ...documento.data() }));
-    establecerRegistrosIASInforme(registrosIAS);
-    actualizarFiltroAnios(registrosIAS);
-    renderizarTarjetas();
+    await recargarDatosIAS();
   } catch (error) {
     console.error('Error al cargar los radicados IAS:', error);
     establecerErrorIASInforme();

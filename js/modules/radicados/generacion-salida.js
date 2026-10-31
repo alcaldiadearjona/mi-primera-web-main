@@ -232,14 +232,12 @@ export function inicializarFormularioGeneracionSalida() {
   if (selectorDependencia && grupoOtraDependencia && inputOtraDependencia) {
     enlazarDependenciaOtra(selectorDependencia, grupoOtraDependencia, inputOtraDependencia);
   }
-
   const selectorEditar = document.getElementById('dependenciaEditarSalida');
   const grupoOtraEditar = document.getElementById('dependenciaOtraEditarGroup');
   const inputOtraEditar = document.getElementById('dependenciaOtraEditar');
   if (selectorEditar && grupoOtraEditar && inputOtraEditar) {
     enlazarDependenciaOtra(selectorEditar, grupoOtraEditar, inputOtraEditar);
   }
-
   inputArchivos?.addEventListener('change', () => {
     actualizarListaArchivos(inputArchivos, ayudaArchivos, listaArchivos);
   });
@@ -327,6 +325,14 @@ async function descargarPlanillaGeneracion(registros) {
   const hoja = libro.getWorksheet('F03') || libro.worksheets[0];
   if (!hoja) throw new Error('La plantilla no contiene una hoja de cálculo.');
   const filaModelo = hoja.getRow(8);
+  const ultimaFilaDatos = Math.max(hoja.rowCount, registros.length + 7);
+
+  for (let filaNumero = 8; filaNumero <= ultimaFilaDatos; filaNumero += 1) {
+    const fila = hoja.getRow(filaNumero);
+    for (let columna = 1; columna <= 9; columna += 1) {
+      fila.getCell(columna).value = null;
+    }
+  }
 
   registros.forEach((registro, indice) => {
     const filaNumero = indice + 8;
@@ -370,6 +376,7 @@ async function descargarPlanillaGeneracion(registros) {
     const celdaDependencia = fila.getCell('H');
     celdaDependencia.alignment = {
       ...celdaDependencia.alignment,
+      horizontal: 'center',
       vertical: 'middle',
       wrapText: true,
       shrinkToFit: false
@@ -1239,6 +1246,7 @@ function abrirModalEdicionSalida(registro) {
     opcion.value.toLocaleLowerCase('es-CO') === valorDependencia.toLocaleLowerCase('es-CO')
   ));
   selector.value = opcionDependencia?.value || valorDependencia;
+  selector.disabled = false;
   const inputOtra = document.getElementById('dependenciaOtraEditar');
   inputOtra.value = registro.dependenciaOtra || '';
   inputOtra.required = valorDependencia === 'Otro';

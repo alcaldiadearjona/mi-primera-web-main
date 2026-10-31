@@ -15,7 +15,7 @@ export const informesMarkup = String.raw`<div id="pantallaInformes" style="displ
           <button type="button" class="reports-source-button active" data-report-source="dependencias" aria-pressed="true">
             <i class="bi bi-buildings" aria-hidden="true"></i> Dependencias
           </button>
-          <button type="button" class="reports-source-button" data-report-source="ias" aria-pressed="false">
+          <button type="button" class="reports-source-button admin-only" data-report-source="ias" aria-pressed="false">
             <i class="bi bi-bank" aria-hidden="true"></i> IAS
           </button>
         </div>
@@ -97,7 +97,7 @@ export const informesMarkup = String.raw`<div id="pantallaInformes" style="displ
         </article>
 
         <div class="report-visual-stack">
-          <article class="report-panel report-ias-panel" aria-labelledby="informeIASGraficaTitulo">
+          <article class="report-panel report-ias-panel admin-only" aria-labelledby="informeIASGraficaTitulo">
             <header class="report-panel-heading">
               <span class="report-panel-icon"><i class="bi bi-pie-chart-fill" aria-hidden="true"></i></span>
               <div><h2 id="informeIASGraficaTitulo">PQRS por IAS</h2><p>Participación de radicados registrados en IAS</p></div>

@@ -1,4 +1,5 @@
 import { establecerDependenciaActual } from '../../data/radicados.js';
+import { esAdministrador, esFuncionario, obtenerDependenciaSesion, puedeConsultarIAS } from '../auth/roles.js';
 import { actualizarInformes, redimensionarGraficasInformes } from '../informes/tablero.js';
 import { establecerFormularioVisible } from '../radicados/formulario.js';
 
@@ -35,6 +36,7 @@ window.mostrarGeneracionRadicados = function() {
 };
 
 window.mostrarIAS = function() {
+  if (!puedeConsultarIAS()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaIAS');
   establecerFormularioVisible(false);

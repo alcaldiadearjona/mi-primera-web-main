@@ -1,18 +1,29 @@
 import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
-import { datosRadicados } from '../../data/radicados.js';
+import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import { recargarDatosIAS } from '../ias/tablero.js';
 import { confirmarAccion } from '../ui/avisos.js';
-import { TIPOS_PETICION } from './tabla.js';
+import { esAdministrador } from '../auth/roles.js';
+import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
 
 const guardadosTipoPeticionPendientes = new Map();
 
+function buscarRadicado(id, elemento) {
+  const coleccion = elemento?.closest('tr')?.dataset.collection || '';
+  return buscarRegistroRadicado(id, coleccion);
+}
+
+function recargarDatosRegistro(registro) {
+  return obtenerColeccionRegistro(registro) === 'radicadosIAS'
+    ? recargarDatosIAS()
+    : cargarDatosDesdeFirebase();
+}
+
 window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
   const tipoPeticion = selectElement.value;
-  const radicado = Object.values(datosRadicados)
-    .flat()
-    .find(reg => reg.id === idRadicado);
+  const radicado = buscarRadicado(idRadicado, selectElement);
   if (!radicado || (tipoPeticion && !TIPOS_PETICION.includes(tipoPeticion))) {
     alert('No fue posible guardar el tipo de petición seleccionado.');
     return false;
@@ -20,20 +31,16 @@ window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
 
   const tipoAnterior = radicado.tipoPeticion || '';
   const fila = selectElement.closest('tr');
-  const botonOtrosEstados = fila?.querySelector('.other-states-button');
   const indicacionTipoPeticion = fila?.querySelector('.petition-type-hint');
   selectElement.disabled = true;
-  if (botonOtrosEstados) botonOtrosEstados.disabled = true;
+  if (fila) {
+    fila.dataset.guardandoTipoPeticion = 'true';
+    actualizarDisponibilidadAccionesRadicado(fila);
+  }
   if (indicacionTipoPeticion) indicacionTipoPeticion.textContent = 'Guardando tipo...';
-  const guardado = updateDoc(doc(db, "radicados", idRadicado), { tipoPeticion })
+  const guardado = updateDoc(doc(db, obtenerColeccionRegistro(radicado), idRadicado), { tipoPeticion })
     .then(() => {
       radicado.tipoPeticion = tipoPeticion;
-      if (botonOtrosEstados) {
-        botonOtrosEstados.disabled = !TIPOS_PETICION.includes(tipoPeticion);
-        botonOtrosEstados.title = tipoPeticion
-          ? 'Gestionar / Agregar Estado'
-          : 'Selecciona primero el tipo de petición';
-      }
       if (indicacionTipoPeticion) {
         indicacionTipoPeticion.textContent = tipoPeticion ? 'Tipo definido' : 'Requerido para gestionar';
       }
@@ -42,7 +49,6 @@ window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
     .catch(error => {
       console.error("Error al guardar el tipo de petición:", error);
       selectElement.value = tipoAnterior;
-      if (botonOtrosEstados) botonOtrosEstados.disabled = !TIPOS_PETICION.includes(tipoAnterior);
       if (indicacionTipoPeticion) {
         indicacionTipoPeticion.textContent = tipoAnterior ? 'Tipo definido' : 'Requerido para gestionar';
       }
@@ -51,6 +57,10 @@ window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
     })
     .finally(() => {
       selectElement.disabled = false;
+      if (fila) {
+        delete fila.dataset.guardandoTipoPeticion;
+        actualizarDisponibilidadAccionesRadicado(fila);
+      }
       guardadosTipoPeticionPendientes.delete(idRadicado);
     });
 
@@ -76,11 +86,14 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
     return;
   }
 
-  const radicado = Object.values(datosRadicados)
-    .flat()
-    .find(reg => reg.id === idRadicado);
+  const radicado = buscarRadicado(idRadicado, inputElement);
   if (!radicado?.tipoPeticion) {
     alert('Guarda el tipo de petición antes de cargar la respuesta.');
+    inputElement.value = '';
+    return;
+  }
+  if (!radicado.funcionarioAsignado?.trim()) {
+    alert('Asigna un funcionario antes de cargar la respuesta.');
     inputElement.value = '';
     return;
   }
@@ -150,7 +163,7 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
       }
 
       const respuestaUrl = resData.url;
-      const radicadoRef = doc(db, "radicados", idRadicado);
+      const radicadoRef = doc(db, obtenerColeccionRegistro(radicado), idRadicado);
       await updateDoc(radicadoRef, {
         respuestaUrl,
         fechaCargaRespuesta: new Intl.DateTimeFormat('sv-SE', {
@@ -162,7 +175,7 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
         estado: 'CERRADO'
       });
 
-      await cargarDatosDesdeFirebase();
+      await recargarDatosRegistro(radicado);
 
     } catch (error) {
       console.error("Error al cargar la respuesta:", error);
@@ -173,6 +186,10 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
 };
 
 window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
+  if (!esAdministrador()) {
+    alert('Solo el administrador puede eliminar archivos de respuesta.');
+    return;
+  }
   const confirmado = await confirmarAccion(
     '¿Estás seguro de que deseas eliminar el archivo de respuesta de Google Drive?',
     { titulo: 'Eliminar archivo de respuesta', aceptarTexto: 'Eliminar' }
@@ -181,9 +198,7 @@ window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
     return;
   }
 
-  const radicado = Object.values(datosRadicados)
-    .flat()
-    .find(reg => reg.id === idRadicado);
+  const radicado = buscarRadicado(idRadicado, botonEliminar);
 
   if (!radicado || !radicado.respuestaUrl) {
     alert("No se encontró el archivo de respuesta para eliminar.");
@@ -214,13 +229,13 @@ window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
       throw new Error("Error en Google Drive: " + (resData.message || "No se pudo eliminar el archivo."));
     }
 
-    await updateDoc(doc(db, "radicados", idRadicado), {
+    await updateDoc(doc(db, obtenerColeccionRegistro(radicado), idRadicado), {
       respuestaUrl: "",
       fechaCargaRespuesta: "",
       estado: radicado.funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE'
     });
 
-    await cargarDatosDesdeFirebase();
+    await recargarDatosRegistro(radicado);
     alert("El archivo de respuesta se eliminó de Google Drive.");
   } catch (error) {
     console.error("Error al eliminar el archivo de respuesta:", error);

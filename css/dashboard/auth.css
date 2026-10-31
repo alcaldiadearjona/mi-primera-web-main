@@ -1,0 +1,59 @@
+.admin-only[hidden],
+.ias-manage-only[hidden],
+.dep-card[hidden],
+.session-greeting[hidden] {
+  display: none !important;
+}
+
+.session-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 20px;
+  padding: 18px 24px;
+  border: 1px solid #d5e8dc;
+  border-left: 5px solid #16804a;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #f1f8f3, #fff);
+  box-shadow: 0 5px 16px rgba(22, 80, 48, .08);
+}
+
+.session-greeting-inline {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 14px auto;
+  padding: 7px 12px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+  border: 1px solid #d5e8dc;
+  border-left: 3px solid #16804a;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.session-greeting-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.session-greeting strong {
+  color: #244735;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+#errorLogin {
+  border-radius: 7px;
+  background: #fef2f2;
+  padding: 9px 11px !important;
+}
+
+#errorLogin[hidden] {
+  display: none !important;
+}
+
+.dashboard-form-column[hidden] {
+  display: none !important;
+}

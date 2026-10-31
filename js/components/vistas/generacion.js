@@ -81,6 +81,8 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                     <option>OFICINA DE TALENTO HUMANO</option>
                     <option>OFICINA DE CONTROL INTERNO</option>
                     <option>SECRETARIA DE UMATA</option>
+                    <option>SISBEN</option>
+                    <option>SECRETARÍA DE GESTIÓN SOCIAL</option>
                     <option>CUERPO OFICIAL DE BOMBEROS</option>
                     <option>COORDINACIÓN DE GESTIÓN DEL RIESGO DE DESASTRES</option>
                     <option>SECRETARIA DE TRANSITO Y TRANSPORTE</option>
@@ -254,6 +256,8 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                   <option>OFICINA DE TALENTO HUMANO</option>
                   <option>OFICINA DE CONTROL INTERNO</option>
                   <option>SECRETARIA DE UMATA</option>
+                  <option>SISBEN</option>
+                  <option>SECRETARÍA DE GESTIÓN SOCIAL</option>
                   <option>CUERPO OFICIAL DE BOMBEROS</option>
                   <option>COORDINACIÓN DE GESTIÓN DEL RIESGO DE DESASTRES</option>
                   <option>SECRETARIA DE TRANSITO Y TRANSPORTE</option>

@@ -1,0 +1,275 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath() {
+      return /databases/$(database)/documents/usuarios/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return signedIn() && exists(profilePath());
+    }
+
+    function profile() {
+      return get(profilePath()).data;
+    }
+
+    function isAdmin() {
+      return hasProfile() && profile().rol == 'administrador';
+    }
+
+    function isFuncionario() {
+      return hasProfile() && profile().rol == 'funcionario';
+    }
+
+    function isEmployeeOf(dependencia) {
+      return hasProfile()
+        && profile().rol == 'funcionario'
+        && profile().dependencia == dependencia;
+    }
+
+    function canReadIAS() {
+      return isAdmin();
+    }
+
+    function canManageIAS() {
+      return isAdmin();
+    }
+
+    match /usuarios/{userId} {
+      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow list, create, update, delete: if isAdmin();
+    }
+
+    match /radicados/{radicadoId} {
+      allow get, list: if isAdmin() || isEmployeeOf(resource.data.dependencia);
+      allow create: if isAdmin()
+        || (
+          isEmployeeOf(request.resource.data.dependencia)
+          && request.resource.data.keys().hasAll([
+            'radicado',
+            'estado',
+            'tipoCanal',
+            'fechaRadicacion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'pdfUrl',
+            'dependencia'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'radicado',
+            'estado',
+            'tipoCanal',
+            'fechaRadicacion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'pdfUrl',
+            'dependencia'
+          ])
+        );
+      allow update: if isAdmin()
+        || (
+          isEmployeeOf(resource.data.dependencia)
+          && request.resource.data.dependencia == resource.data.dependencia
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'tipoPeticion',
+            'respuestaUrl',
+            'fechaCargaRespuesta',
+            'funcionarioAsignado',
+            'otrosEstados',
+            'observaciones',
+            'estado'
+          ])
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
+            || request.resource.data.estado == resource.data.estado
+            || request.resource.data.estado in ['VIGENTE', 'EN TRAMITE', 'CERRADO']
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaUrl'])
+            || (
+              request.resource.data.respuestaUrl is string
+              && request.resource.data.respuestaUrl.size() > 0
+            )
+          )
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /radicadosIAS/{radicadoId} {
+      allow read: if canReadIAS();
+      allow create: if canManageIAS()
+        && request.resource.data.keys().hasOnly([
+          'radicado',
+          'entidadIAS',
+          'destino',
+          'tipoCanal',
+          'estado',
+          'fechaRadicacion',
+          'diasHabiles',
+          'fechaVencimiento',
+          'remitente',
+          'asunto',
+          'pdfUrl',
+          'funcionarioAsignado',
+          'tipoPeticion',
+          'otrosEstados',
+          'observaciones',
+          'respuestaUrl',
+          'fechaCargaRespuesta'
+        ])
+        && request.resource.data.keys().hasAll([
+          'radicado',
+          'entidadIAS',
+          'destino',
+          'tipoCanal',
+          'estado',
+          'fechaRadicacion',
+          'diasHabiles',
+          'fechaVencimiento',
+          'remitente',
+          'asunto',
+          'pdfUrl'
+        ])
+        && request.resource.data.radicado is string
+        && request.resource.data.entidadIAS is string
+        && request.resource.data.destino is string
+        && request.resource.data.fechaRadicacion is string;
+      allow update: if isAdmin()
+        || (
+          canManageIAS()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'radicado',
+            'fechaRadicacion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'funcionarioAsignado',
+            'tipoPeticion',
+            'respuestaUrl',
+            'fechaCargaRespuesta',
+            'estado',
+            'otrosEstados',
+            'observaciones'
+          ])
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
+            || request.resource.data.estado in ['VIGENTE', 'EN TRAMITE', 'CERRADO', 'R. por C.']
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaUrl'])
+            || (
+              request.resource.data.respuestaUrl is string
+              && request.resource.data.respuestaUrl.size() > 0
+            )
+          )
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /radicadosSalida/{radicadoId} {
+      allow get, list: if isAdmin() || isFuncionario();
+      allow create: if isAdmin()
+        || (
+          isFuncionario()
+          && request.resource.data.keys().hasAll([
+            'radicado',
+            'dependencia',
+            'destinatario',
+            'asunto',
+            'folios',
+            'anexos',
+            'claveIdempotencia',
+            'numeroSecuencia',
+            'anio',
+            'mes',
+            'fechaGeneracion',
+            'horaGeneracion',
+            'creadoEn',
+            'actualizadoEn'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'radicado',
+            'dependencia',
+            'dependenciaOtra',
+            'destinatario',
+            'asunto',
+            'folios',
+            'anexos',
+            'archivos',
+            'claveIdempotencia',
+            'numeroSecuencia',
+            'anio',
+            'mes',
+            'fechaGeneracion',
+            'horaGeneracion',
+            'creadoEn',
+            'actualizadoEn',
+            'cantidadLote',
+            'tipoLoteRadicados',
+            'extremoLote'
+          ])
+        );
+      allow update: if isAdmin()
+        || (
+          isFuncionario()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'dependencia',
+            'destinatario',
+            'asunto',
+            'folios',
+            'anexos',
+            'dependenciaOtra',
+            'archivos',
+            'actualizadoEn',
+            'estado',
+            'anuladoEn'
+          ])
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
+            || request.resource.data.estado == 'ANULADO'
+          )
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /radicadosSalidaSecuencias/{secuenciaId} {
+      allow get: if isAdmin() || isFuncionario();
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        || (
+          isFuncionario()
+          && request.resource.data.keys().hasOnly(['anio', 'ultimo'])
+          && request.resource.data.anio is int
+          && request.resource.data.ultimo is int
+          && request.resource.data.ultimo > 0
+        );
+      allow update: if isAdmin()
+        || (
+          isFuncionario()
+          && request.resource.data.keys().hasOnly(['anio', 'ultimo'])
+          && request.resource.data.anio == resource.data.anio
+          && request.resource.data.ultimo is int
+          && resource.data.ultimo is int
+          && request.resource.data.ultimo > resource.data.ultimo
+          && request.resource.data.ultimo <= resource.data.ultimo + 400
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

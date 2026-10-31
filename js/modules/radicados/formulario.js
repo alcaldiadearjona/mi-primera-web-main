@@ -2,6 +2,7 @@ import { collection, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/
 import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { abreviarNombreDependencia, convertirABase64, sumarDiasHabilesColombia } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
 
 export function calcularFechaVencimiento() {
   const inputFechaRad = document.getElementById('fechaRadicacion');
@@ -66,6 +67,10 @@ function inicializarSelectorDependenciasPqrs() {
       casilla.name = 'dependenciasDestinoPqrs';
       casilla.value = option.value;
       casilla.id = `dependenciaDestinoPqrs-${indice}`;
+      if (esFuncionario()) {
+        casilla.checked = option.value === obtenerDependenciaSesion();
+        casilla.disabled = !casilla.checked;
+      }
       casilla.addEventListener('change', actualizarResumenDependenciasPqrs);
       const nombre = document.createElement('span');
       nombre.textContent = abreviarNombreDependencia(option.value);
@@ -74,6 +79,10 @@ function inicializarSelectorDependenciasPqrs() {
       etiqueta.append(casilla, nombre);
       opciones.append(etiqueta);
     });
+    if (esFuncionario()) {
+      boton.disabled = true;
+      boton.title = `Destino asignado a ${obtenerDependenciaSesion()}`;
+    }
 
   boton.addEventListener('click', () => {
     const expandido = boton.getAttribute('aria-expanded') === 'true';
@@ -101,6 +110,13 @@ async function guardarRadicado(e) {
   if (dependenciasSeleccionadas.length === 0) {
     alert('Selecciona al menos una dependencia destino.');
     document.getElementById('alternarDependenciasPqrs')?.focus();
+    return;
+  }
+  if (esFuncionario() && (
+    dependenciasSeleccionadas.length !== 1
+    || dependenciasSeleccionadas[0] !== obtenerDependenciaSesion()
+  )) {
+    alert('Solo puedes registrar PQRS para tu dependencia.');
     return;
   }
 
@@ -180,7 +196,8 @@ async function guardarRadicado(e) {
     );
     document.getElementById('pqrsForm')?.reset();
     document.querySelectorAll('input[name="dependenciasDestinoPqrs"]').forEach(casilla => {
-      casilla.checked = false;
+      casilla.checked = esFuncionario()
+        && casilla.value === obtenerDependenciaSesion();
     });
     actualizarResumenDependenciasPqrs();
     cerrarDesplegableDependenciasPqrs();

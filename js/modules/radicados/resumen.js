@@ -1,4 +1,5 @@
 import { datosRadicados } from '../../data/radicados.js';
+import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
 import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
 export function actualizarResumenRadicados() {
@@ -75,7 +76,10 @@ export function actualizarContadores() {
   for (const dep in datosRadicados) {
     const count = datosRadicados[dep].length;
     const elem = document.getElementById(`cant-${dep}`);
-    if (elem) elem.textContent = `${count} radicados`;
+    if (!elem) continue;
+    elem.textContent = esFuncionario() && dep !== obtenerDependenciaSesion()
+      ? 'Acceso restringido'
+      : `${count} radicados`;
   }
 }
 

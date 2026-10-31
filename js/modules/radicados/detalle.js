@@ -1,7 +1,12 @@
 import { datosRadicados, dependenciaActual, establecerDependenciaActual } from '../../data/radicados.js';
+import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
 import { renderizarTablaRadicados } from './tabla.js';
 
 export function abrirDependencia(nombreDep) {
+  if (esFuncionario() && nombreDep !== obtenerDependenciaSesion()) {
+    alert('No tienes permiso para consultar esta dependencia.');
+    return;
+  }
   establecerDependenciaActual(nombreDep);
   document.getElementById('pantallaInicio').style.display = 'none';
   document.getElementById('vista-dependencias').style.display = 'none';

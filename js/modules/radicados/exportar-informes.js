@@ -1,4 +1,6 @@
 import { datosRadicados } from '../../data/radicados.js';
+import { registrosIAS } from '../../data/ias.js';
+import { ENTIDADES_IAS } from '../ias/tablero.js';
 import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
 
 const PLANTILLAS = {
@@ -6,11 +8,6 @@ const PLANTILLAS = {
   general: new URL('../../../assets/plantillas/Informe_PQRS_General.xlsx', import.meta.url)
 };
 const URL_EXCELJS = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-const DIAS_EN_MILISEGUNDOS = 24 * 60 * 60 * 1000;
-const PALABRAS_COMUNES = new Set([
-  'a', 'al', 'con', 'de', 'del', 'el', 'en', 'la', 'las', 'los', 'para', 'por',
-  'que', 'se', 'solicitud', 'sobre', 'un', 'una', 'y'
-]);
 const CONECTORES_TITULO = new Set([
   'a', 'al', 'con', 'de', 'del', 'e', 'el', 'en', 'la', 'las', 'los', 'o',
   'para', 'por', 'u', 'y'
@@ -66,13 +63,6 @@ function fechaExcel(fecha) {
   return new Date(anio, mes - 1, dia, 12);
 }
 
-function convertirAFechaUtc(fecha) {
-  const normalizada = normalizarFecha(fecha);
-  if (!normalizada) return null;
-  const [anio, mes, dia] = normalizada.split('-').map(Number);
-  return Date.UTC(anio, mes - 1, dia);
-}
-
 function normalizarTexto(valor) {
   return String(valor || '')
     .normalize('NFD')
@@ -107,13 +97,35 @@ function obtenerEstado(registro) {
   );
 }
 
+function obtenerNombreEntidadIAS(registro) {
+  const nombre = registro.entidadIAS || registro.destino || registro.entidad || registro.ente || '';
+  const nombreNormalizado = normalizarTexto(nombre);
+  const entidad = ENTIDADES_IAS.find(item => (
+    [item.nombre, ...item.coincidencias].some(coincidencia => normalizarTexto(coincidencia) === nombreNormalizado)
+  ));
+  return entidad?.nombre || String(nombre).trim() || 'Entidad IAS no especificada';
+}
+
+function obtenerEntidadesInformeIAS() {
+  return [...new Set([
+    ...ENTIDADES_IAS.map(entidad => entidad.nombre),
+    ...registrosIAS.map(obtenerNombreEntidadIAS)
+  ])];
+}
+
 function obtenerRegistros() {
-  return Object.entries(datosRadicados).flatMap(([dependencia, lista]) => (
+  const registrosDependencias = Object.entries(datosRadicados).flatMap(([dependencia, lista]) => (
     lista.map(registro => ({
       ...registro,
       dependencia: registro.dependencia || dependencia
     }))
   ));
+  const registrosIASInforme = registrosIAS.map(registro => ({
+    ...registro,
+    dependencia: obtenerNombreEntidadIAS(registro),
+    coleccion: 'radicadosIAS'
+  }));
+  return [...registrosDependencias, ...registrosIASInforme];
 }
 
 function obtenerParametrosPeriodo(tipoInforme, modo, anio, mes, fechaDesde, fechaHasta) {
@@ -139,8 +151,10 @@ function filtrarRegistros({ tipoInforme, modo, anio, mes, fechaDesde, fechaHasta
   return obtenerRegistros()
     .filter(registro => {
       const fecha = normalizarFecha(registro.fechaRadicacion);
+      const coincideDependencia = dependencias.length === 0
+        || dependencias.includes(registro.dependencia);
       return fecha && fecha >= periodo.inicio && fecha <= periodo.fin
-        && (dependencias.length === 0 || dependencias.includes(registro.dependencia));
+        && coincideDependencia;
     })
     .sort((a, b) => (
       normalizarFecha(a.fechaRadicacion).localeCompare(normalizarFecha(b.fechaRadicacion))
@@ -149,8 +163,14 @@ function filtrarRegistros({ tipoInforme, modo, anio, mes, fechaDesde, fechaHasta
 }
 
 function obtenerNombreDependencias(registros, todasDependencias) {
-  if (todasDependencias) return 'Todas las dependencias';
+  if (todasDependencias) {
+    return `Todas las dependencias; ${obtenerEntidadesInformeIAS().join(', ')}`;
+  }
   return [...new Set(registros.map(registro => registro.dependencia))].join(', ');
+}
+
+function obtenerGrupoInforme(registro) {
+  return registro.dependencia;
 }
 
 function seleccionarMuestraAleatoria(registros, cantidad) {
@@ -203,118 +223,6 @@ function textoOportunidad(registro) {
   if (!limite) return respuesta ? 'Sin fecha límite' : 'Vencido/Pendiente';
   if (!respuesta) return esRespuestaOportuna(registro) ? 'A Tiempo' : 'Vencido/Pendiente';
   return respuesta <= limite ? 'A Tiempo' : 'Extemporáneo';
-}
-
-function esQueja(registro) {
-  return normalizarTexto(registro.tipoPeticion) === 'queja';
-}
-
-function asuntoReiterativo(registro) {
-  return /reiterativ|reiteraci|reincidente|recurrente/.test(
-    normalizarTexto(`${registro.asunto || ''} ${registro.observaciones || ''} ${registro.otrosEstados || ''}`)
-  );
-}
-
-function tokensAsunto(registro) {
-  return new Set(
-    normalizarTexto(registro.asunto)
-      .split(' ')
-      .filter(token => token.length > 2 && !PALABRAS_COMUNES.has(token))
-  );
-}
-
-function sonAsuntosSimilares(asuntoA, asuntoB, tokensA, tokensB) {
-  if (asuntoA && asuntoA === asuntoB) return true;
-  if (tokensA.size < 2 || tokensB.size < 2) return false;
-  const coincidencias = [...tokensA].filter(token => tokensB.has(token)).length;
-  const union = tokensA.size + tokensB.size - coincidencias;
-  return union > 0 && coincidencias / union >= 0.7;
-}
-
-function cantidadQuejasReincidentes(registros) {
-  const quejas = registros.filter(esQueja);
-  const asuntos = quejas.map(registro => normalizarTexto(registro.asunto));
-  const tokens = quejas.map(tokensAsunto);
-  const visitadas = new Set();
-  const adyacencias = quejas.map((_, indice) => (
-    asuntoReiterativo(quejas[indice]) ? [indice] : []
-  ));
-
-  for (let indice = 0; indice < quejas.length; indice += 1) {
-    for (let otro = indice + 1; otro < quejas.length; otro += 1) {
-      if (sonAsuntosSimilares(asuntos[indice], asuntos[otro], tokens[indice], tokens[otro])) {
-        adyacencias[indice].push(otro);
-        adyacencias[otro].push(indice);
-      }
-    }
-  }
-
-  adyacencias.forEach((vecinos, inicial) => {
-    if (visitadas.has(inicial) || vecinos.length === 0) return;
-    const grupo = [];
-    const pendientes = [inicial];
-    visitadas.add(inicial);
-    while (pendientes.length) {
-      const actual = pendientes.pop();
-      grupo.push(actual);
-      adyacencias[actual].forEach(vecino => {
-        if (!visitadas.has(vecino)) {
-          visitadas.add(vecino);
-          pendientes.push(vecino);
-        }
-      });
-    }
-    if (grupo.length > 1 || asuntoReiterativo(quejas[inicial])) {
-      grupo.forEach(indice => visitadas.add(indice));
-    } else {
-      visitadas.delete(inicial);
-    }
-  });
-
-  return visitadas.size;
-}
-
-function esRequiereRespuesta(registro) {
-  const otrosEstados = normalizarTexto(registro.otrosEstados);
-  return !otrosEstados.includes('para conocimiento')
-    && !otrosEstados.includes('no requiere respuesta')
-    && !(Array.isArray(registro.dependenciasDestino) && registro.dependenciasDestino.length > 0)
-    && normalizarTexto(registro.estado) !== 'r por c';
-}
-
-function esResuelto(registro) {
-  return obtenerEstado(registro).clase === 'status-cerrado' && esRequiereRespuesta(registro);
-}
-
-function calcularIndicadoresAuditoria(registros, dependenciasInforme) {
-  const respondidasATiempo = registros.filter(esRespuestaOportuna).length;
-  const quejas = registros.filter(esQueja).length;
-  const quejasReincidentes = cantidadQuejasReincidentes(registros);
-  const respuestasConFechas = registros
-    .map(registro => {
-      const recepcion = convertirAFechaUtc(registro.fechaRadicacion);
-      const respuesta = convertirAFechaUtc(registro.fechaCargaRespuesta);
-      return recepcion === null || respuesta === null ? null : (respuesta - recepcion) / DIAS_EN_MILISEGUNDOS;
-    })
-    .filter(dias => dias !== null && dias >= 0);
-  const eficaciaPorDependencia = dependenciasInforme.map(dependencia => {
-    const asignadas = registros.filter(registro => registro.dependencia === dependencia);
-    return {
-      dependencia,
-      eficacia: asignadas.length ? asignadas.filter(esResuelto).length / asignadas.length : null
-    };
-  });
-
-  return {
-    oportunidad: respondidasATiempo / registros.length,
-    reincidencia: quejas ? quejasReincidentes / quejas : 0,
-    quejas,
-    quejasReincidentes,
-    eficaciaPorDependencia,
-    tiempoPromedio: respuestasConFechas.length
-      ? respuestasConFechas.reduce((total, dias) => total + dias, 0) / respuestasConFechas.length
-      : null
-  };
 }
 
 function clonarEstilo(estilo) {
@@ -386,10 +294,6 @@ function establecerFechaCelda(celda, fecha) {
   celda.numFmt = 'dd-mm-yyyy';
 }
 
-function resumenDependencias(dependencias) {
-  return dependencias.length ? dependencias.join('\n') : 'Sin PQRS en la muestra';
-}
-
 async function cargarPlantilla(tipo) {
   const [ExcelJS, respuestaPlantilla] = await Promise.all([
     cargarExcelJs(),
@@ -418,13 +322,12 @@ function descargarLibro(libro, nombreArchivo) {
   });
 }
 
-async function generarInformeAuditoria(registros, registrosPeriodo, dependencias, todasDependencias) {
+async function generarInformeAuditoria(registros, todasDependencias) {
   const libro = await cargarPlantilla('auditoria');
   const matriz = libro.getWorksheet('MATRIZ DE SEGUIMIENTO');
   const indicadores = libro.getWorksheet('INDICADORES DE GESTION');
-  if (!matriz || !indicadores) {
-    throw new Error('La plantilla de auditoría debe contener la matriz y la hoja de indicadores.');
-  }
+  if (!matriz) throw new Error('La plantilla de auditoría no contiene la hoja “MATRIZ DE SEGUIMIENTO”.');
+  if (indicadores) libro.removeWorksheet(indicadores.id);
 
   matriz.getCell('C5').value = capitalizarTexto(obtenerNombreDependencias(registros, todasDependencias));
   establecerFuenteNormal(matriz.getCell('C5'));
@@ -448,31 +351,6 @@ async function generarInformeAuditoria(registros, registrosPeriodo, dependencias
     ajustarAlturaFila(fila, columnasTexto);
   });
 
-  const dependenciasInforme = todasDependencias
-    ? Object.keys(datosRadicados)
-    : dependencias;
-  const metricas = calcularIndicadoresAuditoria(registrosPeriodo, dependenciasInforme);
-  indicadores.getCell('E4').value = metricas.oportunidad;
-  establecerFuenteNormal(indicadores.getCell('E4'));
-  indicadores.getCell('E4').numFmt = '0.00%';
-  indicadores.getCell('E5').value = metricas.reincidencia;
-  establecerFuenteNormal(indicadores.getCell('E5'));
-  indicadores.getCell('E5').numFmt = '0.00%';
-  const celdaEficacia = indicadores.getCell('E6');
-  celdaEficacia.value = resumenDependencias(metricas.eficaciaPorDependencia.map(({ dependencia, eficacia }) => (
-    `${capitalizarTexto(dependencia)}: ${eficacia === null ? 'No evaluada (sin muestra)' : `${(eficacia * 100).toFixed(2)}%`}`
-  )));
-  establecerFuenteNormal(celdaEficacia);
-  celdaEficacia.alignment = {
-    ...celdaEficacia.alignment,
-    vertical: 'middle',
-    wrapText: true
-  };
-  indicadores.getRow(6).height = Math.max(30, metricas.eficaciaPorDependencia.length * 18);
-  const celdaTiempo = indicadores.getCell('E7');
-  celdaTiempo.value = metricas.tiempoPromedio;
-  establecerFuenteNormal(celdaTiempo);
-  celdaTiempo.numFmt = metricas.tiempoPromedio === null ? 'General' : '0.00 "días"';
   const fechaArchivo = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
   return descargarLibro(libro, `Informe_PQRS_Auditoria_${fechaArchivo}.xlsx`);
 }
@@ -517,11 +395,11 @@ async function generarInformeGeneral(registros, dependencias, todasDependencias)
   establecerFuenteNormal(hoja.getCell('C5'));
   const filaModelo = hoja.getRow(7);
   const dependenciasInforme = todasDependencias
-    ? Object.keys(datosRadicados)
+    ? [...Object.keys(datosRadicados), ...obtenerEntidadesInformeIAS()]
     : dependencias;
   const datosPorDependencia = dependenciasInforme.map(dependencia => [
         dependencia,
-        obtenerConteoGeneral(registros.filter(registro => registro.dependencia === dependencia))
+        obtenerConteoGeneral(registros.filter(registro => obtenerGrupoInforme(registro) === dependencia))
       ]);
 
   datosPorDependencia.forEach(([dependencia, totales], indice) => {
@@ -579,20 +457,26 @@ export function inicializarExportacionInformes() {
   const error = document.getElementById('errorInformePqrs');
   if (!modal || !formulario || !botonAbrir || !tipoInforme || !periodo) return;
 
-  const controlesDependencias = Object.keys(datosRadicados).map((dependencia, indice) => {
-    const etiqueta = document.createElement('label');
-    etiqueta.className = 'received-register-dependency-option';
-    const casilla = document.createElement('input');
-    casilla.type = 'checkbox';
-    casilla.value = dependencia;
-    casilla.id = `dependenciaInformePqrs${indice}`;
-    casilla.disabled = true;
-    const nombre = document.createElement('span');
-    nombre.textContent = dependencia;
-    etiqueta.append(casilla, nombre);
-    contenedorDependencias.append(etiqueta);
-    return casilla;
-  });
+  let controlesDependencias = [];
+
+  function crearControlesDependencias() {
+    const opcionesDependencias = [...Object.keys(datosRadicados), ...obtenerEntidadesInformeIAS()];
+    controlesDependencias = opcionesDependencias.map((dependencia, indice) => {
+      const etiqueta = document.createElement('label');
+      etiqueta.className = 'received-register-dependency-option';
+      const casilla = document.createElement('input');
+      casilla.type = 'checkbox';
+      casilla.value = dependencia;
+      casilla.id = `dependenciaInformePqrs${indice}`;
+      const nombre = document.createElement('span');
+      nombre.textContent = dependencia;
+      etiqueta.append(casilla, nombre);
+      return etiqueta;
+    });
+    contenedorDependencias.replaceChildren(...controlesDependencias);
+    controlesDependencias = controlesDependencias.map(etiqueta => etiqueta.querySelector('input'));
+    actualizarEstadoDependencias();
+  }
 
   function leerSeleccion() {
     return {
@@ -651,7 +535,7 @@ export function inicializarExportacionInformes() {
 
     try {
       const registros = filtrarRegistros(seleccion);
-      totalMuestra.textContent = `${registros.length} PQRS disponibles. La matriz usará la muestra seleccionada y los indicadores se calcularán con todas las PQRS del periodo y las dependencias elegidas.`;
+      totalMuestra.textContent = `${registros.length} PQRS disponibles entre dependencias y entidades IAS. La matriz usará la muestra seleccionada.`;
       cantidadMuestra.max = String(Math.max(1, registros.length));
     } catch (errorPeriodo) {
       totalMuestra.textContent = errorPeriodo.message;
@@ -666,7 +550,7 @@ export function inicializarExportacionInformes() {
     actualizarEstadoDependencias();
     actualizarConteoMuestra();
   });
-  controlesDependencias.forEach(casilla => casilla.addEventListener('change', actualizarConteoMuestra));
+  contenedorDependencias.addEventListener('change', actualizarConteoMuestra);
   tipoInforme.addEventListener('change', actualizarCamposPeriodo);
   periodo.addEventListener('change', actualizarCamposPeriodo);
   [mes, anio, fechaDesde, fechaHasta].forEach(control => {
@@ -675,6 +559,7 @@ export function inicializarExportacionInformes() {
   });
   botonAbrir.addEventListener('click', () => {
     formulario.reset();
+    crearControlesDependencias();
     tipoInforme.value = 'auditoria';
     periodo.value = 'year';
     mes.value = String(new Date().getMonth() + 1).padStart(2, '0');
@@ -697,7 +582,7 @@ export function inicializarExportacionInformes() {
 
     const seleccion = leerSeleccion();
     if (!seleccion.todas && seleccion.dependencias.length === 0) {
-      error.textContent = 'Selecciona al menos una dependencia o marca “Todas las dependencias”.';
+      error.textContent = 'Selecciona al menos una dependencia o entidad IAS, o marca “Todas las dependencias”.';
       error.hidden = false;
       return;
     }
@@ -717,7 +602,7 @@ export function inicializarExportacionInformes() {
       return;
     }
     if (registros.length === 0 && seleccion.tipoInforme === 'auditoria') {
-      error.textContent = 'No se encontraron PQRS para el periodo y las dependencias seleccionadas.';
+      error.textContent = 'No se encontraron PQRS de dependencias o IAS para el periodo seleccionado.';
       error.hidden = false;
       return;
     }
@@ -749,8 +634,6 @@ export function inicializarExportacionInformes() {
       if (seleccion.tipoInforme === 'auditoria') {
         await generarInformeAuditoria(
           registrosInforme,
-          registros,
-          seleccion.dependencias,
           seleccion.todas
         );
       } else {

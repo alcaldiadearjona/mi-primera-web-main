@@ -1,6 +1,11 @@
 export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="display: none;">
       <button class="btn-back" onclick="mostrarMenuPrincipal()"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a Dependencias</button>
       
+      <p id="saludoDependenciaDetalle" class="session-greeting session-greeting-inline" aria-live="polite" hidden>
+        <span class="session-greeting-label">Hola</span>
+        <strong id="nombreSaludoDependenciaDetalle"></strong>
+      </p>
+
       <div class="view-card">
         <div class="detail-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
           <div>

@@ -1,14 +1,54 @@
 import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import {
+  esAdministrador,
+  puedeGestionarIAS,
+  puedeGestionarRadicado
+} from '../auth/roles.js';
 
 export const TIPOS_PETICION = [
-  'Derecho de petición',
+  'Consulta',
+  'Denuncia',
   'Queja',
   'Reclamo',
-  'Solicitud',
-  'Consulta',
-  'Invitación',
-  'Otro'
+  'Solicitud de Información',
+  'Sugerencia',
+  'Derecho de petición',
+  'Recurso de reposición',
+  'Felicitación',
+  'Petición de Copias',
+  'Petición'
 ];
+
+export function actualizarDisponibilidadAccionesRadicado(fila) {
+  if (!fila) return;
+
+  const tieneTipoPeticion = TIPOS_PETICION.includes(
+    fila.querySelector('.tipo-peticion-select')?.value
+  );
+  const tieneFuncionario = fila.dataset.hasAssignedOfficial === 'true';
+  const disponible = tieneTipoPeticion
+    && tieneFuncionario
+    && fila.dataset.guardandoTipoPeticion !== 'true';
+  const motivoDeshabilitado = !tieneTipoPeticion
+    ? 'Selecciona primero el tipo de petición'
+    : !tieneFuncionario
+      ? 'Asigna primero un funcionario'
+      : 'Guardando tipo de petición...';
+
+  fila.querySelectorAll('.other-states-button, .response-upload-trigger, .response-replace-button')
+    .forEach(boton => {
+      boton.disabled = !disponible;
+      if (!disponible) {
+        boton.title = motivoDeshabilitado;
+      } else if (boton.classList.contains('other-states-button')) {
+        boton.title = 'Gestionar / Agregar Estado';
+      } else if (boton.classList.contains('response-replace-button')) {
+        boton.title = 'Reemplazar archivo de respuesta';
+      } else {
+        boton.title = 'Cargar respuesta';
+      }
+    });
+}
 
 // Función auxiliar para convertir textos a formato Título
 function aTitulo(texto) {
@@ -16,14 +56,18 @@ function aTitulo(texto) {
   return texto.toLowerCase().replace(/(?:^|\s|-)\S/g, letra => letra.toUpperCase());
 }
 
-export function renderizarTablaRadicados(lista) {
-  const tbody = document.getElementById('cuerpoTablaExclusiva');
+export function renderizarTablaRadicados(
+  lista,
+  tbodyId = 'cuerpoTablaExclusiva',
+  filtrosActivosExterno = null
+) {
+  const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   tbody.innerHTML = '';
   
   // ... resto de tu código normal
 
-  const hayFiltrosActivos = Boolean(
+  const hayFiltrosActivos = filtrosActivosExterno ?? Boolean(
     document.getElementById('inputBuscar')?.value.trim() ||
     document.getElementById('filtroAno')?.value ||
     document.getElementById('filtroMes')?.value
@@ -106,6 +150,13 @@ export function renderizarTablaRadicados(lista) {
       .map(tipo => `<option value="${tipo}"${reg.tipoPeticion === tipo ? ' selected' : ''}>${tipo}</option>`)
       .join('');
     const tieneTipoPeticion = TIPOS_PETICION.includes(reg.tipoPeticion);
+    const tieneFuncionario = Boolean(reg.funcionarioAsignado?.trim());
+    const accionesHabilitadas = tieneTipoPeticion && tieneFuncionario;
+    const coleccion = reg.coleccion === 'radicadosIAS' ? 'radicadosIAS' : 'radicados';
+    const puedeGestionarRegistro = coleccion === 'radicadosIAS'
+      ? puedeGestionarIAS()
+      : puedeGestionarRadicado(reg.dependencia);
+    const soloLecturaIAS = coleccion === 'radicadosIAS' && !puedeGestionarRegistro;
     const fechaCargaRespuesta = typeof reg.fechaCargaRespuesta === 'string'
       ? reg.fechaCargaRespuesta
       : '';
@@ -120,14 +171,18 @@ export function renderizarTablaRadicados(lista) {
       : '<span style="color: #9ca3af; font-size: 11px;">Sin PDF</span>';
 
     let columnaRespuestaHtml = "";
-if (reg.respuestaUrl) {
+if (soloLecturaIAS) {
+  columnaRespuestaHtml = reg.respuestaUrl
+    ? `<a class="response-file-link" href="${reg.respuestaUrl}" target="_blank" rel="noopener noreferrer">Visualizar</a>`
+    : '<span>-</span>';
+} else if (reg.respuestaUrl) {
   columnaRespuestaHtml = `
     <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
       <a class="response-file-link" href="${reg.respuestaUrl}" target="_blank" rel="noopener noreferrer">
         Visualizar
       </a>
       <div class="response-file-actions">
-        <button class="response-replace-button" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="Reemplazar archivo de respuesta">Reemplazar</button>
+        <button class="response-replace-button" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="${accionesHabilitadas ? 'Reemplazar archivo de respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>Reemplazar</button>
         <button class="response-delete-button" type="button" onclick="eliminarRespuestaRadicado('${reg.id}', this)" title="Eliminar archivo de respuesta">Eliminar</button>
       </div>
       <input type="file" id="file-resp-${reg.id}" style="display: none;" onchange="subirRespuestaRadicado('${reg.id}', this)">
@@ -135,12 +190,22 @@ if (reg.respuestaUrl) {
   `;
 } else {
   columnaRespuestaHtml = `
-    <button type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" style="cursor: pointer; background-color: #2563eb; color: white; border: none; padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; display: inline-block;">
+    <button class="response-upload-trigger" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="${accionesHabilitadas ? 'Cargar respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'} style="cursor: pointer; background-color: #2563eb; color: white; border: none; padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; display: inline-block;">
       Cargar Respuesta
     </button>
     <input type="file" id="file-resp-${reg.id}" style="display: none;" onchange="subirRespuestaRadicado('${reg.id}', this)">
   `;
 }
+    const tipoPeticionHtml = soloLecturaIAS
+      ? `<span>${reg.tipoPeticion || '-'}</span>`
+      : `
+        <div class="petition-type-field">
+          <select class="tipo-peticion-select" aria-label="Tipo de petición para el radicado ${reg.radicado || ''}" aria-required="true" required onchange="guardarTipoPeticionRadicado('${reg.id}', this)">
+            <option value="">Selecciona un tipo</option>
+            ${opcionesTipoPeticion}
+          </select>
+        </div>
+      `;
 
     // Texto completo para el tooltip del asunto
 // Texto completo para el tooltip del asunto
@@ -149,6 +214,8 @@ if (reg.respuestaUrl) {
     const tr = document.createElement('tr');
     tr.className = 'month-record-row';
     tr.dataset.monthGroup = mesKey;
+    tr.dataset.radicadoId = reg.id;
+    tr.dataset.collection = reg.coleccion === 'radicadosIAS' ? 'radicadosIAS' : 'radicados';
     tr.hidden = !esMesActual;
     tr.innerHTML = `
       <td style="text-align: center;">${pdfCellHtml}</td>
@@ -193,26 +260,21 @@ if (reg.respuestaUrl) {
       </td>
       
       <td>
-  <button onclick="prepararEdicion('${reg.id}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
+  ${esAdministrador() ? `<button onclick="prepararEdicion('${reg.id}', '${coleccion}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 4 4 4"></path><path d="M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"></path><path d="m14.5 6.5 3 3"></path></svg>
-  </button>
-  <button class="other-states-button" onclick="abrirModalOtrosEstados('${reg.id}')" style="background:#00a838; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="${tieneTipoPeticion ? 'Gestionar / Agregar Estado' : 'Selecciona primero el tipo de petición'}" aria-label="Gestionar / Agregar Estado" ${tieneTipoPeticion ? '' : 'disabled'}>
+  </button>` : ''}
+  ${puedeGestionarRegistro ? `
+  <button class="other-states-button" onclick="abrirModalOtrosEstados('${reg.id}', '${coleccion}')" style="background:#00a838; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="${accionesHabilitadas ? 'Gestionar / Agregar Estado' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" aria-label="Gestionar / Agregar Estado" ${accionesHabilitadas ? '' : 'disabled'}>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  </button>
+  </button>` : ''}
+  ${esAdministrador() ? `
   <button onclick="eliminarRadicado('${reg.id}', this)" style="background:#dc2626; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Eliminar" aria-label="Eliminar">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
-  </button>
+  </button>` : ''}
 </td>
 <td>${columnaRespuestaHtml}</td>
 <td>${fechaCargaRespuestaVisible}</td>
-<td>
-  <div class="petition-type-field">
-    <select class="tipo-peticion-select" aria-label="Tipo de petición para el radicado ${reg.radicado || ''}" aria-required="true" required onchange="guardarTipoPeticionRadicado('${reg.id}', this)">
-      <option value="">Selecciona un tipo</option>
-      ${opcionesTipoPeticion}
-    </select>
-  </div>
-</td>
+<td>${tipoPeticionHtml}</td>
 <td>${reg.tipoCanal || '-'}</td>
     `;
 
@@ -249,22 +311,47 @@ tr.cells[5].append(botonRemision, detalleRemision);
 
     const funcionarioCell = document.createElement('td');
     funcionarioCell.className = 'assigned-official-cell';
-    
-    // Aplicamos el formato Título al texto del funcionario
+    tr.dataset.hasAssignedOfficial = String(tieneFuncionario);
     const funcionarioLimpio = aTitulo(reg.funcionarioAsignado || '');
     const partesFuncionario = funcionarioLimpio.trim().split(/\s+/).filter(Boolean);
-    
-    if (partesFuncionario.length > 1) {
-      const nombre = partesFuncionario[0];
-      const apellido = partesFuncionario.slice(1).join(' ');
-      funcionarioCell.append(nombre, document.createElement('br'), apellido);
+    const nombreFuncionario = document.createElement('span');
+    nombreFuncionario.className = 'assigned-official-name';
+    nombreFuncionario.textContent = partesFuncionario.length > 1
+      ? `${partesFuncionario[0]}\n${partesFuncionario.slice(1).join(' ')}`
+      : funcionarioLimpio;
+    funcionarioCell.append(nombreFuncionario);
+    if (!puedeGestionarRegistro) {
+      funcionarioCell.classList.add('is-readonly');
+    } else if (tieneFuncionario) {
+      const botonEditarFuncionario = document.createElement('button');
+      botonEditarFuncionario.type = 'button';
+      botonEditarFuncionario.className = 'assigned-official-edit-button';
+      botonEditarFuncionario.setAttribute('aria-label', `Cambiar funcionario asignado: ${funcionarioLimpio}`);
+      botonEditarFuncionario.title = 'Cambiar funcionario';
+      botonEditarFuncionario.innerHTML = '<i class="bi bi-arrow-repeat" aria-hidden="true"></i>';
+      botonEditarFuncionario.addEventListener('click', () => window.abrirModalFuncionarioAsignado(reg.id, coleccion));
+      funcionarioCell.append(botonEditarFuncionario);
     } else {
-      funcionarioCell.textContent = funcionarioLimpio;
+      const botonFuncionario = document.createElement('button');
+      botonFuncionario.type = 'button';
+      botonFuncionario.className = 'assigned-official-button';
+      botonFuncionario.setAttribute('aria-label', 'Asignar funcionario');
+      botonFuncionario.title = 'Asignar funcionario';
+      botonFuncionario.innerHTML = '<i class="bi bi-person-plus-fill" aria-hidden="true"></i>';
+      botonFuncionario.addEventListener('click', () => window.abrirModalFuncionarioAsignado(reg.id, coleccion));
+      funcionarioCell.append(botonFuncionario);
     }
-    funcionarioCell.title = funcionarioLimpio;
     tr.insertBefore(funcionarioCell, tr.cells[9]);
 
     // 👇 ¡Importante! Faltaba agregar la fila completa a la tabla
+    if (!puedeGestionarRegistro) {
+      tr.cells[10]?.replaceChildren();
+    } else if (!esAdministrador()) {
+      tr.querySelector('button[onclick^="eliminarRadicado"]')?.remove();
+    }
+    if (!esAdministrador()) {
+      tr.querySelector('.response-delete-button')?.remove();
+    }
     tbody.appendChild(tr);
   }); // Cierra el forEach de reg (radicados)
 }); // Cierra el forEach de gruposPorMes

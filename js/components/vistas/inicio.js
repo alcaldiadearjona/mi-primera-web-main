@@ -10,6 +10,11 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
         <span class="institutional-header-accent" aria-hidden="true"></span>
       </header>
 
+      <p id="saludoSesion" class="session-greeting session-greeting-inline" aria-live="polite" hidden>
+        <span class="session-greeting-label">Hola</span>
+        <strong id="nombreSaludoSesion"></strong>
+      </p>
+
       <div class="dashboard-layout">
         <section class="dashboard-form-column" aria-labelledby="accionesPrincipales">
           <h2 id="accionesPrincipales" class="section-title"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i> Acciones Principales</h2>

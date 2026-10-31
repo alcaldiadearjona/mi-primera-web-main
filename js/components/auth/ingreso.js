@@ -19,29 +19,37 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
         <div class="linea-verde-login"></div>
       </div>
 
-      <!-- Badge Ingreso estilo flecha -->
       <div style="display: flex; margin-bottom: 20px;">
         <div class="badge-flecha">
-          Ingreso de Funcionarios
+          Ingreso al sistema
         </div>
       </div>
 
       <!-- Formulario de Login -->
       <form onsubmit="iniciarSesion(event)" style="display: flex; flex-direction: column; gap: 18px; text-align: left;">
         <div>
-          <label style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Usuario</label>
-          <input type="text" id="loginUsuario" required placeholder="Ingrese su usuario..." style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;" onfocus="this.style.borderColor='#00a838'" onblur="this.style.borderColor='#cbd5e1'">
+          <label for="loginRol" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Rol</label>
+          <select id="loginRol" required style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;">
+            <option value="funcionario">Funcionario</option>
+            <option value="administrador">Administrador</option>
+          </select>
+        </div>
+        <div>
+          <label for="loginUsuario" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Usuario</label>
+          <input type="text" id="loginUsuario" autocomplete="username" required placeholder="Ingrese su usuario..." style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;" onfocus="this.style.borderColor='#00a838'" onblur="this.style.borderColor='#cbd5e1'">
         </div>
 
         <div>
           <label for="loginClave" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Contraseña</label>
           <div class="login-password-field">
-            <input type="password" id="loginClave" required placeholder="••••••••" style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;" onfocus="this.style.borderColor='#00a838'" onblur="this.style.borderColor='#cbd5e1'">
+            <input type="password" id="loginClave" autocomplete="current-password" required placeholder="••••••••" style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;" onfocus="this.style.borderColor='#00a838'" onblur="this.style.borderColor='#cbd5e1'">
             <button type="button" class="login-password-toggle" onclick="togglePasswordVisibility()" aria-label="Mostrar contraseña" aria-pressed="false">
               <i class="bi bi-eye" aria-hidden="true"></i>
             </button>
           </div>
         </div>
+
+        <p id="errorLogin" role="alert" hidden style="margin:0; color:#b91c1c; font-size:13px;"></p>
 
         <!-- Opciones secundarias -->
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-top: 5px; margin-bottom: 10px;">
