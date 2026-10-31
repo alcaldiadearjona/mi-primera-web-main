@@ -174,6 +174,7 @@ function abrirEntidad(id) {
   document.getElementById('buscarRadicadoIAS').value = '';
   document.getElementById('filtroAnoIAS').value = '';
   document.getElementById('filtroMesIAS').value = '';
+  document.body.classList.add('detail-view-open');
   document.getElementById('pantallaIAS').classList.add('ias-detail-open');
   document.getElementById('tarjetasEntidadesIAS').hidden = true;
   const titulo = document.getElementById('tituloDetalleIAS');
@@ -191,6 +192,7 @@ function volverATarjetas() {
   filtroTexto = '';
   filtroAno = '';
   filtroMes = '';
+  document.body.classList.remove('detail-view-open');
   document.getElementById('pantallaIAS').classList.remove('ias-detail-open');
   document.getElementById('detalleEntidadIAS').hidden = true;
   document.getElementById('tarjetasEntidadesIAS').hidden = false;

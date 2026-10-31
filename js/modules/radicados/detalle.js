@@ -8,6 +8,7 @@ export function abrirDependencia(nombreDep) {
     return;
   }
   establecerDependenciaActual(nombreDep);
+  document.body.classList.add('detail-view-open');
   document.getElementById('pantallaInicio').style.display = 'none';
   document.getElementById('vista-dependencias').style.display = 'none';
   document.getElementById('pantallaDependencia').style.display = 'block';

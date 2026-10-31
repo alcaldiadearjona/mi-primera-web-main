@@ -46,16 +46,46 @@ function cerrarDesplegableDependenciasPqrs() {
   const opciones = document.getElementById('opcionesDependenciasPqrs');
   if (!boton || !opciones) return;
   opciones.hidden = true;
+  const busqueda = document.getElementById('buscarDependenciaPqrs');
+  if (busqueda) {
+    busqueda.value = '';
+    filtrarDependenciasPqrs('');
+  }
   boton.setAttribute('aria-expanded', 'false');
   boton.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
+}
+
+function filtrarDependenciasPqrs(consulta) {
+  const lista = document.getElementById('listaOpcionesDependenciasPqrs');
+  const sinResultados = document.getElementById('sinResultadosDependenciasPqrs');
+  if (!lista) return;
+
+  const textoBusqueda = consulta
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLocaleLowerCase('es-CO');
+  let resultadosVisibles = 0;
+  lista.querySelectorAll('.pqrs-dependency-option').forEach(etiqueta => {
+    const coincide = etiqueta.dataset.nombreDependencia
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('es-CO')
+      .includes(textoBusqueda);
+    etiqueta.hidden = !coincide;
+    if (coincide) resultadosVisibles++;
+  });
+  if (sinResultados) sinResultados.hidden = resultadosVisibles > 0;
 }
 
 function inicializarSelectorDependenciasPqrs() {
   const select = document.getElementById('dependencia');
   const opciones = document.getElementById('opcionesDependenciasPqrs');
+  const lista = document.getElementById('listaOpcionesDependenciasPqrs');
   const boton = document.getElementById('alternarDependenciasPqrs');
+  const busqueda = document.getElementById('buscarDependenciaPqrs');
   const selector = document.getElementById('selectorDependenciasPqrs');
-  if (!select || !opciones || !boton || !selector || opciones.childElementCount > 0) return;
+  if (!select || !opciones || !lista || !boton || !busqueda || !selector || lista.childElementCount > 0) return;
 
   Array.from(select.options)
     .filter(option => option.value)
@@ -71,13 +101,13 @@ function inicializarSelectorDependenciasPqrs() {
         casilla.checked = option.value === obtenerDependenciaSesion();
         casilla.disabled = !casilla.checked;
       }
-      casilla.addEventListener('change', actualizarResumenDependenciasPqrs);
       const nombre = document.createElement('span');
       nombre.textContent = abreviarNombreDependencia(option.value);
+      etiqueta.dataset.nombreDependencia = option.value;
       etiqueta.htmlFor = casilla.id;
       etiqueta.title = option.value;
       etiqueta.append(casilla, nombre);
-      opciones.append(etiqueta);
+      lista.append(etiqueta);
     });
     if (esFuncionario()) {
       boton.disabled = true;
@@ -90,6 +120,15 @@ function inicializarSelectorDependenciasPqrs() {
     opciones.hidden = expandido;
     boton.querySelector('i')?.classList.toggle('bi-chevron-down', expandido);
     boton.querySelector('i')?.classList.toggle('bi-chevron-up', !expandido);
+    if (!expandido) busqueda.focus();
+  });
+  busqueda.addEventListener('input', () => filtrarDependenciasPqrs(busqueda.value));
+  lista.addEventListener('change', event => {
+    if (!event.target.matches('input[name="dependenciasDestinoPqrs"]')) return;
+    actualizarResumenDependenciasPqrs();
+    busqueda.value = '';
+    filtrarDependenciasPqrs('');
+    busqueda.focus();
   });
   opciones.addEventListener('click', event => event.stopPropagation());
   document.addEventListener('click', event => {

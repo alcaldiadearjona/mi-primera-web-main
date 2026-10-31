@@ -4,6 +4,7 @@ import { actualizarInformes, redimensionarGraficasInformes } from '../informes/t
 import { establecerFormularioVisible } from '../radicados/formulario.js';
 
 function mostrarVista(idVista) {
+  document.body.classList.remove('detail-view-open');
   ['pantallaInicio', 'pantallaGeneracion', 'vista-dependencias', 'pantallaDependencia', 'pantallaIAS', 'pantallaInformes'].forEach(id => {
     const vista = document.getElementById(id);
     if (vista) vista.style.display = id === idVista ? 'block' : 'none';

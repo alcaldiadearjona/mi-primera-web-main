@@ -44,7 +44,11 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                   <span id="resumenDependenciasPqrs">-- Seleccionar Dependencias --</span>
                   <i class="bi bi-chevron-down" aria-hidden="true"></i>
                 </button>
-                <div id="opcionesDependenciasPqrs" class="pqrs-dependency-options" role="group" aria-labelledby="etiquetaDependenciaDestino" hidden></div>
+                <div id="opcionesDependenciasPqrs" class="pqrs-dependency-options" hidden>
+                  <input id="buscarDependenciaPqrs" type="search" autocomplete="off" placeholder="Escribe para buscar..." aria-label="Buscar dependencia destino">
+                  <div id="listaOpcionesDependenciasPqrs" role="group" aria-labelledby="etiquetaDependenciaDestino"></div>
+                  <p id="sinResultadosDependenciasPqrs" class="pqrs-dependency-no-results" hidden>No se encontraron dependencias.</p>
+                </div>
               </div>
               <select id="dependencia" hidden aria-hidden="true" tabindex="-1">
                 <option value="">-- Seleccionar Dependencia --</option>

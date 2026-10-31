@@ -381,6 +381,17 @@
   transform: translateY(4px) rotate(225deg);
 }
 
+@media (min-width: 901px) {
+  body.detail-view-open > .sidebar {
+    display: none;
+  }
+
+  body.detail-view-open > .main-content {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 #pantallaDependencia .tipo-peticion-select {
   width: 100%;
   min-width: 0;

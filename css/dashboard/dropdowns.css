@@ -185,6 +185,45 @@ select:not([multiple]):not([size]):not(.tipo-peticion-select) option {
   display: none !important;
 }
 
+#opcionesDependenciasPqrs {
+  display: block;
+  padding: 10px;
+}
+
+#buscarDependenciaPqrs {
+  width: 100%;
+  min-height: 40px;
+  margin-bottom: 8px;
+  padding: 8px 11px;
+  border: 1px solid #dce6e0;
+  border-radius: 9px;
+  outline: 0;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+}
+
+#buscarDependenciaPqrs:focus {
+  border-color: #16804a;
+  box-shadow: 0 0 0 3px rgba(22, 128, 74, 0.12);
+}
+
+#listaOpcionesDependenciasPqrs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+  gap: 4px;
+  max-height: 190px;
+  overflow: auto;
+}
+
+.pqrs-dependency-no-results {
+  margin: 0;
+  padding: 10px 6px;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
 .pqrs-dependency-option,
 .dependency-dropdown-option {
   display: flex;
@@ -204,6 +243,10 @@ select:not([multiple]):not([size]):not(.tipo-peticion-select) option {
 .dependency-dropdown-option:hover {
   background: #f0f8f2;
   color: #176b3a;
+}
+
+.pqrs-dependency-option[hidden] {
+  display: none !important;
 }
 
 .dependency-dropdown-option.is-disabled {
