@@ -208,6 +208,7 @@ async function guardarRadicado(e) {
       estado: 'VIGENTE',
       tipoCanal: document.getElementById('tipoCanal').value,
       fechaRadicacion: document.getElementById('fechaRadicacion').value,
+      fechaHoraRadicacion: new Date().toISOString(),
       fechaEntregaManual: document.getElementById('fechaEntregaManual').value,
       diasHabiles: document.getElementById('diasHabiles').value,
       fechaVencimiento: document.getElementById('fechaEntrega').value,

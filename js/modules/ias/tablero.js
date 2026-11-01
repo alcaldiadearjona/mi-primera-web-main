@@ -311,6 +311,7 @@ async function guardarNuevaIA(event) {
       tipoCanal: document.getElementById('tipoCanalIA').value,
       estado: document.getElementById('estadoInicialIA').value,
       fechaRadicacion: document.getElementById('fechaRadicacionIA').value,
+      fechaHoraRadicacion: new Date().toISOString(),
       diasHabiles: document.getElementById('diasHabilesIA').value,
       fechaVencimiento: document.getElementById('fechaVencimientoIA').value,
       remitente: document.getElementById('remitenteIA').value.trim(),

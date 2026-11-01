@@ -1,4 +1,4 @@
-import { deleteDoc, doc, runTransaction, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { arrayUnion, deleteDoc, doc, runTransaction, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { datosRadicados } from '../../data/radicados.js';
 import { buscarRegistroRadicado, obtenerColeccionRegistro, obtenerTodosLosRegistros } from '../../data/registros.js';
@@ -229,6 +229,115 @@ async function guardarFuncionarioAsignado(event) {
     }
   }
 }
+
+window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
+  const radicado = buscarRadicadoPorId(id, coleccion);
+  if (!radicado?.remisionOrigenId) {
+    alert('Este radicado no fue remitido por competencia.');
+    return;
+  }
+  if (!puedeGestionarRegistro(radicado)) {
+    alert('No tienes permiso para recibir este radicado.');
+    return;
+  }
+  if (radicado.fechaRecepcionCompetencia) {
+    alert(`Este radicado ya fue recibido el ${radicado.fechaRecepcionCompetencia}.`);
+    return;
+  }
+
+  const fechaRecepcion = obtenerFechaActualBogota();
+  try {
+    const recibido = await runTransaction(db, async transaction => {
+      const docRef = doc(db, obtenerColeccionRegistro(radicado), id);
+      const coleccionOrigen = radicado.remisionOrigenColeccion || RADICADOS_COLLECTION;
+      const origenRef = doc(db, coleccionOrigen, radicado.remisionOrigenId);
+      const snapshot = await transaction.get(docRef);
+      if (!snapshot.exists()) throw new Error('No se encontró el radicado remitido.');
+
+      const datosRadicado = snapshot.data();
+      if (!datosRadicado.remisionOrigenId) {
+        throw new Error('El radicado ya no está identificado como una remisión por competencia.');
+      }
+      if (datosRadicado.fechaRecepcionCompetencia) return false;
+      if (datosRadicado.remisionOrigenId !== radicado.remisionOrigenId) {
+        throw new Error('La copia no corresponde al oficio de origen esperado.');
+      }
+
+      transaction.update(docRef, {
+        fechaEntregaManual: fechaRecepcion,
+        fechaRecepcionCompetencia: fechaRecepcion
+      });
+      transaction.update(origenRef, {
+        dependenciasRecibidas: arrayUnion(datosRadicado.dependencia),
+        estado: 'R. por C.'
+      });
+      return true;
+    });
+
+    if (!recibido) {
+      alert('Este radicado ya fue recibido por la dependencia.');
+      await recargarDatosRegistro(radicado);
+      return;
+    }
+
+    await recargarDatosRegistro(radicado);
+    alert(`Radicado recibido. La fecha de entrega se actualizó al ${fechaRecepcion}.`);
+  } catch (error) {
+    console.error('Error al recibir el radicado por competencia:', error);
+    alert(`No fue posible recibir el radicado: ${error.message}`);
+  }
+};
+
+window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
+  const radicado = buscarRadicadoPorId(id, coleccion);
+  if (!radicado?.remisionOrigenId) {
+    alert('Este radicado no fue remitido por competencia.');
+    return;
+  }
+  if (!puedeGestionarRegistro(radicado)) {
+    alert('No tienes permiso para rechazar este radicado.');
+    return;
+  }
+  if (radicado.fechaRecepcionCompetencia) {
+    alert('No se puede rechazar un radicado que ya fue recibido.');
+    return;
+  }
+
+  const confirmado = await confirmarAccion(
+    `Se eliminará únicamente la copia de ${abreviarNombreDependencia(radicado.dependencia)} y se registrará el rechazo en la dependencia de origen. Las demás dependencias no se modificarán.`,
+    { titulo: 'Rechazar remisión por competencia', aceptarTexto: 'Rechazar' }
+  );
+  if (!confirmado) return;
+
+  try {
+    const copiaRef = doc(db, RADICADOS_COLLECTION, id);
+    const coleccionOrigen = radicado.remisionOrigenColeccion || RADICADOS_COLLECTION;
+    const origenRef = doc(db, coleccionOrigen, radicado.remisionOrigenId);
+    await runTransaction(db, async transaction => {
+      const copiaSnapshot = await transaction.get(copiaRef);
+      if (!copiaSnapshot.exists()) throw new Error('La copia remitida ya no existe.');
+
+      const copia = copiaSnapshot.data();
+      if (copia.remisionOrigenId !== radicado.remisionOrigenId) {
+        throw new Error('La copia no corresponde al oficio de origen esperado.');
+      }
+      if (copia.fechaRecepcionCompetencia) {
+        throw new Error('No se puede rechazar un radicado que ya fue recibido.');
+      }
+
+      transaction.update(origenRef, {
+        dependenciasRechazadas: arrayUnion(radicado.dependencia)
+      });
+      transaction.delete(copiaRef);
+    });
+
+    await recargarDatosRegistro(radicado);
+    alert('Se rechazó la remisión. Las demás dependencias conservan sus copias pendientes.');
+  } catch (error) {
+    console.error('Error al rechazar el radicado por competencia:', error);
+    alert(`No fue posible rechazar el radicado: ${error.message}`);
+  }
+};
 
 window.eliminarRadicado = async function(id, elementoClick) {
   if (!esAdministrador()) {
@@ -509,7 +618,7 @@ window.guardarOtrosEstados = async function() {
 
     if (destinosSeleccionados.length > 0) {
       const confirmado = await confirmarAccion(
-        `La solicitud se remitirá a ${destinosSeleccionados.map(abreviarNombreDependencia).join(', ')}. Se crearán copias VIGENTES con el mismo número de radicado y el original quedará cerrado.`,
+        `La solicitud se remitirá a ${destinosSeleccionados.map(abreviarNombreDependencia).join(', ')}. Se crearán copias VIGENTES con el mismo número de radicado. El oficio de origen conservará su estado hasta que una dependencia lo acepte.`,
         { titulo: 'Remitir por Competencia', aceptarTexto: 'Remitir' }
       );
       if (!confirmado) return;
@@ -553,18 +662,19 @@ window.guardarOtrosEstados = async function() {
             respuestaUrl: '',
             fechaCargaRespuesta: '',
             observaciones: '',
+            fechaEntregaManual: '',
+            fechaRecepcionCompetencia: '',
+            dependenciasRecibidas: [],
+            dependenciasRechazadas: [],
             dependenciasDestino: [],
             remisionOrigenId: id,
+            remisionOrigenColeccion: obtenerColeccionRegistro(radicado),
             remisionOrigenDependencia: radicadoOriginal.dependencia || '',
             remisionOrigenRadicado: radicadoOriginal.radicado || '',
             fechaRemisionCompetencia: fechaRemision
           });
         });
         transaction.update(docRef, {
-          ...camposGestion,
-          funcionarioAsignado: '',
-          estado: 'R. por C.',
-          fechaCargaRespuesta: fechaGestion,
           dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],
           fechaRemisionCompetencia: fechaRemision
         });

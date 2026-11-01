@@ -67,6 +67,7 @@ export async function cargarDatosDesdeFirebase() {
           estado: item.estado || 'VIGENTE',
           tipoCanal: item.tipoCanal || '',
           fechaRadicacion: item.fechaRadicacion || '',
+          fechaHoraRadicacion: item.fechaHoraRadicacion || '',
           fechaEntregaManual: item.fechaEntregaManual || '',
           fechaVencimiento: item.fechaVencimiento || item.fechaEntrega || sumarDiasHabilesColombia(item.fechaRadicacion, item.diasHabiles || 15),
           diasHabiles: item.diasHabiles || 15,
@@ -79,11 +80,19 @@ export async function cargarDatosDesdeFirebase() {
           tipoPeticion: item.tipoPeticion || '',
           otrosEstados: item.otrosEstados || '',
           observaciones: item.observaciones || '',
+          dependenciasRecibidas: Array.isArray(item.dependenciasRecibidas)
+            ? item.dependenciasRecibidas
+            : [],
+          dependenciasRechazadas: Array.isArray(item.dependenciasRechazadas)
+            ? item.dependenciasRechazadas
+            : [],
           dependenciasDestino: Array.isArray(item.dependenciasDestino) ? item.dependenciasDestino : [],
           remisionOrigenId: item.remisionOrigenId || '',
+          remisionOrigenColeccion: item.remisionOrigenColeccion || RADICADOS_COLLECTION,
           remisionOrigenDependencia: item.remisionOrigenDependencia || '',
           remisionOrigenRadicado: item.remisionOrigenRadicado || '',
-          fechaRemisionCompetencia: item.fechaRemisionCompetencia || ''
+          fechaRemisionCompetencia: item.fechaRemisionCompetencia || '',
+          fechaRecepcionCompetencia: item.fechaRecepcionCompetencia || ''
         });
       }
     });

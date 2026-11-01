@@ -86,12 +86,23 @@ export function renderizarTablaRadicados(
   const nombreMesActual = formatoMes
     .format(new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1))
     .replace(/^./, character => character.toLocaleUpperCase('es-CO'));
+  const radicadosOrdenados = [...lista].sort((a, b) => {
+    const fechaA = String(a.fechaRadicacion || '').slice(0, 10);
+    const fechaB = String(b.fechaRadicacion || '').slice(0, 10);
+    const ordenFecha = fechaB.localeCompare(fechaA);
+    if (ordenFecha) return ordenFecha;
+
+    const instanteA = Date.parse(a.fechaHoraRadicacion || a.fechaRadicacion || '');
+    const instanteB = Date.parse(b.fechaHoraRadicacion || b.fechaRadicacion || '');
+    return (Number.isFinite(instanteB) ? instanteB : 0)
+      - (Number.isFinite(instanteA) ? instanteA : 0);
+  });
 
   if (!hayFiltrosActivos) {
     gruposPorMes.set(mesActualKey, { etiqueta: nombreMesActual, radicados: [] });
   }
 
-  lista.forEach(reg => {
+  radicadosOrdenados.forEach(reg => {
     const fechaRadicacion = typeof reg.fechaRadicacion === 'string' ? reg.fechaRadicacion : '';
     const coincidenciaMes = fechaRadicacion.match(/^(\d{4})-(0[1-9]|1[0-2])(?:-\d{2})?$/);
     const mesKey = coincidenciaMes ? `${coincidenciaMes[1]}-${coincidenciaMes[2]}` : 'sin-fecha';
@@ -136,7 +147,12 @@ export function renderizarTablaRadicados(
 
     grupo.radicados.forEach(reg => {
     const estadoBase = reg.estado || 'VIGENTE';
-    const estadoObj = evaluarEstadoAutomatico(reg.fechaVencimiento, reg.respuestaUrl, reg.otrosEstados, estadoBase);
+    const dependenciasRechazadas = Array.isArray(reg.dependenciasRechazadas)
+      ? reg.dependenciasRechazadas
+      : [];
+    const estadoObj = dependenciasRechazadas.length && estadoBase === 'VIGENTE'
+      ? { texto: 'VIGENTE', clase: 'status-vigente' }
+      : evaluarEstadoAutomatico(reg.fechaVencimiento, reg.respuestaUrl, reg.otrosEstados, estadoBase);
     const etiquetasEstado = {
       'status-vigente': 'Vigente',
       'status-cerrado': 'Cerrado',
@@ -223,7 +239,13 @@ if (soloLecturaIAS) {
       <td style="text-align: center;">${pdfCellHtml}</td>
       <td title="${reg.radicado || ''}"><strong>${reg.radicado || ''}</strong></td>
       <td>${reg.fechaRadicacion || ''}</td>
-      <td>${reg.fechaEntregaManual || '-'}</td>
+      <td class="delivery-date-cell">
+        <span class="delivery-date-value">${
+          reg.remisionOrigenId && !reg.fechaRecepcionCompetencia
+            ? ''
+            : reg.fechaEntregaManual || '-'
+        }</span>
+      </td>
       <td><span class="badge-status ${estadoObj.clase}">${reg.fechaVencimiento || ''}</span></td>
       <td><span class="badge-status ${estadoObj.clase}">${textoEstado}</span></td>
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
@@ -281,34 +303,56 @@ if (soloLecturaIAS) {
     `;
 
     const dependenciasDestino = Array.isArray(reg.dependenciasDestino) ? reg.dependenciasDestino : [];
-    const textoRemision = dependenciasDestino.length
-? `Remitido a: ${dependenciasDestino.map(abreviarNombreDependencia).join(', ')}`
-: reg.remisionOrigenDependencia
-  ? `Recibido de: ${abreviarNombreDependencia(reg.remisionOrigenDependencia)}`
-  : '';
-    if (textoRemision) {
-const botonRemision = document.createElement('button');
-botonRemision.className = 'competence-routing-toggle';
-botonRemision.type = 'button';
-botonRemision.textContent = dependenciasDestino.length ? 'Ver destino' : 'Ver origen';
-botonRemision.setAttribute('aria-expanded', 'false');
-botonRemision.addEventListener('mousedown', event => event.preventDefault());
+    const dependenciasRecibidas = Array.isArray(reg.dependenciasRecibidas)
+      ? reg.dependenciasRecibidas
+      : [];
+    const crearDetalleRemision = (etiqueta, texto) => {
+      const boton = document.createElement('button');
+      boton.className = 'competence-routing-toggle';
+      boton.type = 'button';
+      boton.textContent = etiqueta;
+      boton.setAttribute('aria-expanded', 'false');
+      boton.addEventListener('mousedown', event => event.preventDefault());
 
-const detalleRemision = document.createElement('small');
-detalleRemision.className = 'competence-routing-note';
-detalleRemision.textContent = textoRemision;
-detalleRemision.hidden = true;
+      const detalle = document.createElement('small');
+      detalle.className = 'competence-routing-note';
+      detalle.textContent = texto;
+      detalle.hidden = true;
 
-botonRemision.addEventListener('click', () => {
-  const mostrarDetalle = detalleRemision.hidden;
-  detalleRemision.hidden = !mostrarDetalle;
-  botonRemision.setAttribute('aria-expanded', String(mostrarDetalle));
-  botonRemision.textContent = mostrarDetalle
-    ? 'Ocultar'
-    : dependenciasDestino.length ? 'Ver destino' : 'Ver origen';
-});
+      boton.addEventListener('click', () => {
+        const mostrarDetalle = detalle.hidden;
+        detalle.hidden = !mostrarDetalle;
+        boton.setAttribute('aria-expanded', String(mostrarDetalle));
+        boton.textContent = mostrarDetalle ? 'Ocultar' : etiqueta;
+      });
 
-tr.cells[5].append(botonRemision, detalleRemision);
+      tr.cells[5].append(boton, detalle);
+    };
+
+    if (dependenciasDestino.length) {
+      if (dependenciasRecibidas.length) {
+        crearDetalleRemision(
+          'Ver Destino',
+          `Aceptado R.C por: "${dependenciasRecibidas.join(', ')}"`
+        );
+      } else if (!dependenciasRechazadas.length) {
+        crearDetalleRemision(
+          'Ver destino',
+          `Remitido a: ${dependenciasDestino.join(', ')}`
+        );
+      }
+
+      if (dependenciasRechazadas.length) {
+        crearDetalleRemision(
+          'Ver Rechazo',
+          `Rechazada R.C por: "${dependenciasRechazadas.join(', ')}"`
+        );
+      }
+    } else if (reg.remisionOrigenDependencia) {
+      crearDetalleRemision(
+        'Ver origen',
+        `Recibido de: ${abreviarNombreDependencia(reg.remisionOrigenDependencia)}`
+      );
     }
 
     const funcionarioCell = document.createElement('td');
@@ -344,6 +388,34 @@ tr.cells[5].append(botonRemision, detalleRemision);
       funcionarioCell.append(botonFuncionario);
     }
     tr.insertBefore(funcionarioCell, tr.cells[9]);
+
+    if (reg.remisionOrigenId && !reg.fechaRecepcionCompetencia && puedeGestionarRegistro) {
+      const accionesCompetencia = document.createElement('div');
+      accionesCompetencia.className = 'competence-decision-actions';
+
+      const botonRecibir = document.createElement('button');
+      botonRecibir.type = 'button';
+      botonRecibir.className = 'competence-receive-button';
+      botonRecibir.textContent = 'Recibir';
+      botonRecibir.title = 'Registrar recepción y actualizar la fecha de entrega';
+      botonRecibir.setAttribute('aria-label', 'Recibir oficio remitido por competencia');
+      botonRecibir.addEventListener('click', () => {
+        window.recibirRadicadoCompetencia(reg.id, coleccion);
+      });
+
+      const botonRechazar = document.createElement('button');
+      botonRechazar.type = 'button';
+      botonRechazar.className = 'competence-reject-button';
+      botonRechazar.textContent = 'Rechazar';
+      botonRechazar.title = 'Rechazar esta remisión sin afectar las demás dependencias';
+      botonRechazar.setAttribute('aria-label', 'Rechazar oficio remitido por competencia');
+      botonRechazar.addEventListener('click', () => {
+        window.rechazarRadicadoCompetencia(reg.id, coleccion);
+      });
+
+      accionesCompetencia.append(botonRecibir, botonRechazar);
+      tr.querySelector('.delivery-date-cell')?.append(accionesCompetencia);
+    }
 
     // 👇 ¡Importante! Faltaba agregar la fila completa a la tabla
     if (!puedeGestionarRegistro) {

@@ -54,6 +54,109 @@
   font-size: 15px;
 }
 
+#pantallaDependencia .table-custom td.delivery-date-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+#pantallaDependencia .competence-decision-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+#pantallaDependencia .competence-decision-actions button {
+  box-sizing: border-box;
+  width: 60px;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 3px 5px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+#pantallaDependencia .competence-receive-button {
+  border-color: #16804a;
+  background: linear-gradient(135deg, #24a15e, #137342);
+  box-shadow: 0 3px 8px rgba(19, 115, 66, 0.24);
+}
+
+#pantallaDependencia .competence-receive-button:hover,
+#pantallaDependencia .competence-receive-button:active,
+#pantallaDependencia .competence-receive-button:focus,
+#pantallaDependencia .competence-receive-button:focus-visible {
+  border-color: #16804a !important;
+  background: linear-gradient(135deg, #24a15e, #137342) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 8px rgba(19, 115, 66, 0.24) !important;
+}
+
+#pantallaDependencia .competence-reject-button {
+  border-color: #c83d4c;
+  background: linear-gradient(135deg, #e45b68, #bd3344);
+  box-shadow: 0 3px 8px rgba(189, 51, 68, 0.22);
+}
+
+#pantallaDependencia .competence-reject-button:hover,
+#pantallaDependencia .competence-reject-button:active,
+#pantallaDependencia .competence-reject-button:focus,
+#pantallaDependencia .competence-reject-button:focus-visible {
+  border-color: #c83d4c !important;
+  background: linear-gradient(135deg, #e45b68, #bd3344) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 8px rgba(189, 51, 68, 0.22) !important;
+}
+
+#pantallaDependencia .competence-decision-actions button:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+#pantallaDependencia .competence-decision-actions button:active {
+  transform: translateY(0);
+}
+
+#pantallaDependencia .competence-receive-button:focus-visible {
+  outline: 2px solid rgba(36, 161, 94, 0.45) !important;
+  outline-offset: 1px;
+}
+
+#pantallaDependencia .competence-receive-button:hover,
+#pantallaDependencia .competence-receive-button:active,
+#pantallaDependencia .competence-receive-button:focus,
+#pantallaDependencia .competence-receive-button:focus-visible {
+  background-color: #16804a !important;
+  background-image: linear-gradient(135deg, #24a15e, #137342) !important;
+}
+
+#pantallaDependencia .competence-reject-button:focus-visible {
+  outline: 2px solid rgba(228, 91, 104, 0.45) !important;
+  outline-offset: 1px;
+}
+
+#pantallaDependencia .competence-reject-button:hover,
+#pantallaDependencia .competence-reject-button:active,
+#pantallaDependencia .competence-reject-button:focus,
+#pantallaDependencia .competence-reject-button:focus-visible {
+  background-color: #c83d4c !important;
+  background-image: linear-gradient(135deg, #e45b68, #bd3344) !important;
+}
+
 #pantallaDependencia .table-custom {
   font-size: 14px;
 }
@@ -363,8 +466,8 @@
 
 #pantallaDependencia .petition-type-field::after {
   position: absolute;
-  top: 20px;
-  right: 15px;
+  top: 13px;
+  right: 10px;
   width: 9px;
   height: 9px;
   border-right: 2px solid #244735;
@@ -395,9 +498,9 @@
 #pantallaDependencia .tipo-peticion-select {
   width: 100%;
   min-width: 0;
-  min-height: 48px;
+  min-height: 34px;
   box-sizing: border-box;
-  padding: 8px 34px 8px 9px;
+  padding: 4px 28px 4px 8px;
   border: 1px solid #d4e5d9;
   border-radius: 13px;
   outline: none;
@@ -407,7 +510,7 @@
   color: #244735;
   font: inherit;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 500;
   cursor: pointer;
   box-shadow: 0 3px 8px rgba(36, 71, 53, 0.06), inset 0 1px 0 #ffffff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
