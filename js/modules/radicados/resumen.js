@@ -2,9 +2,23 @@ import { datosRadicados } from '../../data/radicados.js';
 import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
 import { evaluarEstadoAutomatico, obtenerRadicadosProximosAVencer } from '../../utils/helpers.js';
 
+let anoInicialDisponible = Number(obtenerAnoActual());
+
+function obtenerAnoActual() {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Bogota',
+    year: 'numeric'
+  }).format(new Date());
+}
+
+function radicadosDelAno(registros) {
+  const anoActual = obtenerAnoActual();
+  return registros.filter(radicado => String(radicado.fechaRadicacion || '').startsWith(anoActual));
+}
+
 export function actualizarResumenRadicados() {
   const dependenciaSesion = obtenerDependenciaSesion();
-  const radicados = (esFuncionario()
+  const radicados = radicadosDelAno(esFuncionario()
     ? datosRadicados[dependenciaSesion] || []
     : Object.values(datosRadicados).flat())
     .filter(radicado => !radicado.remisionOrigenId);
@@ -28,9 +42,10 @@ export function actualizarResumenRadicados() {
 
   const subtitulo = document.getElementById('subtituloRecientes');
   if (subtitulo) {
+    const anoActual = obtenerAnoActual();
     subtitulo.textContent = esFuncionario()
-      ? `En ${dependenciaSesion}`
-      : 'En todas las dependencias';
+      ? `En ${dependenciaSesion} · ${anoActual}`
+      : `En todas las dependencias · ${anoActual}`;
   }
 
   const proximosAVencer = obtenerRadicadosProximosAVencer(radicados)
@@ -82,7 +97,7 @@ export function actualizarContadores() {
   actualizarFiltroDeAno();
 
   for (const dep in datosRadicados) {
-    const count = datosRadicados[dep].length;
+    const count = radicadosDelAno(datosRadicados[dep]).length;
     const elem = document.getElementById(`cant-${dep}`);
     if (!elem) continue;
     elem.textContent = esFuncionario() && dep !== obtenerDependenciaSesion()
@@ -91,15 +106,25 @@ export function actualizarContadores() {
   }
 }
 
+export function establecerAnoInicialDisponible(ano) {
+  const anoNumerico = Number(ano);
+  if (!Number.isInteger(anoNumerico) || anoNumerico > Number(obtenerAnoActual())) {
+    throw new Error(`El año inicial de radicados no es válido: ${ano}.`);
+  }
+  anoInicialDisponible = anoNumerico;
+  actualizarFiltroDeAno();
+}
+
 function actualizarFiltroDeAno() {
   const filtroAno = document.getElementById('filtroAno');
   if (!filtroAno) return;
 
   const anoSeleccionado = filtroAno.value;
-  const anoActual = new Date().getFullYear();
-  const anosDisponibles = new Set(
-    Array.from({ length: 3 }, (_, indice) => String(anoActual - indice))
-  );
+  const anoActual = Number(obtenerAnoActual());
+  const anosDisponibles = new Set();
+  for (let ano = anoInicialDisponible; ano <= anoActual; ano += 1) {
+    anosDisponibles.add(String(ano));
+  }
 
   Object.values(datosRadicados).flat().forEach(({ fechaRadicacion }) => {
     const coincidencia = typeof fechaRadicacion === 'string'

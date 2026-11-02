@@ -5,7 +5,11 @@ import { esFuncionario, puedeConsultarIAS, puedeGestionarIAS } from '../auth/rol
 import { convertirABase64, sumarDiasHabilesColombia } from '../../utils/helpers.js';
 import { renderizarTablaRadicados } from '../radicados/tabla.js';
 import { mostrarAviso } from '../ui/avisos.js';
-import { establecerErrorIASInforme, establecerRegistrosIASInforme } from '../informes/tablero.js';
+import {
+  establecerCargaIASInforme,
+  establecerErrorIASInforme,
+  establecerRegistrosIASInforme
+} from '../informes/tablero.js';
 
 const COLECCION_IAS = 'radicadosIAS';
 export const ENTIDADES_IAS = [
@@ -47,6 +51,8 @@ let busquedaEntidadIAS = '';
 let filtroTexto = '';
 let filtroAno = '';
 let filtroMes = '';
+let cargaDatosIAS;
+let datosIASCargados = false;
 
 function normalizar(texto) {
   return String(texto || '')
@@ -349,31 +355,80 @@ export async function recargarDatosIAS() {
   if (!puedeConsultarIAS()) {
     throw new Error('No tienes permiso para consultar los registros IAS.');
   }
-  const snapshot = await getDocs(collection(db, COLECCION_IAS));
-  registrosIAS = snapshot.docs.map(documento => {
-    const datos = documento.data();
-    return {
-      ...datos,
-      id: documento.id,
-      radicado: datos.radicado || datos.numeroRadicado || '',
-      entidadIAS: datos.entidadIAS || datos.entidad || datos.ente || '',
-      fechaRadicacion: obtenerFecha(datos),
-      fechaVencimiento: datos.fechaVencimiento
-        || datos.fechaEntrega
-        || sumarDiasHabilesColombia(obtenerFecha(datos), datos.diasHabiles || 15),
-      tipoCanal: datos.tipoCanal || '',
-      remitente: datos.remitente || datos.destinatario || '',
-      asunto: datos.asunto || '',
-      estado: datos.estado || 'VIGENTE',
-      diasHabiles: datos.diasHabiles || 15,
-      coleccion: COLECCION_IAS
-    };
-  });
-  establecerRegistrosIAS(registrosIAS);
-  establecerRegistrosIASInforme(registrosIAS);
-  actualizarFiltroAnios(registrosIAS);
-  renderizarTarjetas();
-  if (entidadSeleccionada) renderizarTabla();
+  if (cargaDatosIAS) return cargaDatosIAS;
+
+  cargaDatosIAS = (async () => {
+    const snapshot = await getDocs(collection(db, COLECCION_IAS));
+    registrosIAS = snapshot.docs.map(documento => {
+      const datos = documento.data();
+      return {
+        ...datos,
+        id: documento.id,
+        radicado: datos.radicado || datos.numeroRadicado || '',
+        entidadIAS: datos.entidadIAS || datos.entidad || datos.ente || '',
+        fechaRadicacion: obtenerFecha(datos),
+        fechaVencimiento: datos.fechaVencimiento
+          || datos.fechaEntrega
+          || sumarDiasHabilesColombia(obtenerFecha(datos), datos.diasHabiles || 15),
+        tipoCanal: datos.tipoCanal || '',
+        remitente: datos.remitente || datos.destinatario || '',
+        asunto: datos.asunto || '',
+        estado: datos.estado || 'VIGENTE',
+        diasHabiles: datos.diasHabiles || 15,
+        coleccion: COLECCION_IAS
+      };
+    });
+    establecerRegistrosIAS(registrosIAS);
+    establecerRegistrosIASInforme(registrosIAS);
+    actualizarFiltroAnios(registrosIAS);
+    renderizarTarjetas();
+    if (entidadSeleccionada) renderizarTabla();
+    datosIASCargados = true;
+  })();
+
+  try {
+    await cargaDatosIAS;
+  } finally {
+    cargaDatosIAS = null;
+  }
+}
+
+function mostrarErrorCargaIAS(error) {
+  console.error('Error al cargar los radicados IAS:', error);
+  establecerErrorIASInforme();
+  const contenedor = document.getElementById('tarjetasEntidadesIAS');
+  if (!contenedor) return;
+  const mensaje = document.createElement('p');
+  mensaje.className = 'ias-empty-state ias-load-error';
+  mensaje.setAttribute('role', 'alert');
+  mensaje.textContent = 'No se pudieron cargar las entidades IAS. Revisa los permisos de lectura de la colección radicadosIAS.';
+  contenedor.replaceChildren(mensaje);
+  void mostrarAviso(mensaje.textContent, { tipo: 'error', titulo: 'Error al cargar IAS' });
+}
+
+export async function asegurarDatosIAS() {
+  if (!puedeConsultarIAS()) return false;
+  if (esFuncionario() && !puedeGestionarIAS()) {
+    renderizarTarjetas();
+    return true;
+  }
+  if (datosIASCargados) return true;
+  if (!cargaDatosIAS) {
+    const contenedor = document.getElementById('tarjetasEntidadesIAS');
+    const mensaje = document.createElement('p');
+    mensaje.className = 'ias-empty-state';
+    mensaje.setAttribute('role', 'status');
+    mensaje.textContent = 'Cargando radicados IAS…';
+    contenedor?.replaceChildren(mensaje);
+    establecerCargaIASInforme();
+  }
+  try {
+    await recargarDatosIAS();
+    return true;
+  } catch (error) {
+    mostrarErrorCargaIAS(error);
+    return false;
+  }
 }
 
 export async function inicializarTableroIAS() {
@@ -418,17 +473,4 @@ export async function inicializarTableroIAS() {
     renderizarTabla();
   });
 
-  try {
-    await recargarDatosIAS();
-  } catch (error) {
-    console.error('Error al cargar los radicados IAS:', error);
-    establecerErrorIASInforme();
-    const contenedor = document.getElementById('tarjetasEntidadesIAS');
-    const mensaje = document.createElement('p');
-    mensaje.className = 'ias-empty-state ias-load-error';
-    mensaje.setAttribute('role', 'alert');
-    mensaje.textContent = 'No se pudieron cargar las entidades IAS. Revisa los permisos de lectura de la colección radicadosIAS.';
-    contenedor.replaceChildren(mensaje);
-    void mostrarAviso(mensaje.textContent, { tipo: 'error', titulo: 'Error al cargar IAS' });
-  }
 }

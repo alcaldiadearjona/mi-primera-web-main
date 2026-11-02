@@ -9,8 +9,9 @@ const COLORES_GRAFICA = [
 ];
 let registrosIAS = [];
 let origen = 'dependencias';
-let estadoCargaIAS = 'loading';
+let estadoCargaIAS = 'idle';
 let estadoCargaDependencias = 'loading';
+let anoInicialRadicados = String(new Date().getFullYear());
 let ChartClass = null;
 let estadoChart = 'loading';
 let promesaChart = null;
@@ -90,6 +91,9 @@ function actualizarFiltroAnios() {
   if (!selector) return;
   const seleccionado = selector.value;
   const anos = new Set([String(new Date().getFullYear())]);
+  for (let ano = Number(anoInicialRadicados); ano <= new Date().getFullYear(); ano += 1) {
+    anos.add(String(ano));
+  }
   [...obtenerRegistros('dependencias'), ...obtenerRegistros('ias')].forEach(registro => {
     if (/^\d{4}-\d{2}-\d{2}$/.test(registro.fecha)) anos.add(registro.fecha.slice(0, 4));
   });
@@ -97,6 +101,19 @@ function actualizarFiltroAnios() {
     ...[...anos].sort((a, b) => b.localeCompare(a)).map(ano => new Option(ano, ano))
   );
   selector.value = anos.has(seleccionado) ? seleccionado : String(new Date().getFullYear());
+}
+
+export async function asegurarAniosInformes() {
+  try {
+    const { obtenerAnoInicialRadicados } = await import('../../services/radicados.js');
+    anoInicialRadicados = await obtenerAnoInicialRadicados();
+    actualizarInformes();
+    return true;
+  } catch (error) {
+    console.error('No fue posible consultar los años disponibles para los informes:', error);
+    establecerErrorDependenciasInforme();
+    return false;
+  }
 }
 
 function renderizarIndicadores(registros, periodo) {
@@ -324,7 +341,7 @@ function renderizarGraficaIAS() {
   canvas.hidden = !puedeMostrar;
   leyenda.hidden = !puedeMostrar;
   const avisoVacio = document.getElementById('informeIASVacio');
-  avisoVacio.hidden = hayDatos;
+  avisoVacio.hidden = hayDatos || estadoCargaIAS === 'idle';
   avisoVacio.textContent = estadoCargaIAS === 'loading'
     ? 'Cargando radicados IAS…'
     : estadoCargaIAS === 'error'
@@ -526,8 +543,18 @@ export function establecerRegistrosIASInforme(registros) {
   actualizarInformes();
 }
 
+export function establecerCargaIASInforme() {
+  estadoCargaIAS = 'loading';
+  actualizarInformes();
+}
+
 export function establecerDependenciasInforme() {
   estadoCargaDependencias = 'loaded';
+  actualizarInformes();
+}
+
+export function establecerCargaDependenciasInforme() {
+  estadoCargaDependencias = 'loading';
   actualizarInformes();
 }
 
@@ -559,9 +586,33 @@ export function inicializarInformes() {
         opcion.setAttribute('aria-pressed', String(activo));
       });
       actualizarInformes();
+      if (origen === 'ias' && estadoCargaIAS !== 'loaded') {
+        establecerCargaIASInforme();
+        import('../ias/tablero.js')
+          .then(modulo => modulo.asegurarDatosIAS())
+          .catch(error => {
+            console.error('No fue posible iniciar la carga de IAS para los informes:', error);
+            establecerErrorIASInforme();
+          });
+      }
     });
   });
-  document.getElementById('filtroAnoInformes')?.addEventListener('change', actualizarInformes);
+  document.getElementById('filtroAnoInformes')?.addEventListener('change', async event => {
+    const ano = event.currentTarget.value || String(new Date().getFullYear());
+    establecerCargaDependenciasInforme();
+    try {
+      const { cargarDatosDesdeFirebase } = await import('../../services/radicados.js');
+      await cargarDatosDesdeFirebase({
+        ano,
+        mes: '',
+        forzar: false,
+        actualizarVista: false
+      });
+    } catch (error) {
+      console.error('No fue posible consultar el año seleccionado para el informe:', error);
+      establecerErrorDependenciasInforme();
+    }
+  });
   document.getElementById('filtroMesInformes')?.addEventListener('change', actualizarInformes);
   window.addEventListener('resize', redimensionarGraficasInformes);
   actualizarInformes();

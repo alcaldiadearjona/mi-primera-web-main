@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "radicados",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "dependencia",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaRadicacion",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

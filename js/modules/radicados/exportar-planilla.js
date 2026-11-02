@@ -1,4 +1,5 @@
 import { datosRadicados } from '../../data/radicados.js';
+import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
 
 const RUTA_PLANTILLA = new URL(
@@ -272,6 +273,19 @@ export function inicializarExportacionPlanilla() {
     const fin = radicadoHasta ? analizarNumeroRadicado(radicadoHasta) : null;
     if (!inicio && !fechaDesde && !fechaHasta && !mes && !ano && todasDependencias.checked) {
       mostrarError(error, 'Selecciona al menos un filtro para generar la planilla.');
+      return;
+    }
+
+    const periodoConsulta = fechaDesde || fechaHasta
+      ? { inicio: fechaDesde, fin: fechaHasta }
+      : { ano, mes };
+    const consultaExitosa = await cargarDatosDesdeFirebase({
+      ...periodoConsulta,
+      forzar: false,
+      actualizarVista: false
+    });
+    if (!consultaExitosa) {
+      mostrarError(error, 'No fue posible consultar los radicados del periodo seleccionado.');
       return;
     }
 

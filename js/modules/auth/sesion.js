@@ -5,7 +5,10 @@ import {
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { auth, db } from '../../config/firebase-config.js';
-import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import {
+  cargarDatosDesdeFirebase,
+  obtenerAnoInicialRadicados
+} from '../../services/radicados.js';
 import {
   establecerSesionUsuario,
   esAdministrador,
@@ -24,6 +27,7 @@ import { inicializarExportacionInformes } from '../radicados/exportar-informes.j
 import { inicializarAccionesRadicados } from '../radicados/gestion.js';
 import { inicializarTableroIAS } from '../ias/tablero.js';
 import { inicializarInformes } from '../informes/tablero.js';
+import { establecerAnoInicialDisponible } from '../radicados/resumen.js';
 
 let rolSolicitado = '';
 let usuarioConfigurado = '';
@@ -144,7 +148,16 @@ async function configurarUsuario(usuario, rolElegido = '') {
     establecerSesionUsuario(usuario, perfil);
     mostrarPantallaDespuesDeLogin();
     inicializarModulosAutorizados();
-    await cargarDatosDesdeFirebase();
+    const anoActual = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'America/Bogota',
+      year: 'numeric'
+    }).format(new Date());
+    await cargarDatosDesdeFirebase({ ano: anoActual, mes: '' });
+    try {
+      establecerAnoInicialDisponible(await obtenerAnoInicialRadicados());
+    } catch (error) {
+      console.error('No fue posible consultar los años históricos disponibles:', error);
+    }
 
     await inicializarTableroIAS();
     inicializarInformes();

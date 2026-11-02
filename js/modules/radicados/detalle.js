@@ -43,8 +43,9 @@ export function abrirDependencia(nombreDep) {
   const selectAno = document.getElementById('filtroAno');
   const selectMes = document.getElementById('filtroMes');
   if (inputBuscar) inputBuscar.value = "";
-  if (selectAno) selectAno.value = "";
-  if (selectMes) selectMes.value = "";
+  const fechaActual = new Date();
+  if (selectAno) selectAno.value = String(fechaActual.getFullYear());
+  if (selectMes) selectMes.value = String(fechaActual.getMonth() + 1).padStart(2, '0');
 
   let lista = datosRadicados[nombreDep] || [];
   
@@ -56,12 +57,26 @@ export function abrirDependencia(nombreDep) {
 
 window.abrirDependencia = abrirDependencia;
 
-window.aplicarFiltrosRadicados = function() {
+window.aplicarFiltrosRadicados = async function() {
   if (!dependenciaActual) return;
 
   const textoBusqueda = document.getElementById('inputBuscar')?.value.toLowerCase().trim() || "";
   const anoSeleccionado = document.getElementById('filtroAno')?.value || "";
   const mesSeleccionado = document.getElementById('filtroMes')?.value || "";
+  try {
+    const { cargarDatosDesdeFirebase } = await import('../../services/radicados.js');
+    const cargado = await cargarDatosDesdeFirebase({
+      ano: anoSeleccionado,
+      mes: mesSeleccionado,
+      forzar: false,
+      actualizarVista: false
+    });
+    if (!cargado) return;
+  } catch (error) {
+    console.error('No fue posible cargar el periodo de radicados seleccionado:', error);
+    alert(`No fue posible consultar los radicados del periodo: ${error.message}`);
+    return;
+  }
 
   let lista = datosRadicados[dependenciaActual] || [];
 

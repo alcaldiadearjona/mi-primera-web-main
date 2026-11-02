@@ -458,6 +458,44 @@ export function inicializarExportacionInformes() {
   if (!modal || !formulario || !botonAbrir || !tipoInforme || !periodo) return;
 
   let controlesDependencias = [];
+  let temporizadorConteoMuestra;
+  let solicitudConteoMuestra = 0;
+
+  async function cargarPeriodoSeleccionado(seleccion) {
+    const parametrosPeriodo = obtenerParametrosPeriodo(
+      seleccion.tipoInforme,
+      seleccion.modo,
+      seleccion.anio,
+      seleccion.mes,
+      seleccion.fechaDesde,
+      seleccion.fechaHasta
+    );
+    const entidadesIASSeleccionadas = obtenerEntidadesInformeIAS();
+    const requiereDependencias = seleccion.todas
+      || seleccion.dependencias.some(dependencia => Object.prototype.hasOwnProperty.call(datosRadicados, dependencia));
+    const requiereIAS = seleccion.todas
+      || seleccion.dependencias.some(dependencia => entidadesIASSeleccionadas.includes(dependencia));
+    if (requiereDependencias) {
+      const opcionesConsulta = seleccion.modo === 'month'
+        ? { ano: seleccion.anio, mes: seleccion.mes }
+        : seleccion.modo === 'year'
+          ? { ano: seleccion.anio, mes: '' }
+          : parametrosPeriodo;
+      const { cargarDatosDesdeFirebase } = await import('../../services/radicados.js');
+      const cargado = await cargarDatosDesdeFirebase({
+        ...opcionesConsulta,
+        forzar: false,
+        actualizarVista: false
+      });
+      if (!cargado) throw new Error('No fue posible consultar las PQRS del periodo seleccionado.');
+    }
+
+    if (requiereIAS) {
+      const { asegurarDatosIAS } = await import('../ias/tablero.js');
+      const cargadoIAS = await asegurarDatosIAS();
+      if (!cargadoIAS) throw new Error('No fue posible consultar los radicados IAS para completar el informe.');
+    }
+  }
 
   function crearControlesDependencias() {
     const opcionesDependencias = [...Object.keys(datosRadicados), ...obtenerEntidadesInformeIAS()];
@@ -523,8 +561,9 @@ export function inicializarExportacionInformes() {
     actualizarConteoMuestra();
   }
 
-  function actualizarConteoMuestra() {
+  async function actualizarConteoMuestra() {
     if (!totalMuestra) return;
+    const solicitudActual = ++solicitudConteoMuestra;
     const seleccion = leerSeleccion();
     if (seleccion.modo !== 'year' && seleccion.modo !== 'month'
       && (!seleccion.fechaDesde || !seleccion.fechaHasta || seleccion.fechaDesde > seleccion.fechaHasta)) {
@@ -532,14 +571,24 @@ export function inicializarExportacionInformes() {
       cantidadMuestra.max = '';
       return;
     }
-
     try {
+      totalMuestra.textContent = 'Consultando PQRS disponibles…';
+      await cargarPeriodoSeleccionado(seleccion);
+      if (solicitudActual !== solicitudConteoMuestra) return;
       const registros = filtrarRegistros(seleccion);
       totalMuestra.textContent = `${registros.length} PQRS disponibles entre dependencias y entidades IAS. La matriz usará la muestra seleccionada.`;
       cantidadMuestra.max = String(Math.max(1, registros.length));
     } catch (errorPeriodo) {
+      cantidadMuestra.max = '';
       totalMuestra.textContent = errorPeriodo.message;
     }
+  }
+
+  function programarActualizacionConteoMuestra() {
+    clearTimeout(temporizadorConteoMuestra);
+    temporizadorConteoMuestra = setTimeout(() => {
+      void actualizarConteoMuestra();
+    }, 250);
   }
 
   function cerrar() {
@@ -548,14 +597,14 @@ export function inicializarExportacionInformes() {
 
   todasDependencias.addEventListener('change', () => {
     actualizarEstadoDependencias();
-    actualizarConteoMuestra();
+    programarActualizacionConteoMuestra();
   });
-  contenedorDependencias.addEventListener('change', actualizarConteoMuestra);
+  contenedorDependencias.addEventListener('change', programarActualizacionConteoMuestra);
   tipoInforme.addEventListener('change', actualizarCamposPeriodo);
   periodo.addEventListener('change', actualizarCamposPeriodo);
   [mes, anio, fechaDesde, fechaHasta].forEach(control => {
-    control.addEventListener('change', actualizarConteoMuestra);
-    control.addEventListener('input', actualizarConteoMuestra);
+    control.addEventListener('change', programarActualizacionConteoMuestra);
+    control.addEventListener('input', programarActualizacionConteoMuestra);
   });
   botonAbrir.addEventListener('click', () => {
     formulario.reset();
@@ -595,6 +644,7 @@ export function inicializarExportacionInformes() {
 
     let registros;
     try {
+      await cargarPeriodoSeleccionado(seleccion);
       registros = filtrarRegistros(seleccion);
     } catch (errorPeriodo) {
       error.textContent = errorPeriodo.message;

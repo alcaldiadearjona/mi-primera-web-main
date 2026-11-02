@@ -1,7 +1,16 @@
 import { establecerDependenciaActual } from '../../data/radicados.js';
 import { esAdministrador, esFuncionario, obtenerDependenciaSesion, puedeConsultarIAS } from '../auth/roles.js';
-import { actualizarInformes, redimensionarGraficasInformes } from '../informes/tablero.js';
+import {
+  asegurarAniosInformes,
+  actualizarInformes,
+  redimensionarGraficasInformes,
+  establecerCargaDependenciasInforme,
+  establecerErrorDependenciasInforme
+} from '../informes/tablero.js';
 import { establecerFormularioVisible } from '../radicados/formulario.js';
+import { cargarResumenRadicadosSalida } from '../radicados/generacion-salida.js';
+import { asegurarDatosIAS } from '../ias/tablero.js';
+import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 
 function mostrarVista(idVista) {
   document.body.classList.remove('detail-view-open');
@@ -34,6 +43,7 @@ window.mostrarGeneracionRadicados = function() {
   establecerDependenciaActual("");
   mostrarVista('pantallaGeneracion');
   activarMenu('generacion');
+  void cargarResumenRadicadosSalida();
 };
 
 window.mostrarIAS = function() {
@@ -42,6 +52,7 @@ window.mostrarIAS = function() {
   mostrarVista('pantallaIAS');
   establecerFormularioVisible(false);
   activarMenu('ias');
+  void asegurarDatosIAS();
 };
 
 window.mostrarInformes = function() {
@@ -51,6 +62,20 @@ window.mostrarInformes = function() {
   redimensionarGraficasInformes();
   establecerFormularioVisible(false);
   activarMenu('informes');
+  establecerCargaDependenciasInforme();
+  void (async () => {
+    if (!await asegurarAniosInformes()) return;
+    const ano = document.getElementById('filtroAnoInformes')?.value || String(new Date().getFullYear());
+    await cargarDatosDesdeFirebase({
+      ano,
+      mes: '',
+      forzar: false,
+      actualizarVista: false
+    });
+  })().catch(error => {
+    console.error('No fue posible preparar los datos históricos de los informes:', error);
+    establecerErrorDependenciasInforme();
+  });
 };
 
 window.mostrarDependenciasMenu = function() {

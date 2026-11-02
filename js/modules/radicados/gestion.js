@@ -1,7 +1,17 @@
-import { arrayUnion, deleteDoc, doc, runTransaction, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import {
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  runTransaction,
+  updateDoc,
+  where
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { datosRadicados } from '../../data/radicados.js';
-import { buscarRegistroRadicado, obtenerColeccionRegistro, obtenerTodosLosRegistros } from '../../data/registros.js';
+import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
 import { abreviarNombreDependencia } from '../../utils/helpers.js';
@@ -92,6 +102,20 @@ function recargarDatosRegistro(registro) {
   return obtenerColeccionRegistro(registro) === 'radicadosIAS'
     ? recargarDatosIAS()
     : cargarDatosDesdeFirebase();
+}
+
+async function existeOtroRadicadoConArchivo(campo, url, id, coleccionActual) {
+  const colecciones = ['radicados', 'radicadosIAS'];
+  const resultados = await Promise.all(colecciones.map(nombreColeccion => (
+    getDocs(query(
+      collection(db, nombreColeccion),
+      where(campo, '==', url)
+    ))
+  )));
+  const rutaActual = `${coleccionActual}/${id}`;
+  return resultados.some(resultado => resultado.docs.some(documento => (
+    `${documento.ref.parent.id}/${documento.id}` !== rutaActual
+  )));
 }
 
 function generarIdCopiaCompetencia(idOrigen, dependencia) {
@@ -368,6 +392,7 @@ window.eliminarRadicado = async function(id, elementoClick) {
   }
 
   try {
+    const coleccionActual = obtenerColeccionRegistro(radicadoAEliminar);
     const archivosRelacionados = Boolean(
       radicadoAEliminar
       && (
@@ -375,15 +400,16 @@ window.eliminarRadicado = async function(id, elementoClick) {
         || radicadoAEliminar.dependenciasDestino?.length
       )
     );
-    const todosRadicados = obtenerTodosLosRegistros();
-    const pdfCompartido = Boolean(
-      radicadoAEliminar?.pdfUrl
-      && todosRadicados.some(radicado => radicado !== radicadoAEliminar && radicado.pdfUrl === radicadoAEliminar.pdfUrl)
-    );
-    const respuestaCompartida = Boolean(
-      radicadoAEliminar?.respuestaUrl
-      && todosRadicados.some(radicado => radicado !== radicadoAEliminar && radicado.respuestaUrl === radicadoAEliminar.respuestaUrl)
-    );
+    const [pdfCompartido, respuestaCompartida] = archivosRelacionados
+      ? [false, false]
+      : await Promise.all([
+          radicadoAEliminar?.pdfUrl
+            ? existeOtroRadicadoConArchivo('pdfUrl', radicadoAEliminar.pdfUrl, id, coleccionActual)
+            : false,
+          radicadoAEliminar?.respuestaUrl
+            ? existeOtroRadicadoConArchivo('respuestaUrl', radicadoAEliminar.respuestaUrl, id, coleccionActual)
+            : false
+        ]);
     if (!archivosRelacionados && !pdfCompartido && radicadoAEliminar?.pdfUrl) {
       try {
         await fetch(GOOGLE_SCRIPT_URL, {

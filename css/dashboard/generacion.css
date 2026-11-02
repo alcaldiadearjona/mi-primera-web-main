@@ -484,6 +484,74 @@
   text-align: center;
 }
 
+.generation-table tbody .generation-age-group-row th {
+  padding: 0;
+  border-bottom: 1px solid #dfe9e3;
+  background: #f5faf7;
+  text-align: left;
+}
+
+.generation-age-group-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  color: #174b35;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: left;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.generation-age-group-toggle:hover {
+  background: #edf8f1;
+}
+
+.generation-age-group-toggle:focus-visible {
+  outline: 2px solid rgba(0, 168, 56, 0.35);
+  outline-offset: -3px;
+}
+
+.generation-age-group-toggle > i {
+  flex: 0 0 auto;
+  color: #00a838;
+  font-size: 14px;
+}
+
+.generation-age-group-toggle[aria-expanded="true"] > i {
+  transform: rotate(90deg);
+}
+
+.generation-age-group-toggle > span:last-of-type {
+  margin-left: auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #e3f3e9;
+  color: #17643f;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.generation-table tbody tr.generation-age-group-content[hidden] {
+  display: none !important;
+}
+
+.generation-table tbody tr.generation-age-group-empty > td {
+  padding: 22px 16px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+}
+
 .generation-table tbody tr:last-child td {
   border-bottom: 0;
 }

@@ -1,5 +1,30 @@
 import { datosRadicados } from '../../data/radicados.js';
 
+let historialRadicadosCargado = false;
+let cargaHistorialRadicados;
+
+async function asegurarHistorialRadicados() {
+  if (historialRadicadosCargado) return true;
+  if (!cargaHistorialRadicados) {
+    cargaHistorialRadicados = (async () => {
+      const { cargarDatosDesdeFirebase } = await import('../../services/radicados.js');
+      return cargarDatosDesdeFirebase({
+        ano: '',
+        mes: '',
+        forzar: false,
+        actualizarVista: false
+      });
+    })();
+  }
+
+  try {
+    historialRadicadosCargado = await cargaHistorialRadicados;
+    return historialRadicadosCargado;
+  } finally {
+    if (!historialRadicadosCargado) cargaHistorialRadicados = null;
+  }
+}
+
 window.limpiarBusquedaDependencias = function() {
   const input = document.getElementById('inputBuscarDependencia');
   if (!input) return;
@@ -20,6 +45,22 @@ window.filtrarDependenciasPorRadicadoOREmitente = function() {
   const textoBusqueda = quitarTildes(input.value);
   const contenedor = document.getElementById('contenedorDependencias');
   if (!contenedor) return;
+
+  if (textoBusqueda && !historialRadicadosCargado) {
+    input.setAttribute('aria-busy', 'true');
+    if (cargaHistorialRadicados) return;
+    void asegurarHistorialRadicados()
+      .then(cargado => {
+        if (!cargado) throw new Error('No fue posible consultar el historial de radicados.');
+        window.filtrarDependenciasPorRadicadoOREmitente();
+      })
+      .catch(error => {
+        console.error('Error al consultar el historial para la búsqueda:', error);
+        alert(error.message);
+      })
+      .finally(() => input.removeAttribute('aria-busy'));
+    return;
+  }
 
   const tarjetas = contenedor.querySelectorAll('.dep-card');
 

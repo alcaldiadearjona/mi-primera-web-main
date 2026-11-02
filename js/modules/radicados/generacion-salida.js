@@ -2,8 +2,13 @@ import {
   collection,
   doc,
   getDocs,
+  getCountFromServer,
+  limit,
+  orderBy,
+  query,
   runTransaction,
-  updateDoc
+  updateDoc,
+  where
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
 import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
@@ -27,6 +32,11 @@ const TIPOS_ARCHIVO_COMPATIBLES = new Set([
 ]);
 
 let radicadosSalida = [];
+let radicadosRecientesSalida = [];
+let conteosRadicadosPorMes = new Map();
+const mesesGeneracionCargados = new Set();
+let cargaResumenGeneracion;
+let resumenGeneracionCargado = false;
 let mesAbierto = '';
 let filtroGeneracion = '';
 let solicitudGeneracionEnCurso = false;
@@ -75,6 +85,26 @@ function obtenerFechaRegistro(registro) {
 
 function obtenerHoraRegistro(registro) {
   return registro.horaGeneracion || (registro.creadoEn ? obtenerHoraBogota(new Date(registro.creadoEn)) : '');
+}
+
+function obtenerDiasDesdeGeneracion(registro) {
+  const fecha = obtenerFechaRegistro(registro);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return Number.POSITIVE_INFINITY;
+  const [ano, mes, dia] = fecha.split('-').map(Number);
+  const [anoActual, mesActual, diaActual] = obtenerFechaBogota(new Date()).split('-').map(Number);
+  return Math.floor((
+    Date.UTC(anoActual, mesActual - 1, diaActual) - Date.UTC(ano, mes - 1, dia)
+  ) / 86400000);
+}
+
+function obtenerGrupoAntiguedad(registro) {
+  const dias = obtenerDiasDesdeGeneracion(registro);
+  if (dias <= 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  if (dias === 2) return 'dos-dias';
+  if (dias <= 7) return 'semana';
+  if (dias <= 15) return 'quince-dias';
+  return 'mas-quince';
 }
 
 function formatearConteoAnexos(valor) {
@@ -266,7 +296,6 @@ export function inicializarFormularioGeneracionSalida() {
   });
 
   inicializarExportacionGeneracion();
-  cargarRadicadosSalida();
 }
 
 function cargarExcelJsSalida() {
@@ -479,12 +508,30 @@ function inicializarExportacionGeneracion() {
       : tipoPeriodo.value === 'mes'
         ? mesInput.value
         : anoInput.value.trim();
-    const registros = ordenarRadicadosParaPlanilla(radicadosSalida.filter(registro => {
-      const fecha = obtenerFechaRegistro(registro);
-      return tipoPeriodo.value === 'fecha'
-        ? fecha === seleccion
-        : fecha.startsWith(seleccion);
-    }));
+    let registros;
+    try {
+      const consultaPeriodo = tipoPeriodo.value === 'fecha'
+        ? [where('fechaGeneracion', '==', seleccion)]
+        : tipoPeriodo.value === 'mes'
+          ? [
+              where('fechaGeneracion', '>=', `${seleccion}-01`),
+              where('fechaGeneracion', '<=', `${seleccion}-31`)
+            ]
+          : [
+              where('fechaGeneracion', '>=', `${seleccion}-01-01`),
+              where('fechaGeneracion', '<=', `${seleccion}-12-31`)
+            ];
+      const snapshotPeriodo = await getDocs(query(
+        collection(db, COLECCION_SALIDA),
+        ...consultaPeriodo
+      ));
+      registros = ordenarRadicadosParaPlanilla(mapearRadicadosSalida(snapshotPeriodo));
+    } catch (errorConsulta) {
+      console.error('Error al consultar radicados para la planilla:', errorConsulta);
+      error.textContent = errorConsulta.message || 'No fue posible consultar los radicados del periodo.';
+      error.hidden = false;
+      return;
+    }
 
     if (registros.length === 0) {
       error.textContent = 'No se encontraron radicados para el periodo seleccionado.';
@@ -882,15 +929,23 @@ async function guardarRadicadoSalida(event) {
       ...registrosGuardados,
       ...radicadosSalida.filter(registro => !idsGuardados.has(registro.id))
     ];
-    renderizarCarpetasMes(radicadosSalida);
-    renderizarRecientesSalida(radicadosSalida);
+    radicadosRecientesSalida = [
+      ...registrosGuardados,
+      ...radicadosRecientesSalida.filter(registro => !idsGuardados.has(registro.id))
+    ]
+      .sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''))
+      .slice(0, 4);
+    renderizarRecientesSalida(radicadosRecientesSalida);
     if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
 
     limpiarFormularioGeneracion(formulario);
-    const recargaExitosa = await cargarRadicadosSalida();
+    const resumenActualizado = await cargarResumenRadicadosSalida(true);
+    const mesActualizado = mesAbierto
+      ? await cargarMesGeneracion(mesAbierto, true)
+      : true;
+    const recargaExitosa = resumenActualizado && mesActualizado;
     if (!recargaExitosa) {
-      renderizarCarpetasMes(radicadosSalida);
-      renderizarRecientesSalida(radicadosSalida);
+      renderizarRecientesSalida(radicadosRecientesSalida);
       if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
       mostrarResultadoGeneracion(
         'warning',
@@ -969,33 +1024,103 @@ async function guardarRadicadoSalida(event) {
   }
 }
 
-async function cargarRadicadosSalida() {
+function mapearRadicadosSalida(snapshot) {
+  return snapshot.docs
+    .filter(documento => documento.data().tipoRegistro !== 'reserva-consecutivos')
+    .map(documento => ({
+      id: documento.id,
+      ...documento.data(),
+      archivos: Array.isArray(documento.data().archivos) ? documento.data().archivos : []
+    }));
+}
+
+function obtenerMesesEntre(inicio, fin) {
+  const meses = [];
+  const [anoInicio, mesInicio] = inicio.split('-').map(Number);
+  const [anoFin, mesFin] = fin.split('-').map(Number);
+  const cursor = new Date(Date.UTC(anoInicio, mesInicio - 1, 1));
+  const final = Date.UTC(anoFin, mesFin - 1, 1);
+  while (cursor.getTime() <= final) {
+    meses.push(`${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+  return meses;
+}
+
+export async function cargarResumenRadicadosSalida(forzar = false) {
+  if (cargaResumenGeneracion) {
+    const resultadoCarga = await cargaResumenGeneracion;
+    if (!forzar || !resultadoCarga) return resultadoCarga;
+  }
+  if (resumenGeneracionCargado && !forzar) return true;
+
   const contenedorMeses = document.getElementById('generacionMeses');
   const contenedorRecientes = document.getElementById('generacionRecientes');
-  try {
-    const snapshot = await getDocs(collection(db, COLECCION_SALIDA));
-    radicadosSalida = snapshot.docs
-      .filter(documento => documento.data().tipoRegistro !== 'reserva-consecutivos')
-      .map(documento => ({
-        id: documento.id,
-        ...documento.data(),
-        archivos: Array.isArray(documento.data().archivos) ? documento.data().archivos : []
-      }))
-      .sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''));
-    renderizarCarpetasMes(radicadosSalida);
-    renderizarRecientesSalida(radicadosSalida);
-    if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
-    return true;
-  } catch (error) {
-    console.error('Error al cargar los radicados de salida:', error);
-    [contenedorMeses, contenedorRecientes].filter(Boolean).forEach(contenedor => {
-      const mensaje = document.createElement('p');
-      mensaje.className = 'recent-empty generation-load-error';
-      mensaje.textContent = 'No fue posible cargar los radicados de salida. Intenta recargar la página.';
-      contenedor.replaceChildren(mensaje);
-    });
-    return false;
+  if (contenedorMeses) {
+    contenedorMeses.replaceChildren(crearEstadoVacio(
+      'bi-hourglass-split',
+      'Cargando radicados por mes',
+      'Consultando el resumen de comunicaciones.'
+    ));
   }
+
+  cargaResumenGeneracion = (async () => {
+    try {
+      const coleccion = collection(db, COLECCION_SALIDA);
+      const [primero, ultimo, recientes] = await Promise.all([
+        getDocs(query(coleccion, orderBy('fechaGeneracion', 'asc'), limit(1))),
+        getDocs(query(coleccion, orderBy('fechaGeneracion', 'desc'), limit(1))),
+        getDocs(query(coleccion, orderBy('creadoEn', 'desc'), limit(8)))
+      ]);
+      const mesInicial = obtenerMes(primero.docs[0]?.data().fechaGeneracion);
+      const mesFinal = obtenerMes(ultimo.docs[0]?.data().fechaGeneracion);
+      const meses = mesInicial && mesFinal
+        ? obtenerMesesEntre(mesInicial, mesFinal)
+        : [];
+      const conteos = await Promise.all(meses.map(async mes => {
+        const [resultado, reservas] = await Promise.all([
+          getCountFromServer(query(
+            coleccion,
+            where('fechaGeneracion', '>=', `${mes}-01`),
+            where('fechaGeneracion', '<=', `${mes}-31`)
+          )),
+          getCountFromServer(query(
+            coleccion,
+            where('mes', '==', mes),
+            where('tipoRegistro', '==', 'reserva-consecutivos')
+          ))
+        ]);
+        return [mes, Math.max(0, resultado.data().count - reservas.data().count)];
+      }));
+
+      conteosRadicadosPorMes = new Map(conteos.filter(([, cantidad]) => cantidad > 0));
+      radicadosRecientesSalida = mapearRadicadosSalida(recientes)
+        .sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''))
+        .slice(0, 4);
+      radicadosSalida = [
+        ...radicadosRecientesSalida,
+        ...radicadosSalida.filter(registro => !radicadosRecientesSalida.some(reciente => reciente.id === registro.id))
+      ];
+      resumenGeneracionCargado = true;
+      renderizarCarpetasMes();
+      renderizarRecientesSalida(radicadosRecientesSalida);
+      if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
+      return true;
+    } catch (error) {
+      console.error('Error al cargar el resumen de radicados de salida:', error);
+      [contenedorMeses, contenedorRecientes].filter(Boolean).forEach(contenedor => {
+        const mensaje = document.createElement('p');
+        mensaje.className = 'recent-empty generation-load-error';
+        mensaje.textContent = 'No fue posible cargar los radicados de salida. Intenta de nuevo al volver a este apartado.';
+        contenedor.replaceChildren(mensaje);
+      });
+      return false;
+    } finally {
+      cargaResumenGeneracion = null;
+    }
+  })();
+
+  return cargaResumenGeneracion;
 }
 
 function crearEstadoVacio(icono, titulo, descripcion) {
@@ -1015,16 +1140,10 @@ function crearEstadoVacio(icono, titulo, descripcion) {
   return estado;
 }
 
-function renderizarCarpetasMes(registros) {
+function renderizarCarpetasMes() {
   const contenedor = document.getElementById('generacionMeses');
   if (!contenedor) return;
-  const conteo = new Map();
-  registros.forEach(registro => {
-    const mes = registro.mes || obtenerMes(registro.fechaGeneracion);
-    if (mes) conteo.set(mes, (conteo.get(mes) || 0) + 1);
-  });
-
-  const meses = [...conteo.entries()].sort(([a], [b]) => b.localeCompare(a));
+  const meses = [...conteosRadicadosPorMes.entries()].sort(([a], [b]) => b.localeCompare(a));
   contenedor.replaceChildren();
   if (meses.length === 0) {
     contenedor.append(crearEstadoVacio(
@@ -1105,6 +1224,36 @@ function abrirCarpetaGeneracion(mes) {
   document.querySelector('.generation-dashboard').hidden = true;
   document.getElementById('detalleCarpetaGeneracion').hidden = false;
   renderizarDetalleCarpeta(mes);
+  cargarMesGeneracion(mes).then(cargado => {
+    if (cargado && mesAbierto === mes) renderizarDetalleCarpeta(mes);
+  });
+}
+
+async function cargarMesGeneracion(mes, forzar = false) {
+  if (mesesGeneracionCargados.has(mes) && !forzar) return true;
+  try {
+    const coleccion = collection(db, COLECCION_SALIDA);
+    const snapshot = await getDocs(query(
+      coleccion,
+      where('fechaGeneracion', '>=', `${mes}-01`),
+      where('fechaGeneracion', '<=', `${mes}-31`)
+    ));
+    const registrosMes = mapearRadicadosSalida(snapshot)
+      .filter(registro => (registro.mes || obtenerMes(obtenerFechaRegistro(registro))) === mes);
+    radicadosSalida = [
+      ...radicadosSalida.filter(registro => (registro.mes || obtenerMes(obtenerFechaRegistro(registro))) !== mes),
+      ...registrosMes
+    ];
+    mesesGeneracionCargados.add(mes);
+    if (mesAbierto === mes) renderizarDetalleCarpeta(mes);
+    return true;
+  } catch (error) {
+    console.error(`Error al cargar los radicados de salida de ${mes}:`, error);
+    if (mesAbierto === mes) {
+      renderizarErrorDetalleCarpeta('No fue posible cargar este mes. Intenta volver a abrirlo.');
+    }
+    return false;
+  }
 }
 
 function cerrarCarpetaGeneracion() {
@@ -1113,10 +1262,22 @@ function cerrarCarpetaGeneracion() {
   document.querySelector('.generation-dashboard').hidden = false;
 }
 
+function renderizarErrorDetalleCarpeta(mensaje) {
+  const tbody = document.getElementById('cuerpoTablaGeneracion');
+  if (!tbody) return;
+  const fila = document.createElement('tr');
+  const celda = document.createElement('td');
+  celda.colSpan = 11;
+  celda.textContent = mensaje;
+  fila.append(celda);
+  tbody.replaceChildren(fila);
+}
+
 function renderizarDetalleCarpeta(mes) {
-  const todosLosRegistros = ordenarRadicadosParaPlanilla(radicadosSalida
-    .filter(registro => (registro.mes || obtenerMes(obtenerFechaRegistro(registro))) === mes))
-    .reverse();
+  const todosLosRegistros = radicadosSalida
+    .filter(registro => (registro.mes || obtenerMes(obtenerFechaRegistro(registro))) === mes)
+    .sort((a, b) => `${obtenerFechaRegistro(b)} ${obtenerHoraRegistro(b)}`
+      .localeCompare(`${obtenerFechaRegistro(a)} ${obtenerHoraRegistro(a)}`));
   const registros = filtroGeneracion
     ? todosLosRegistros.filter(registro => [
         registro.radicado,
@@ -1140,17 +1301,85 @@ function renderizarDetalleCarpeta(mes) {
   const tbody = document.getElementById('cuerpoTablaGeneracion');
   tbody.replaceChildren();
 
+  if (!mesesGeneracionCargados.has(mes)) {
+    renderizarErrorDetalleCarpeta('Cargando los radicados de este mes…');
+    return;
+  }
+
   if (registros.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
     celda.colSpan = 11;
-    celda.textContent = 'Esta carpeta no tiene radicados.';
+    celda.textContent = todosLosRegistros.length === 0
+      ? 'Esta carpeta no tiene radicados.'
+      : 'No se encontraron radicados con ese criterio.';
     fila.append(celda);
     tbody.append(fila);
     return;
   }
 
-  registros.forEach(registro => tbody.append(crearFilaTabla(registro)));
+  const registrosDeHoy = registros.filter(registro => obtenerGrupoAntiguedad(registro) === 'hoy');
+  registrosDeHoy.forEach(registro => tbody.append(crearFilaTabla(registro)));
+
+  const grupos = [
+    ['ayer', 'Ayer'],
+    ['dos-dias', 'Hace 2 días'],
+    ['semana', 'Hace una semana (3–7 días)'],
+    ['quince-dias', 'Hace 15 días (8–15 días)'],
+    ['mas-quince', 'Más de 15 días']
+  ];
+  grupos.forEach(([clave, etiqueta]) => {
+    const registrosGrupo = registros.filter(registro => obtenerGrupoAntiguedad(registro) === clave);
+    if (filtroGeneracion && registrosGrupo.length === 0) return;
+    const expandido = Boolean(filtroGeneracion);
+    const filaGrupo = document.createElement('tr');
+    filaGrupo.className = 'generation-age-group-row';
+    const celdaGrupo = document.createElement('th');
+    celdaGrupo.colSpan = 11;
+    celdaGrupo.scope = 'row';
+    const botonGrupo = document.createElement('button');
+    botonGrupo.type = 'button';
+    botonGrupo.className = `generation-age-group-toggle${expandido ? ' is-expanded' : ''}`;
+    botonGrupo.setAttribute('aria-expanded', String(expandido));
+    const iconoGrupo = document.createElement('i');
+    iconoGrupo.className = 'bi bi-chevron-right';
+    iconoGrupo.setAttribute('aria-hidden', 'true');
+    const tituloGrupo = document.createElement('span');
+    tituloGrupo.textContent = etiqueta;
+    const totalGrupo = document.createElement('span');
+    totalGrupo.textContent = `${registrosGrupo.length} ${registrosGrupo.length === 1 ? 'radicado' : 'radicados'}`;
+    botonGrupo.append(iconoGrupo, tituloGrupo, totalGrupo);
+    celdaGrupo.append(botonGrupo);
+    filaGrupo.append(celdaGrupo);
+    tbody.append(filaGrupo);
+    if (registrosGrupo.length === 0) {
+      const filaVacia = document.createElement('tr');
+      filaVacia.className = 'generation-age-group-content generation-age-group-empty';
+      filaVacia.dataset.ageGroup = clave;
+      filaVacia.hidden = !expandido;
+      const celdaVacia = document.createElement('td');
+      celdaVacia.colSpan = 11;
+      celdaVacia.textContent = 'No se encontraron radicados.';
+      filaVacia.append(celdaVacia);
+      tbody.append(filaVacia);
+    } else {
+      registrosGrupo.forEach(registro => {
+        const fila = crearFilaTabla(registro);
+        fila.classList.add('generation-age-group-content');
+        fila.dataset.ageGroup = clave;
+        fila.hidden = !expandido;
+        tbody.append(fila);
+      });
+    }
+    botonGrupo.addEventListener('click', () => {
+      const nuevoEstado = botonGrupo.getAttribute('aria-expanded') !== 'true';
+      botonGrupo.setAttribute('aria-expanded', String(nuevoEstado));
+      botonGrupo.classList.toggle('is-expanded', nuevoEstado);
+      tbody.querySelectorAll(`[data-age-group="${clave}"]`).forEach(fila => {
+        fila.hidden = !nuevoEstado;
+      });
+    });
+  });
 }
 
 function crearFilaTabla(registro) {
@@ -1321,7 +1550,8 @@ async function guardarEdicionRadicadoSalida(event) {
       actualizadoEn: new Date().toISOString()
     });
     cerrarModalEdicionSalida();
-    await cargarRadicadosSalida();
+    await cargarResumenRadicadosSalida(true);
+    await cargarMesGeneracion(registro.mes || obtenerMes(obtenerFechaRegistro(registro)), true);
     alert('El radicado de salida se actualizó correctamente.');
   } catch (error) {
     console.error('Error al editar el radicado de salida:', error);
@@ -1369,9 +1599,14 @@ async function anularRadicadoSalida(registro, boton) {
         ? { ...item, estado: 'ANULADO', anuladoEn: instanteAnulacion }
         : item
     );
+    radicadosRecientesSalida = radicadosRecientesSalida.map(item =>
+      item.id === registro.id
+        ? { ...item, estado: 'ANULADO', anuladoEn: instanteAnulacion }
+        : item
+    );
     try {
-      renderizarCarpetasMes(radicadosSalida);
-      renderizarRecientesSalida(radicadosSalida);
+      renderizarCarpetasMes();
+      renderizarRecientesSalida(radicadosRecientesSalida);
       if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
     } catch (error) {
       console.error('El radicado fue anulado, pero no se pudo actualizar la vista:', error);
