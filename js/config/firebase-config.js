@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-export const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwHLeh7DnSXN34kDHEEVtxAGKH5Iyye4Zt9No_SS7VJWpVtkwOsp7YrcaAfL2fDdjd1yw/exec";
+export const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDnWC030OCZX2IEPj3tfwZ8njN3pfiidsPrXNpWjjH4lx8N_m_7BLZmj9EBMjO0JxHtg/exec";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBsUtju2qT5PI_6SEkr6qg14fUEgs4xocg",

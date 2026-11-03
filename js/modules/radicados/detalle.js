@@ -45,14 +45,14 @@ export function abrirDependencia(nombreDep) {
   if (inputBuscar) inputBuscar.value = "";
   const fechaActual = new Date();
   if (selectAno) selectAno.value = String(fechaActual.getFullYear());
-  if (selectMes) selectMes.value = String(fechaActual.getMonth() + 1).padStart(2, '0');
+  if (selectMes) selectMes.value = '';
 
   let lista = datosRadicados[nombreDep] || [];
   
   // Ordenar automáticamente del más reciente al más antiguo
   lista.sort((a, b) => new Date(b.fechaRadicacion) - new Date(a.fechaRadicacion));
 
-  renderizarTablaRadicados(lista);
+  renderizarTablaRadicados(lista, 'cuerpoTablaExclusiva', false);
 }
 
 window.abrirDependencia = abrirDependencia;

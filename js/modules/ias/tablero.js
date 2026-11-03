@@ -17,30 +17,35 @@ export const ENTIDADES_IAS = [
     id: 'fiscalia',
     nombre: 'Fiscalía General de la Nación',
     icono: 'bi-puzzle-fill',
+    logo: 'assets/images/fiscalia-general-nacion.png',
     coincidencias: ['fiscalia', 'fiscalia general de la nacion']
   },
   {
     id: 'procuraduria',
     nombre: 'Procuraduría General de la Nación',
     icono: 'bi-bullseye',
+    logo: 'assets/images/procuraduria-general-nacion.png',
     coincidencias: ['procuraduria', 'procuraduria general de la nacion']
   },
   {
     id: 'contraloria',
     nombre: 'Contraloría General de la República',
     icono: 'bi-record-circle',
+    logo: 'assets/images/contraloria-general-republica.png',
     coincidencias: ['contraloria', 'contraloria general de la republica']
   },
   {
     id: 'defensoria',
     nombre: 'Defensoría del Pueblo',
     icono: 'bi-shield-check',
+    logo: 'assets/images/defensoria-del-pueblo.png',
     coincidencias: ['defensoria', 'defensoria del pueblo']
   },
   {
     id: 'gobernacion',
     nombre: 'Gobernación de Bolívar',
     icono: 'bi-bank',
+    logo: 'assets/images/gobernacion-bolivar.png',
     coincidencias: ['gobernacion', 'gobernacion de bolivar', 'gobernacion bolivar']
   }
 ];
@@ -136,9 +141,27 @@ function renderizarTarjetas() {
     const contenedorIcono = document.createElement('span');
     contenedorIcono.className = 'ias-entity-icon';
     contenedorIcono.setAttribute('aria-hidden', 'true');
-    const icono = document.createElement('i');
-    icono.className = `bi ${entidad.icono}`;
-    contenedorIcono.append(icono);
+    if (entidad.id === 'procuraduria') {
+      contenedorIcono.classList.add('ias-entity-icon--procuraduria');
+    } else if (entidad.id === 'contraloria') {
+      contenedorIcono.classList.add('ias-entity-icon--contraloria');
+    } else if (entidad.id === 'defensoria') {
+      contenedorIcono.classList.add('ias-entity-icon--defensoria');
+    } else if (entidad.id === 'gobernacion') {
+      contenedorIcono.classList.add('ias-entity-icon--gobernacion');
+    }
+    if (entidad.logo) {
+      contenedorIcono.classList.add('ias-entity-icon--logo');
+      const logo = document.createElement('img');
+      logo.className = 'ias-entity-logo';
+      logo.src = entidad.logo;
+      logo.alt = '';
+      contenedorIcono.append(logo);
+    } else {
+      const icono = document.createElement('i');
+      icono.className = `bi ${entidad.icono}`;
+      contenedorIcono.append(icono);
+    }
 
     encabezado.append(nombre, contenedorIcono);
     informacion.append(encabezado, conteo);
@@ -175,11 +198,12 @@ function abrirEntidad(id) {
   if (!entidad) return;
   entidadSeleccionada = id;
   filtroTexto = '';
-  filtroAno = '';
+  const ahora = new Date();
+  filtroAno = String(ahora.getFullYear());
   filtroMes = '';
   document.getElementById('buscarRadicadoIAS').value = '';
-  document.getElementById('filtroAnoIAS').value = '';
-  document.getElementById('filtroMesIAS').value = '';
+  document.getElementById('filtroAnoIAS').value = filtroAno;
+  document.getElementById('filtroMesIAS').value = filtroMes;
   document.body.classList.add('detail-view-open');
   document.getElementById('pantallaIAS').classList.add('ias-detail-open');
   document.getElementById('tarjetasEntidadesIAS').hidden = true;
@@ -226,13 +250,23 @@ function renderizarTabla() {
   });
 
   const periodo = document.getElementById('periodoDetalleIAS');
-  const fechaPeriodo = filtroAno && filtroMes ? `${filtroAno}-${filtroMes}-01` : '';
+  const ahora = new Date();
+  const mostrarPeriodoActual = filtroAno === String(ahora.getFullYear()) && !filtroMes;
+  const fechaPeriodo = filtroAno && filtroMes
+    ? `${filtroAno}-${filtroMes}-01`
+    : mostrarPeriodoActual
+      ? `${filtroAno}-${String(ahora.getMonth() + 1).padStart(2, '0')}-01`
+      : '';
   periodo.dateTime = fechaPeriodo;
   periodo.textContent = filtroAno && filtroMes
     ? new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
         .format(new Date(Number(filtroAno), Number(filtroMes) - 1, 1))
         .replace(/^./, caracter => caracter.toLocaleUpperCase('es-CO'))
-    : filtroAno || (filtroMes
+    : mostrarPeriodoActual
+      ? new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
+          .format(ahora)
+          .replace(/^./, caracter => caracter.toLocaleUpperCase('es-CO'))
+      : filtroAno || (filtroMes
       ? new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(new Date(2000, Number(filtroMes) - 1, 1))
       : 'Todos los periodos');
 
@@ -243,7 +277,7 @@ function renderizarTabla() {
     'cuerpoTablaIAS',
     Boolean(filtroTexto || filtroAno || filtroMes)
   );
-  if (filtroTexto || filtroAno || filtroMes) {
+  if (filtroTexto) {
     document.querySelectorAll('#cuerpoTablaIAS .month-group-toggle').forEach(boton => {
       window.toggleMonthGroup(boton);
     });

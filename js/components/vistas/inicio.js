@@ -34,7 +34,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             
             <div class="form-group">
               <label for="radicado">Número de Radicado</label>
-              <input type="text" id="radicado" placeholder="Ej: R-2026-03148" required>
+              <input type="text" id="radicado" required>
             </div>
 
             <div class="form-group">
@@ -108,12 +108,12 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
 
             <div class="form-group full-width">
               <label for="remitente">Nombre y Datos del Remitente</label>
-              <input type="text" id="remitente" placeholder="Ej: Francisco Javier Pacheco Charris" required>
+              <input type="text" id="remitente" required>
             </div>
 
             <div class="form-group full-width">
               <label for="asunto">Asunto de la Comunicación</label>
-              <textarea id="asunto" placeholder="Escriba el resumen del Derecho de Petición / PQRS..." required></textarea>
+              <textarea id="asunto" required></textarea>
             </div>
 
             <div class="form-group full-width">

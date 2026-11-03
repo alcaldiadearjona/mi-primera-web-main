@@ -2,7 +2,8 @@ import { collection, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/
 import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { abreviarNombreDependencia, convertirABase64, sumarDiasHabilesColombia } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
-import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
+import { esFuncionario, obtenerDependenciaSesion, obtenerPerfilSesion } from '../auth/roles.js';
+import { mostrarAviso } from '../ui/avisos.js';
 
 export function calcularFechaVencimiento() {
   const inputFechaRad = document.getElementById('fechaRadicacion');
@@ -261,17 +262,25 @@ async function guardarRadicado(e) {
 }
 }
 
-window.toggleFormulario = function() {
+window.toggleFormulario = async function() {
   const formCard = document.getElementById('contenedorFormulario');
-  if (formCard) {
-    establecerFormularioVisible(formCard.style.display === 'none' || formCard.style.display === '');
+  if (!formCard) return;
+  const visible = formCard.style.display === 'none' || formCard.style.display === '';
+  if (visible && obtenerPerfilSesion()?.rol !== 'administrador') {
+    await mostrarAviso('Solo el administrador puede ingresar una nueva PQRS.', {
+      tipo: 'warning',
+      titulo: 'Acceso restringido'
+    });
+    return;
   }
+  establecerFormularioVisible(visible);
 };
 
 export function establecerFormularioVisible(visible) {
   const formCard = document.getElementById('contenedorFormulario');
   const toggle = document.querySelector('.dashboard-form-toggle');
   if (!formCard) return;
+  if (visible && obtenerPerfilSesion()?.rol !== 'administrador') return;
 
   formCard.style.display = visible ? 'block' : 'none';
   toggle?.setAttribute('aria-expanded', String(visible));

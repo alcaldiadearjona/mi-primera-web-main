@@ -73,14 +73,32 @@ export function renderizarTablaRadicados(
     document.getElementById('filtroAno')?.value ||
     document.getElementById('filtroMes')?.value
   );
+  const esTablaIAS = tbodyId === 'cuerpoTablaIAS';
+  const fechaActual = new Date();
+  const mesActualKey = `${fechaActual.getFullYear()}-${String(fechaActual.getMonth() + 1).padStart(2, '0')}`;
+  const busquedaActiva = Boolean(document.getElementById(esTablaIAS ? 'buscarRadicadoIAS' : 'inputBuscar')?.value.trim());
+  const anoSeleccionado = document.getElementById(esTablaIAS ? 'filtroAnoIAS' : 'filtroAno')?.value;
+  const mesSeleccionado = document.getElementById(esTablaIAS ? 'filtroMesIAS' : 'filtroMes')?.value;
+  const periodoActualSeleccionado = anoSeleccionado === String(fechaActual.getFullYear())
+    && (!mesSeleccionado || mesSeleccionado === String(fechaActual.getMonth() + 1).padStart(2, '0'));
 
   if (lista.length === 0 && hayFiltrosActivos) {
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: #94a3b8; padding: 30px;">No se encontraron radicados con los filtros seleccionados.</td></tr>`;
+    if (esTablaIAS) {
+      tbody.innerHTML = '<tr class="month-record-row month-empty-row"><td colspan="15">No se encontraron radicados.</td></tr>';
+      return;
+    }
+    const mostrarMesActualVacio = periodoActualSeleccionado && !busquedaActiva && !mesSeleccionado;
+    if (mostrarMesActualVacio) {
+      tbody.innerHTML = '<tr class="month-record-row month-empty-row"><td colspan="15">No hay radicados para el periodo actual.</td></tr>';
+      return;
+    }
+    const mensaje = periodoActualSeleccionado && !busquedaActiva
+      ? 'No hay radicados para el periodo actual.'
+      : 'No se encontraron radicados con los filtros seleccionados.';
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: #94a3b8; padding: 30px;">${mensaje}</td></tr>`;
     return;
   }
 
-  const fechaActual = new Date();
-  const mesActualKey = `${fechaActual.getFullYear()}-${String(fechaActual.getMonth() + 1).padStart(2, '0')}`;
   const gruposPorMes = new Map();
   const formatoMes = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' });
   const nombreMesActual = formatoMes
@@ -98,7 +116,7 @@ export function renderizarTablaRadicados(
       - (Number.isFinite(instanteA) ? instanteA : 0);
   });
 
-  if (!hayFiltrosActivos) {
+  if (!hayFiltrosActivos || (periodoActualSeleccionado && !busquedaActiva && !mesSeleccionado)) {
     gruposPorMes.set(mesActualKey, { etiqueta: nombreMesActual, radicados: [] });
   }
 
@@ -140,7 +158,12 @@ export function renderizarTablaRadicados(
       filaVacia.className = 'month-record-row month-empty-row';
       filaVacia.dataset.monthGroup = mesKey;
       filaVacia.hidden = !esMesActual;
-      filaVacia.innerHTML = '<td colspan="15">No se encontraron radicados.</td>';
+      const mensajeVacio = esTablaIAS
+        ? 'No se encontraron radicados.'
+        : esMesActual
+          ? 'No hay radicados para el periodo actual.'
+          : 'No se encontraron radicados.';
+      filaVacia.innerHTML = `<td colspan="15">${mensajeVacio}</td>`;
       tbody.appendChild(filaVacia);
       return;
     }

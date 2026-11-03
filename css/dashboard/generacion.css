@@ -44,6 +44,10 @@
   width: 100%;
 }
 
+body.detail-view-open #pantallaGeneracion > .generation-header {
+  display: none;
+}
+
 .generation-page > .section-title {
   display: flex;
   align-items: center;
@@ -465,15 +469,29 @@
   box-shadow: 0 5px 15px rgba(24, 50, 76, 0.05);
 }
 
+@media (max-width: 1600px) {
+  #pantallaGeneracion .detail-table-scroll-hint {
+    display: block;
+    margin: 0 0 8px;
+    color: #64748b;
+    font-size: 11px;
+    font-style: italic;
+    text-align: right;
+  }
+}
+
 .generation-table thead th {
   padding: 15px 10px;
   border-bottom: 1px solid #d8e6dc;
   background: #effaf3;
   color: #345b48;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
+  line-height: 1.35;
   text-align: center;
   text-transform: uppercase;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .generation-table tbody td {
@@ -561,7 +579,7 @@
 .generation-table th:nth-child(2),
 .generation-table td:nth-child(2) { width: 105px !important; }
 .generation-table th:nth-child(3),
-.generation-table td:nth-child(3) { width: 90px !important; }
+.generation-table td:nth-child(3) { width: 150px !important; }
 .generation-table th:nth-child(4),
 .generation-table td:nth-child(4) { width: 175px !important; }
 .generation-table th:nth-child(5),
@@ -651,6 +669,33 @@
   color: #244735;
   font: inherit;
   font-size: 14px;
+}
+
+.received-register-month-input {
+  position: relative;
+  display: block;
+}
+
+.received-register-month-input input {
+  color: transparent;
+  caret-color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.received-register-month-input > span {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  right: 38px;
+  overflow: hidden;
+  max-width: calc(100% - 50px);
+  color: #244735;
+  font-size: 14px;
+  font-weight: 650;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
+  white-space: nowrap;
 }
 
 .generation-action-edit {
@@ -835,6 +880,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 750;
+  text-transform: capitalize;
 }
 
 .generation-form-grid {
@@ -905,6 +951,7 @@
   color: #334155;
   font-size: 12px;
   font-weight: 700;
+  text-transform: capitalize;
 }
 
 .generation-mode-selector label {
@@ -913,6 +960,7 @@
   gap: 7px;
   color: #385846;
   font-size: 13px;
+  text-transform: capitalize;
   cursor: pointer;
 }
 

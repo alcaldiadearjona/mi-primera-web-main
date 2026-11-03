@@ -11,6 +11,7 @@ import { cierreVistaMarkup } from './components/vistas/cierre.js';
 import { modalesMarkup } from './components/modales/modales.js';
 import { avisosMarkup } from './components/modales/avisos.js';
 import { inicializarAvisos } from './modules/ui/avisos.js';
+import { inicializarSelectoresPersonalizados } from './modules/ui/selectores-personalizados.js';
 import { inicializarSesion } from './modules/auth/sesion.js';
 import './modules/dependencias/busqueda.js';
 import { inicializarNavegacion } from './modules/navegacion/vistas.js';
@@ -35,6 +36,7 @@ document.body.insertAdjacentHTML('beforeend', [
   avisosMarkup
 ].join(''));
 
+inicializarSelectoresPersonalizados();
 inicializarAvisos();
 
 document.addEventListener('DOMContentLoaded', () => {

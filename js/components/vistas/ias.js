@@ -27,7 +27,7 @@ export const iasMarkup = String.raw`<div id="pantallaIAS" style="display: none;"
               <div class="form-grid">
                 <div class="form-group">
                   <label for="radicadoIA">Número de Radicado</label>
-                  <input id="radicadoIA" type="text" placeholder="Ej: R-2026-03148" required>
+                  <input id="radicadoIA" type="text" required>
                 </div>
                 <div class="form-group">
                   <label for="destinoIA">Destino</label>
@@ -137,7 +137,7 @@ export const iasMarkup = String.raw`<div id="pantallaIAS" style="display: none;"
               <time id="periodoDetalleIAS"></time>
             </div>
 
-            <p class="detail-table-scroll-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+            <p class="detail-table-scroll-hint">Desliza horizontalmente para ver más columnas.</p>
             <div class="detail-table-scroll ias-table-scroll">
               <table class="table-custom ias-table">
                 <thead>

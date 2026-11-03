@@ -89,11 +89,6 @@ function mostrarPantallaDespuesDeLogin() {
   const nombreSaludo = document.getElementById('nombreSaludoSesion');
   if (nombreSaludo) nombreSaludo.textContent = nombre;
   if (saludo) saludo.hidden = !esFuncionario() && !esControlInterno();
-  const saludoDetalle = document.getElementById('saludoDependenciaDetalle');
-  const nombreSaludoDetalle = document.getElementById('nombreSaludoDependenciaDetalle');
-  if (nombreSaludoDetalle) nombreSaludoDetalle.textContent = nombre;
-  if (saludoDetalle) saludoDetalle.hidden = !esFuncionario() && !esControlInterno();
-
   const rolMenu = document.getElementById('rolSesionMenu');
   const nombreMenu = document.getElementById('nombreSesionMenu');
   if (rolMenu) {

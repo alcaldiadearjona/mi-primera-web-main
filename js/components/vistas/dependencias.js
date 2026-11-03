@@ -106,11 +106,11 @@ export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style=
               <div class="received-register-range">
             <label>
                   Desde
-                  <input id="radicadoDesdePlanilla" name="radicadoDesde" type="text" placeholder="Ej.: R-2026-03148" autocomplete="off">
+                  <input id="radicadoDesdePlanilla" name="radicadoDesde" type="text" autocomplete="off">
             </label>
             <label>
                   Hasta
-                  <input id="radicadoHastaPlanilla" name="radicadoHasta" type="text" placeholder="Ej.: R-2026-03160" autocomplete="off">
+                  <input id="radicadoHastaPlanilla" name="radicadoHasta" type="text" autocomplete="off">
             </label>
               </div>
             </section>
@@ -147,7 +147,7 @@ export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style=
                 </label>
                 <label>
                   Año
-                  <input id="anoPlanilla" name="ano" type="number" min="1900" max="9999" step="1" placeholder="Ej.: 2026">
+                  <input id="anoPlanilla" name="ano" type="number" min="1900" max="9999" step="1">
                 </label>
               </div>
             </section>

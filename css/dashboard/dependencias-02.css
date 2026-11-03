@@ -80,11 +80,13 @@
   grid-row: 1;
   align-items: center;
   gap: 7px;
+  padding: 6px 12px;
   border: 1px solid #d5efe0;
   border-radius: 999px !important;
   background: #e8f7ee !important;
   color: #17643f !important;
   font-size: 10px !important;
+  font-weight: 700;
   letter-spacing: 0.035em;
 }
 

@@ -101,7 +101,6 @@ function obtenerGrupoAntiguedad(registro) {
   const dias = obtenerDiasDesdeGeneracion(registro);
   if (dias <= 0) return 'hoy';
   if (dias === 1) return 'ayer';
-  if (dias === 2) return 'dos-dias';
   if (dias <= 7) return 'semana';
   if (dias <= 15) return 'quince-dias';
   return 'mas-quince';
@@ -465,6 +464,7 @@ function inicializarExportacionGeneracion() {
   const grupoAno = document.getElementById('grupoAnoExportarGeneracion');
   const fechaInput = document.getElementById('fechaExportarGeneracion');
   const mesInput = document.getElementById('mesExportarGeneracion');
+  const etiquetaMes = document.getElementById('etiquetaMesExportarGeneracion');
   const anoInput = document.getElementById('anoExportarGeneracion');
   const error = document.getElementById('errorExportarGeneracion');
   if (!modal || !formulario || !botonAbrir || !tipoPeriodo || !fechaInput || !mesInput || !anoInput || !error) return;
@@ -482,17 +482,34 @@ function inicializarExportacionGeneracion() {
     anoInput.disabled = tipoPeriodo.value !== 'ano';
     anoInput.required = tipoPeriodo.value === 'ano';
   };
+  const actualizarEtiquetaMes = () => {
+    if (!etiquetaMes) return;
+    if (!mesInput.value) {
+      etiquetaMes.textContent = '';
+      return;
+    }
+    const [ano, mes] = mesInput.value.split('-').map(Number);
+    etiquetaMes.textContent = new Intl.DateTimeFormat('es-CO', {
+      month: 'long',
+      year: 'numeric'
+    }).format(new Date(ano, mes - 1, 1))
+      .replace(/^./, caracter => caracter.toLocaleUpperCase('es-CO'));
+  };
   tipoPeriodo.addEventListener('change', actualizarPeriodo);
+  mesInput.addEventListener('input', actualizarEtiquetaMes);
+  mesInput.addEventListener('change', actualizarEtiquetaMes);
 
   botonAbrir.addEventListener('click', () => {
     formulario.reset();
-    tipoPeriodo.value = 'fecha';
-    fechaInput.value = obtenerFechaBogota(new Date());
-    mesInput.value = obtenerFechaBogota(new Date()).slice(0, 7);
+    const fechaActual = obtenerFechaBogota(new Date());
+    tipoPeriodo.value = 'mes';
+    mesInput.value = fechaActual.slice(0, 7);
     actualizarPeriodo();
+    actualizarEtiquetaMes();
+    tipoPeriodo.dispatchEvent(new Event('change', { bubbles: true }));
     error.hidden = true;
     modal.showModal();
-    fechaInput.focus();
+    document.getElementById('tipoPeriodoExportarGeneracion-personalizado')?.focus();
   });
   const cerrar = () => modal.close();
   botonCerrar?.addEventListener('click', cerrar);
@@ -1218,6 +1235,7 @@ function renderizarRecientesSalida(registros) {
 function abrirCarpetaGeneracion(mes) {
   if (!mes) return;
   mesAbierto = mes;
+  document.body.classList.add('detail-view-open');
   filtroGeneracion = '';
   const buscador = document.getElementById('buscarRadicadosGeneracion');
   if (buscador) buscador.value = '';
@@ -1258,6 +1276,7 @@ async function cargarMesGeneracion(mes, forzar = false) {
 
 function cerrarCarpetaGeneracion() {
   mesAbierto = '';
+  document.body.classList.remove('detail-view-open');
   document.getElementById('detalleCarpetaGeneracion').hidden = true;
   document.querySelector('.generation-dashboard').hidden = false;
 }
@@ -1292,7 +1311,7 @@ function renderizarDetalleCarpeta(mes) {
       ].join(' ').toLocaleLowerCase('es-CO').includes(filtroGeneracion))
     : todosLosRegistros;
   const titulo = document.getElementById('tituloCarpetaGeneracion');
-  titulo.querySelector('span').textContent = obtenerEtiquetaMes(mes);
+  titulo.querySelector('span').textContent = 'Generación de Radicados';
   const periodo = document.getElementById('periodoCarpetaGeneracion');
   periodo.dateTime = `${mes}-01`;
   periodo.textContent = obtenerEtiquetaMes(mes);
@@ -1323,8 +1342,7 @@ function renderizarDetalleCarpeta(mes) {
 
   const grupos = [
     ['ayer', 'Ayer'],
-    ['dos-dias', 'Hace 2 días'],
-    ['semana', 'Hace una semana (3–7 días)'],
+    ['semana', 'Hace una semana (2–7 días)'],
     ['quince-dias', 'Hace 15 días (8–15 días)'],
     ['mas-quince', 'Más de 15 días']
   ];

@@ -110,6 +110,8 @@
 
 .detail-table-scroll-hint {
   display: none;
+  font-size: 11px;
+  font-style: italic;
 }
 
 #pantallaDependencia .table-custom td:nth-child(5) .badge-status {

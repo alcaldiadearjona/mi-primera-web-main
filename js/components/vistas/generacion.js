@@ -23,9 +23,9 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
             </h2>
             <button
               id="toggleFormularioGeneracion"
-              class="dashboard-form-toggle"
+              class="dashboard-form-toggle is-collapsed"
               type="button"
-              aria-expanded="true"
+              aria-expanded="false"
               aria-controls="contenedorFormularioGeneracion"
               onclick="toggleFormularioGeneracion()">
               <span><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> Generar Nuevo Radicado</span>
@@ -33,7 +33,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
             </button>
             <span class="dashboard-form-hint">Completa los datos de la comunicación oficial que deseas generar.</span>
 
-            <div id="contenedorFormularioGeneracion" class="generation-card">
+            <div id="contenedorFormularioGeneracion" class="generation-card" style="display: none;">
               <div class="generation-form-section">
                 <div class="generation-section-title">
                   <i class="bi bi-journal-text" aria-hidden="true"></i>
@@ -50,7 +50,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                   </label>
                   <label>
                     <input id="modoGeneracionMasiva" name="modoRadicado" type="radio" value="masivo">
-                    Generación masiva (registra inicio y fin del rango)
+                    Generación masiva
                   </label>
                 </fieldset>
 
@@ -63,29 +63,29 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                 <div id="grupoDatosRadicadoSalida" class="generation-form-grid generation-full-width">
                 <div class="form-group">
                   <label for="destinatarioSalida">Nombre y Datos del Destinatario <span aria-hidden="true">*</span></label>
-                  <input id="destinatarioSalida" name="destinatario" type="text" placeholder="Ej: Nombre completo, cargo, entidad, dirección" required>
+                  <input id="destinatarioSalida" name="destinatario" type="text" required>
                 </div>
 
                 <div class="form-group">
                   <label for="dependenciaSalida">Dependencia que Generó el Trámite <span aria-hidden="true">*</span></label>
                   <select id="dependenciaSalida" name="dependencia" required>
-                    <option value="">Seleccione una dependencia</option>
-                    <option>SECRETARÍA DE HACIENDA</option>
-                    <option>SECRETARÍA GENERAL Y DE GOBIERNO</option>
-                    <option>SECRETARÍA DE SALUD</option>
-                    <option>SECRETARÍA DE EDUCACIÓN</option>
-                    <option>SECRETARÍA DE PLANEACIÓN Y OBRAS</option>
-                    <option>SECRETARÍA DE DESARROLLO SOCIAL</option>
-                    <option>DESPACHO DEL ALCALDE</option>
-                    <option>OFICINA ASESORA JURÍDICA</option>
-                    <option>OFICINA DE TALENTO HUMANO</option>
-                    <option>OFICINA DE CONTROL INTERNO</option>
-                    <option>SECRETARIA DE UMATA</option>
-                    <option>SISBEN</option>
-                    <option>SECRETARÍA DE GESTIÓN SOCIAL</option>
-                    <option>CUERPO OFICIAL DE BOMBEROS</option>
-                    <option>COORDINACIÓN DE GESTIÓN DEL RIESGO DE DESASTRES</option>
-                    <option>SECRETARIA DE TRANSITO Y TRANSPORTE</option>
+                    <option value="">Seleccione Una Dependencia</option>
+                    <option value="SECRETARÍA DE HACIENDA">Secretaría de Hacienda</option>
+                    <option value="SECRETARÍA GENERAL Y DE GOBIERNO">Secretaría General y de Gobierno</option>
+                    <option value="SECRETARÍA DE SALUD">Secretaría de Salud</option>
+                    <option value="SECRETARÍA DE EDUCACIÓN">Secretaría de Educación</option>
+                    <option value="SECRETARÍA DE PLANEACIÓN Y OBRAS">Secretaría de Planeación y Obras</option>
+                    <option value="SECRETARÍA DE DESARROLLO SOCIAL">Secretaría de Desarrollo Social</option>
+                    <option value="DESPACHO DEL ALCALDE">Despacho del Alcalde</option>
+                    <option value="OFICINA ASESORA JURÍDICA">Oficina Asesora Jurídica</option>
+                    <option value="OFICINA DE TALENTO HUMANO">Oficina de Talento Humano</option>
+                    <option value="OFICINA DE CONTROL INTERNO">Oficina de Control Interno</option>
+                    <option value="SECRETARIA DE UMATA">Secretaría de UMATA</option>
+                    <option value="SISBEN">SISBEN</option>
+                    <option value="SECRETARÍA DE GESTIÓN SOCIAL">Secretaría de Gestión Social</option>
+                    <option value="CUERPO OFICIAL DE BOMBEROS">Cuerpo Oficial de Bomberos</option>
+                    <option value="COORDINACIÓN DE GESTIÓN DEL RIESGO DE DESASTRES">Coordinación de Gestión del Riesgo de Desastres</option>
+                    <option value="SECRETARIA DE TRANSITO Y TRANSPORTE">Secretaría de Tránsito y Transporte</option>
                     <option value="Otro">Otro:</option>
                   </select>
                 </div>
@@ -97,17 +97,17 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
 
                 <div class="form-group">
                   <label for="asuntoSalida">Asunto de la Comunicación <span aria-hidden="true">*</span></label>
-                  <input id="asuntoSalida" name="asunto" type="text" placeholder="Ej: Solicitud de información / Remisión de documentos" required>
+                  <input id="asuntoSalida" name="asunto" type="text" required>
                 </div>
 
                 <div class="form-group">
                   <label for="foliosSalida">Folios <span aria-hidden="true">*</span></label>
-                  <input id="foliosSalida" name="folios" type="number" min="1" step="1" placeholder="Ej: 3" required>
+                  <input id="foliosSalida" name="folios" type="number" min="1" step="1" required>
                 </div>
 
                 <div class="form-group generation-full-width">
                   <label for="anexosSalida">Número de anexos del oficio <span aria-hidden="true">*</span></label>
-                  <input id="anexosSalida" name="anexos" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej.: 2" required>
+                  <input id="anexosSalida" name="anexos" type="number" min="0" step="1" inputmode="numeric" required>
                 </div>
 
                 <div id="grupoArchivosSalida" class="form-group generation-full-width">
@@ -206,7 +206,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
               <i class="bi bi-calendar3" aria-hidden="true"></i>
               <time id="periodoCarpetaGeneracion"></time>
             </div>
-            <p class="detail-table-scroll-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+            <p class="detail-table-scroll-hint">Desliza horizontalmente para ver más columnas.</p>
             <div class="detail-table-scroll">
               <table class="table-custom generation-table">
                 <thead>
@@ -244,23 +244,23 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
               <div class="form-group">
                 <label for="dependenciaEditarSalida">Dependencia que Generó el Trámite *</label>
                 <select id="dependenciaEditarSalida" required>
-                  <option value="">Seleccione una dependencia</option>
-                  <option>SECRETARÍA DE HACIENDA</option>
-                  <option>SECRETARÍA GENERAL Y DE GOBIERNO</option>
-                  <option>SECRETARÍA DE SALUD</option>
-                  <option>SECRETARÍA DE EDUCACIÓN</option>
-                  <option>SECRETARÍA DE PLANEACIÓN Y OBRAS</option>
-                  <option>SECRETARÍA DE DESARROLLO SOCIAL</option>
-                  <option>DESPACHO DEL ALCALDE</option>
-                  <option>OFICINA ASESORA JURÍDICA</option>
-                  <option>OFICINA DE TALENTO HUMANO</option>
-                  <option>OFICINA DE CONTROL INTERNO</option>
-                  <option>SECRETARIA DE UMATA</option>
-                  <option>SISBEN</option>
-                  <option>SECRETARÍA DE GESTIÓN SOCIAL</option>
-                  <option>CUERPO OFICIAL DE BOMBEROS</option>
-                  <option>COORDINACIÓN DE GESTIÓN DEL RIESGO DE DESASTRES</option>
-                  <option>SECRETARIA DE TRANSITO Y TRANSPORTE</option>
+                  <option value="">Seleccione Una Dependencia</option>
+                  <option value="SECRETARÍA DE HACIENDA">Secretaría de Hacienda</option>
+                  <option value="SECRETARÍA GENERAL Y DE GOBIERNO">Secretaría General y de Gobierno</option>
+                  <option value="SECRETARÍA DE SALUD">Secretaría de Salud</option>
+                  <option value="SECRETARÍA DE EDUCACIÓN">Secretaría de Educación</option>
+                  <option value="SECRETARÍA DE PLANEACIÓN Y OBRAS">Secretaría de Planeación y Obras</option>
+                  <option value="SECRETARÍA DE DESARROLLO SOCIAL">Secretaría de Desarrollo Social</option>
+                  <option value="DESPACHO DEL ALCALDE">Despacho del Alcalde</option>
+                  <option value="OFICINA ASESORA JURÍDICA">Oficina Asesora Jurídica</option>
+                  <option value="OFICINA DE TALENTO HUMANO">Oficina de Talento Humano</option>
+                  <option value="OFICINA DE CONTROL INTERNO">Oficina de Control Interno</option>
+                  <option value="SECRETARIA DE UMATA">Secretaría de UMATA</option>
+                  <option value="SISBEN">SISBEN</option>
+                  <option value="SECRETARÍA DE GESTIÓN SOCIAL">Secretaría de Gestión Social</option>
+                  <option value="CUERPO OFICIAL DE BOMBEROS">Cuerpo Oficial de Bomberos</option>
+                  <option value="COORDINACIÓN DE GESTIÓN DEL RIESGO DE DESASTRES">Coordinación de Gestión del Riesgo de Desastres</option>
+                  <option value="SECRETARIA DE TRANSITO Y TRANSPORTE">Secretaría de Tránsito y Transporte</option>
                   <option value="Otro">Otro:</option>
                 </select>
               </div>
@@ -314,7 +314,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
               Filtrar por
               <select id="tipoPeriodoExportarGeneracion" name="tipoPeriodo">
                 <option value="fecha">Fecha específica</option>
-                <option value="mes">Mes completo</option>
+                <option value="mes">Mes y año</option>
                 <option value="ano">Año completo</option>
               </select>
             </label>
@@ -324,11 +324,14 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
             </label>
             <label id="grupoMesExportarGeneracion" class="received-register-period-selector" hidden>
               Mes de generación
-              <input id="mesExportarGeneracion" name="mes" type="month" disabled>
+              <span class="received-register-month-input">
+                <input id="mesExportarGeneracion" name="mes" type="month" disabled>
+                <span id="etiquetaMesExportarGeneracion" aria-hidden="true"></span>
+              </span>
             </label>
             <label id="grupoAnoExportarGeneracion" class="received-register-period-selector" hidden>
               Año de generación
-              <input id="anoExportarGeneracion" name="ano" type="number" min="2000" max="9999" step="1" placeholder="Ej.: 2026" disabled>
+              <input id="anoExportarGeneracion" name="ano" type="number" min="2000" max="9999" step="1" disabled>
             </label>
           </div>
           <p id="errorExportarGeneracion" class="received-register-error" role="alert" hidden></p>

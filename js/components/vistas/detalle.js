@@ -1,11 +1,6 @@
 export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="display: none;">
       <button class="btn-back" onclick="mostrarMenuPrincipal()"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a Dependencias</button>
       
-      <p id="saludoDependenciaDetalle" class="session-greeting session-greeting-inline" aria-live="polite" hidden>
-        <span class="session-greeting-label">Hola</span>
-        <strong id="nombreSaludoDependenciaDetalle"></strong>
-      </p>
-
       <div class="view-card">
         <div class="detail-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
           <div>
@@ -26,8 +21,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
                 <option value="2024">2024</option>
               </select>
 
-              <!-- Selector de Mes -->
-              <select id="filtroMes" onchange="aplicarFiltrosRadicados()">
+              <select id="filtroMes" aria-label="Filtrar por mes" onchange="aplicarFiltrosRadicados()">
                 <option value="">Todos los Meses</option>
                 <option value="01">Enero</option>
                 <option value="02">Febrero</option>
@@ -42,11 +36,12 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
                 <option value="11">Noviembre</option>
                 <option value="12">Diciembre</option>
               </select>
+
               <button class="detail-filter-button" type="button" onclick="aplicarFiltrosRadicados()"><i class="bi bi-funnel" aria-hidden="true"></i> Filtrar</button>
             </div>
           </div>
 
-          <span class="detail-status-tag" style="font-size: 12px; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 6px 12px; border-radius: 6px;">ESTADO GENERAL DE RADICADOS</span>
+          <span class="detail-status-tag">ESTADO GENERAL DE RADICADOS</span>
         </div>
 
         <div class="detail-current-period" aria-label="Mes y año actuales">
@@ -54,7 +49,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
           <time id="periodoActual"></time>
         </div>
 
-        <p class="detail-table-scroll-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+        <p class="detail-table-scroll-hint">Desliza horizontalmente para ver más columnas.</p>
 
         <div class="detail-table-scroll">
           <table class="table-custom">
