@@ -332,6 +332,8 @@ body.detail-view-open #pantallaGeneracion > .generation-header {
   align-items: center;
   gap: 12px;
   color: #174b35;
+  font-size: 22px;
+  font-weight: 800;
 }
 
 .generation-folder-heading .section-title > i {
@@ -449,7 +451,7 @@ body.detail-view-open #pantallaGeneracion > .generation-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 12px 4px;
+  margin: 0 0 26px 4px;
   color: #335848;
   font-size: 16px;
   font-weight: 750;
@@ -500,6 +502,21 @@ body.detail-view-open #pantallaGeneracion > .generation-header {
   color: #334155;
   font-size: 12px;
   text-align: center;
+}
+
+.generation-table tbody tr.generation-no-today {
+  height: 100px;
+}
+
+.generation-table tbody tr.generation-no-today > td {
+  padding: 0 16px !important;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .generation-table tbody .generation-age-group-row th {

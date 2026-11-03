@@ -1325,7 +1325,23 @@ function renderizarDetalleCarpeta(mes) {
     return;
   }
 
+  const fechaActual = obtenerFechaBogota(new Date());
+  const sinRadicadosDeHoy = !todosLosRegistros.some(
+    registro => obtenerFechaRegistro(registro) === fechaActual
+  );
+  if (sinRadicadosDeHoy) {
+    const filaEstado = document.createElement('tr');
+    filaEstado.className = 'generation-no-today';
+    const celdaEstado = document.createElement('td');
+    celdaEstado.colSpan = 11;
+    celdaEstado.setAttribute('role', 'status');
+    celdaEstado.textContent = 'Actualmente no se han generado radicados';
+    filaEstado.append(celdaEstado);
+    tbody.append(filaEstado);
+  }
+
   if (registros.length === 0) {
+    if (sinRadicadosDeHoy && todosLosRegistros.length === 0) return;
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
     celda.colSpan = 11;
