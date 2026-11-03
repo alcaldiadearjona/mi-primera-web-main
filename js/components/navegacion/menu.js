@@ -36,7 +36,9 @@ export const navegacionMarkup = String.raw`  <div class="mobile-toolbar">
         <p id="rolSesionMenu">Funcionario</p>
         <strong id="nombreSesionMenu">Ventanilla Única</strong>
       </div>
-      <a href="#" onclick="cerrarSesion(event)" class="btn-logout">Salir</a>
+      <a href="#" onclick="cerrarSesion(event)" class="btn-logout">
+        <span class="spinner" style="display:none;" aria-hidden="true"></span><span class="btn-logout-text">Salir</span>
+      </a>
     </div>
   </aside>
 

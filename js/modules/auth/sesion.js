@@ -249,11 +249,32 @@ window.togglePasswordVisibility = function() {
 
 window.cerrarSesion = async function(event) {
   event?.preventDefault();
+  const boton = event?.currentTarget;
+  if (boton?.getAttribute('aria-busy') === 'true') return;
+  const spinner = boton?.querySelector('.spinner');
+  const texto = boton?.querySelector('.btn-logout-text');
+
+  if (boton) {
+    boton.setAttribute('aria-busy', 'true');
+    boton.setAttribute('aria-disabled', 'true');
+    boton.style.pointerEvents = 'none';
+  }
+  if (spinner) spinner.style.display = 'inline-block';
+  if (texto) texto.hidden = true;
+
   try {
+    await new Promise(resolve => window.setTimeout(resolve, 500));
     await signOut(auth);
     location.reload();
   } catch (error) {
     console.error('Error al cerrar sesión:', error);
+    if (boton) {
+      boton.setAttribute('aria-busy', 'false');
+      boton.removeAttribute('aria-disabled');
+      boton.style.pointerEvents = '';
+    }
+    if (spinner) spinner.style.display = 'none';
+    if (texto) texto.hidden = false;
     alert(`No fue posible cerrar sesión: ${error.message}`);
   }
 };
