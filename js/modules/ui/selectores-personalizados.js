@@ -26,6 +26,7 @@ function inicializarSelector(selector) {
     || selector.multiple
     || selector.size > 1
     || selector.hidden
+    || selector.closest('dialog')
     || selector.closest(
       '#pantallaDependencia .detail-filters, #pantallaDependencia .detail-month-filter, #pantallaIAS .ias-filters'
     )
