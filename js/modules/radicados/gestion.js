@@ -39,7 +39,8 @@ export function inicializarAccionesRadicados() {
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', actualizarEstadoFuncionarioPreview);
   document.getElementById('alternarDependenciasRemision')?.addEventListener('click', alternarDesplegableRemision);
   document.getElementById('dependenciasRemisionCompetencia')?.addEventListener('change', actualizarResumenRemision);
-  document.addEventListener('click', seleccionarFilaRadicadoActiva);
+  document.addEventListener('pointerdown', seleccionarFilaRadicadoActiva, true);
+  document.addEventListener('click', seleccionarFilaRadicadoActiva, true);
   document.addEventListener('click', cerrarDesplegableRemisionAlClicExterno);
   document.addEventListener('keydown', cerrarDesplegableRemisionConEscape);
 }

@@ -5,6 +5,7 @@ import {
   evaluarEstadoAutomatico,
   formatearIso,
   obtenerFestivosColombia,
+  obtenerEtiquetaCumplimientoCierre,
   obtenerRadicadosProximosAVencer,
   siguienteLunes,
   sumarDiasHabilesColombia
@@ -23,6 +24,14 @@ test('siguienteLunes conserva los lunes y mueve los demás días al lunes siguie
 
 test('formatearIso rellena con ceros mes y día', () => {
   assert.equal(formatearIso(new Date(2026, 0, 5)), '2026-01-05');
+});
+
+test('clasifica cierres a tiempo o extemporáneos comparando sus fechas', () => {
+  assert.equal(obtenerEtiquetaCumplimientoCierre('2026-11-04', '2026-11-04'), 'Cerrado a Tiempo');
+  assert.equal(obtenerEtiquetaCumplimientoCierre('2026-11-03', '2026-11-04'), 'Cerrado a Tiempo');
+  assert.equal(obtenerEtiquetaCumplimientoCierre('2026-11-05', '2026-11-04'), 'Cerrado Extemporaneo');
+  assert.equal(obtenerEtiquetaCumplimientoCierre('', '2026-11-04'), '');
+  assert.equal(obtenerEtiquetaCumplimientoCierre('2026-02-30', '2026-11-04'), '');
 });
 
 test('obtenerFestivosColombia incluye festivos fijos, trasladados y de Semana Santa', () => {

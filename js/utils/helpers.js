@@ -116,6 +116,19 @@ export function abreviarNombreDependencia(nombre) {
   return nombre.replace(/^Secretaría de\s+/, 'S. ').replace(/^Oficina de\s+/, 'Of. ');
 }
 
+export function obtenerEtiquetaCumplimientoCierre(fechaCierre, fechaVencimiento) {
+  const esFechaIsoValida = fecha => {
+    if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return false;
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    const valor = new Date(Date.UTC(anio, mes - 1, dia));
+    return valor.getUTCFullYear() === anio
+      && valor.getUTCMonth() === mes - 1
+      && valor.getUTCDate() === dia;
+  };
+  if (!esFechaIsoValida(fechaCierre) || !esFechaIsoValida(fechaVencimiento)) return '';
+  return fechaCierre <= fechaVencimiento ? 'Cerrado a Tiempo' : 'Cerrado Extemporaneo';
+}
+
 // EVALUACIÓN DE ESTADO AUTOMÁTICO (Filtro estricto para CERRADO)
 export function evaluarEstadoAutomatico(fechaVencimientoStr, respuestaUrl = null, otrosEstados = null, estadoBase = null) {
   // 1. Convertir 'otrosEstados' a texto limpio para comparar de forma segura

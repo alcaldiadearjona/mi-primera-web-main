@@ -1,4 +1,8 @@
-import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import {
+  abreviarNombreDependencia,
+  evaluarEstadoAutomatico,
+  obtenerEtiquetaCumplimientoCierre
+} from '../../utils/helpers.js';
 import {
   esAdministrador,
   puedeEditarRadicado,
@@ -64,6 +68,11 @@ export function renderizarTablaRadicados(
 ) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
+  const filaActiva = tbody.querySelector(
+    'tr.month-record-row.is-active-row[data-radicado-id]'
+  );
+  const radicadoActivoId = filaActiva?.dataset.radicadoId;
+  const coleccionActiva = filaActiva?.dataset.collection;
   tbody.innerHTML = '';
   
   // ... resto de tu código normal
@@ -204,6 +213,14 @@ export function renderizarTablaRadicados(
     const fechaCargaRespuestaVisible = /^\d{4}-\d{2}-\d{2}$/.test(fechaCargaRespuesta)
       ? `${fechaCargaRespuesta.slice(8, 10)}/${fechaCargaRespuesta.slice(5, 7)}/${fechaCargaRespuesta.slice(0, 4)}`
       : '-';
+    const etiquetaCumplimientoCierre = estadoObj.texto === 'CERRADO'
+      ? obtenerEtiquetaCumplimientoCierre(fechaCargaRespuesta, reg.fechaVencimiento)
+      : '';
+    const estadoHtml = estadoObj.texto === 'CERRADO'
+      ? `<span class="badge-status ${estadoObj.clase}">${etiquetaCumplimientoCierre
+        ? `<span class="status-cerrado-labels"><span>Cerrado</span><span>${etiquetaCumplimientoCierre.replace(/^Cerrado\s+/, '')}</span></span>`
+        : '-'}</span>`
+      : `<span class="badge-status ${estadoObj.clase}">${textoEstado}</span>`;
 
     // Validacion para ti PDF
     const tienePdf = reg.pdfUrl && reg.pdfUrl.trim() !== '' && reg.pdfUrl.startsWith('http');
@@ -257,6 +274,9 @@ if (soloLecturaIAS) {
     tr.dataset.monthGroup = mesKey;
     tr.dataset.radicadoId = reg.id;
     tr.dataset.collection = reg.coleccion === 'radicadosIAS' ? 'radicadosIAS' : 'radicados';
+    if (reg.id === radicadoActivoId && tr.dataset.collection === coleccionActiva) {
+      tr.classList.add('is-active-row');
+    }
     tr.hidden = !esMesActual;
     tr.innerHTML = `
       <td style="text-align: center;">${pdfCellHtml}</td>
@@ -270,7 +290,7 @@ if (soloLecturaIAS) {
         }</span>
       </td>
       <td><span class="badge-status ${estadoObj.clase}">${reg.fechaVencimiento || ''}</span></td>
-      <td><span class="badge-status ${estadoObj.clase}">${textoEstado}</span></td>
+      <td>${estadoHtml}</td>
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
 
       <!-- Remitente con formato Título -->

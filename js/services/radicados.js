@@ -212,8 +212,13 @@ export async function cargarDatosDesdeFirebase(opciones = {}) {
           if (inputBuscar) inputBuscar.value = filtrosDetalle.busqueda;
           if (filtroAno) filtroAno.value = filtrosDetalle.ano;
           if (filtroMes) filtroMes.value = filtrosDetalle.mes;
-          window.aplicarFiltrosRadicados?.();
+          await window.aplicarFiltrosRadicados?.();
 
+          document.querySelectorAll('#cuerpoTablaExclusiva .month-group-toggle').forEach(button => {
+            if (button.getAttribute('aria-expanded') === 'true') {
+              window.toggleMonthGroup?.(button);
+            }
+          });
           document.querySelectorAll('#cuerpoTablaExclusiva .month-group-toggle').forEach(button => {
             const mesKey = button.closest('tr')?.nextElementSibling?.dataset.monthGroup;
             if (mesKey && filtrosDetalle.mesesDesplegados.includes(mesKey)) {
