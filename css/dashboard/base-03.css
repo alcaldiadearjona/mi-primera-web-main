@@ -101,6 +101,21 @@
   background: #f4f6f9; /* Mismo color gris claro */
 }
 
+#pantalla-login .login-role-banner {
+  width: 100%;
+  aspect-ratio: 6.8 / 1;
+  overflow: hidden;
+  background: #f4f6f9;
+}
+
+#pantalla-login .login-role-banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 /* Escudo más grande */
 #pantalla-login .escudo-login {
   height: 65px; /* Aumentado de tamaño */

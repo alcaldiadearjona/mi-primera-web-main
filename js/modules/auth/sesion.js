@@ -28,6 +28,7 @@ import { inicializarAccionesRadicados } from '../radicados/gestion.js';
 import { inicializarTableroIAS } from '../ias/tablero.js';
 import { inicializarInformes } from '../informes/tablero.js';
 import { establecerAnoInicialDisponible } from '../radicados/resumen.js';
+import { suscribirNotificacionesRemisionesFuncionario } from '../radicados/notificaciones.js';
 
 let rolSolicitado = '';
 let usuarioConfigurado = '';
@@ -108,6 +109,7 @@ function mostrarPantallaDespuesDeLogin() {
     elemento.hidden = !puedeGestionarIAS();
   });
   configurarTarjetasDependenciasFuncionario();
+  suscribirNotificacionesRemisionesFuncionario();
 }
 
 function inicializarModulosAutorizados() {
@@ -172,6 +174,7 @@ async function procesarCambioAutenticacion(usuario) {
   if (!usuario) {
     usuarioConfigurado = '';
     limpiarSesionUsuario();
+    suscribirNotificacionesRemisionesFuncionario();
     const login = document.getElementById('pantalla-login');
     if (login) login.style.display = 'flex';
     const saludo = document.getElementById('saludoSesion');

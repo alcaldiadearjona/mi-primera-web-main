@@ -131,6 +131,21 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               </button>
             </form>
           </div>
+
+          <section id="notificacionesPqrsFuncionario" class="pqrs-notifications" aria-labelledby="tituloNotificacionesPqrs" hidden>
+            <button id="alternarNotificacionesPqrs" class="pqrs-notifications-toggle" type="button" aria-expanded="false" aria-controls="listaNotificacionesPqrs">
+              <span class="pqrs-notifications-icon"><i class="bi bi-bell-fill" aria-hidden="true"></i></span>
+              <span class="pqrs-notifications-heading">
+                <span class="pqrs-notifications-title">
+                  <span id="tituloNotificacionesPqrs">Notificaciones</span>
+                  <span class="pqrs-notifications-description">Actualizaciones sobre remisiones por competencia.</span>
+                </span>
+                <span id="contadorNotificacionesPqrs" class="pqrs-notifications-count" aria-label="0 notificaciones nuevas" hidden>0</span>
+              </span>
+              <i class="bi bi-chevron-down pqrs-notifications-chevron" aria-hidden="true"></i>
+            </button>
+            <div id="listaNotificacionesPqrs" class="pqrs-notifications-list" aria-live="polite" hidden></div>
+          </section>
         </section>
 
         <aside class="dashboard-summary" aria-label="Resumen de PQRS">

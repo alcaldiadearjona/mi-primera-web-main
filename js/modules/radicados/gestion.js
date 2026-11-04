@@ -39,8 +39,23 @@ export function inicializarAccionesRadicados() {
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', actualizarEstadoFuncionarioPreview);
   document.getElementById('alternarDependenciasRemision')?.addEventListener('click', alternarDesplegableRemision);
   document.getElementById('dependenciasRemisionCompetencia')?.addEventListener('change', actualizarResumenRemision);
+  document.addEventListener('click', seleccionarFilaRadicadoActiva);
   document.addEventListener('click', cerrarDesplegableRemisionAlClicExterno);
   document.addEventListener('keydown', cerrarDesplegableRemisionConEscape);
+}
+
+function seleccionarFilaRadicadoActiva(event) {
+  if (!(event.target instanceof Element)) return;
+
+  const filaActiva = event.target.closest(
+    '#cuerpoTablaExclusiva tr.month-record-row[data-radicado-id], #cuerpoTablaIAS tr.month-record-row[data-radicado-id]'
+  );
+  if (!filaActiva) return;
+
+  document.querySelectorAll(
+    '#cuerpoTablaExclusiva tr.month-record-row.is-active-row, #cuerpoTablaIAS tr.month-record-row.is-active-row'
+  ).forEach(fila => fila.classList.toggle('is-active-row', fila === filaActiva));
+  filaActiva.classList.add('is-active-row');
 }
 
 function alternarDesplegableRemision() {

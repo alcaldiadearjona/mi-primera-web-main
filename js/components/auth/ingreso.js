@@ -2,10 +2,11 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
 <div id="pantalla-login">
   <div class="card-login">
     
-    <!-- ENCABEZADO SUPERIOR CON FONDO GRIS CLARO -->
-    <div class="header-top-gris">
-      <img src="assets/images/escudo.png" alt="Escudo Arjona" class="escudo-login">
-      <span class="titulo-alcaldia-login">ALCALDÍA MUNICIPAL DE ARJONA</span>
+    <div class="login-role-banner">
+      <img
+        src="assets/images/banner-secretaria-hacienda.png"
+        alt="Bienvenido(a). Trabajemos juntos por una Alcaldía más cercana y eficiente."
+      >
     </div>
 
     <!-- CUERPO BLANCO DEL FORMULARIO -->
