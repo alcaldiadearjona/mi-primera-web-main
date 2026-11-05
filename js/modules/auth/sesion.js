@@ -34,6 +34,7 @@ let rolSolicitado = '';
 let usuarioConfigurado = '';
 let configuracionEnCurso = null;
 let modulosInicializados = false;
+let ordenOriginalTarjetasDependencias = null;
 
 function mostrarErrorLogin(mensaje) {
   const error = document.getElementById('errorLogin');
@@ -63,8 +64,24 @@ function obtenerMensajeErrorAutenticacion(error) {
 }
 
 function configurarTarjetasDependenciasFuncionario() {
+  const contenedor = document.getElementById('contenedorDependencias');
+  const dependenciaSesion = esControlInterno()
+    ? 'Control Interno'
+    : obtenerDependenciaSesion();
+  const tarjetas = Array.from(contenedor?.querySelectorAll('.dep-card') || []);
+  if (!ordenOriginalTarjetasDependencias && tarjetas.length) {
+    ordenOriginalTarjetasDependencias = tarjetas;
+  }
+  ordenOriginalTarjetasDependencias?.forEach(tarjeta => contenedor?.append(tarjeta));
+
+  const tarjetaDependenciaSesion = tarjetas.find(tarjeta =>
+    tarjeta.querySelector('h3')?.textContent.trim() === dependenciaSesion
+  );
+
+  if (tarjetaDependenciaSesion) contenedor.prepend(tarjetaDependenciaSesion);
   if (!esFuncionario()) return;
-  document.querySelectorAll('#contenedorDependencias .dep-card').forEach(tarjeta => {
+
+  tarjetas.forEach(tarjeta => {
     const dependencia = tarjeta.querySelector('h3')?.textContent.trim() || '';
     const perteneceAlFuncionario = dependencia === obtenerDependenciaSesion();
     tarjeta.classList.toggle('is-restricted', !perteneceAlFuncionario);
