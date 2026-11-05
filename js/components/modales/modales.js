@@ -58,7 +58,8 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
       <form id="formFuncionarioAsignado">
         <input type="hidden" id="funcionarioAsignadoDocId">
         <label for="txtFuncionarioAsignado" style="display:block; margin-bottom:7px; color:#475569; font-size:13px; font-weight:600;">Nombre del funcionario:</label>
-        <input id="txtFuncionarioAsignado" type="text" maxlength="120" autocomplete="name" placeholder="Escriba el nombre del funcionario..." style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #cbd5e1; border-radius:9px; font-size:14px; outline-color:#6a9c78;">
+        <input id="txtFuncionarioAsignado" type="text" maxlength="120" autocomplete="off" placeholder="Escriba para buscar un funcionario..." role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="opcionesFuncionariosAsignados" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #cbd5e1; border-radius:9px; font-size:14px; outline-color:#6a9c78;">
+        <div id="opcionesFuncionariosAsignados" class="custom-select-listbox" role="listbox" aria-label="Funcionarios disponibles" hidden></div>
         <p id="estadoFuncionarioPreview" style="margin:8px 0 0; color:#64748b; font-size:12px;">Al asignar un nombre, el estado cambiará a En Trámite al guardar.</p>
         <div style="display:flex; justify-content:flex-end; gap:9px; margin-top:22px;">
           <button type="button" onclick="cerrarModalFuncionarioAsignado()" style="padding:9px 15px; border:0; border-radius:8px; background:#e2e8f0; color:#475569; cursor:pointer; font-weight:600;">Cancelar</button>

@@ -244,6 +244,7 @@
 
 #pantallaDependencia .table-custom td:nth-child(3),
 #pantallaDependencia .table-custom td:nth-child(4),
+#pantallaDependencia .table-custom td:nth-child(13),
 #pantallaDependencia .table-custom td:nth-child(5) {
   font-size: 12px;
   line-height: 1.35;

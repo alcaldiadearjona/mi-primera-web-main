@@ -93,7 +93,15 @@ function crearIndicadorBoton() {
 }
 
 function formatearFechaRemision(fecha) {
-  const instante = Date.parse(fecha || '');
+  const fechaTexto = String(fecha || '');
+  const instante = /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)
+    ? Date.UTC(
+        Number(fechaTexto.slice(0, 4)),
+        Number(fechaTexto.slice(5, 7)) - 1,
+        Number(fechaTexto.slice(8, 10)),
+        12
+      )
+    : Date.parse(fechaTexto);
   if (!Number.isFinite(instante)) return 'fecha no disponible';
   return new Intl.DateTimeFormat('es-CO', {
     timeZone: 'America/Bogota',
@@ -142,7 +150,7 @@ async function irARadicado(registro) {
   return true;
 }
 
-function crearNotificacionRemision(registro, tipo, contenedor) {
+function crearNotificacionRemision(registro, tipo, contenedor, rechazo = null) {
   const esEntrante = tipo === 'entrante';
   const tarjeta = document.createElement('article');
   tarjeta.className = `pqrs-notification-item ${esEntrante ? 'is-incoming' : 'is-rejected'}`;
@@ -157,34 +165,13 @@ function crearNotificacionRemision(registro, tipo, contenedor) {
 
   const titulo = document.createElement('h3');
   titulo.textContent = esEntrante
-    ? `Oficio remitido · Radicado ${registro.radicado || registro.id}`
-    : `Remisión rechazada · Radicado ${registro.radicado || registro.id}`;
-
-  const detalle = document.createElement('p');
-  detalle.textContent = esEntrante
-    ? `Te remitieron este oficio desde ${abreviarNombreDependencia(registro.remisionOrigenDependencia || 'una dependencia')} el ${formatearFechaRemision(registro.fechaRemisionCompetencia)}.`
-    : `Rechazada por: ${registro.dependenciasRechazadas
-      .map(abreviarNombreDependencia)
-      .join(', ')}.`;
-
-  if (!esEntrante && registro.asunto) {
-    const asunto = document.createElement('p');
-    asunto.textContent = `Asunto: ${registro.asunto}`;
-    contenido.append(titulo, detalle, asunto);
-  } else {
-    contenido.append(titulo, detalle);
-  }
-
-  if (!esEntrante) {
-    const dependencia = document.createElement('p');
-    dependencia.textContent = `Dependencia: ${abreviarNombreDependencia(registro.dependencia || '')}.`;
-    contenido.append(dependencia);
-
-    const ayuda = document.createElement('p');
-    ayuda.className = 'pqrs-notification-help';
-    ayuda.textContent = 'El sistema no registra el motivo del rechazo.';
-    contenido.append(ayuda);
-  }
+    ? `${abreviarNombreDependencia(registro.remisionOrigenDependencia || 'Una dependencia')} te remitió por Competencia un oficio.`
+    : `${abreviarNombreDependencia(rechazo?.dependencia || 'Una dependencia')} te rechazó tu Remisión por Competencia.`;
+  const fecha = document.createElement('p');
+  fecha.textContent = `Fecha: ${formatearFechaRemision(
+    esEntrante ? registro.fechaRemisionCompetencia : rechazo?.fechaRechazo
+  )}`;
+  contenido.append(titulo, fecha);
 
   const botonVer = document.createElement('button');
   botonVer.type = 'button';
@@ -246,10 +233,22 @@ function procesarNotificaciones(snapshot, contenedor) {
     .filter(registro => !notificacionesDescartadas.has(registro.id))
     .flatMap(registro => {
       const resultado = [];
-      if (Array.isArray(registro.dependenciasRechazadas)
-        && registro.dependenciasRechazadas.length > 0) {
-        resultado.push({ registro, tipo: 'rechazada' });
-      }
+      const rechazosGuardados = Array.isArray(registro.rechazosCompetencia)
+        ? registro.rechazosCompetencia.filter(rechazo => (
+            rechazo && typeof rechazo.dependencia === 'string'
+          ))
+        : [];
+      const rechazos = rechazosGuardados.length
+        ? rechazosGuardados
+        : (Array.isArray(registro.dependenciasRechazadas)
+          ? registro.dependenciasRechazadas.map(dependencia => ({
+              dependencia,
+              fechaRechazo: ''
+            }))
+          : []);
+      rechazos.forEach(rechazo => {
+        resultado.push({ registro, tipo: 'rechazada', rechazo });
+      });
       if (registro.remisionOrigenId && !registro.fechaRecepcionCompetencia) {
         resultado.push({ registro, tipo: 'entrante' });
       }
@@ -265,8 +264,8 @@ function procesarNotificaciones(snapshot, contenedor) {
   }
 
   const fragmento = document.createDocumentFragment();
-  notificaciones.forEach(({ registro, tipo }) => (
-    fragmento.append(crearNotificacionRemision(registro, tipo, contenedor))
+  notificaciones.forEach(({ registro, tipo, rechazo }) => (
+    fragmento.append(crearNotificacionRemision(registro, tipo, contenedor, rechazo))
   ));
   contenedor.replaceChildren(fragmento);
   actualizarContadorNotificaciones(notificaciones.length);

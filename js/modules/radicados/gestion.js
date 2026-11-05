@@ -36,7 +36,11 @@ function obtenerFechaActualBogota() {
 export function inicializarAccionesRadicados() {
   document.getElementById('formEditar')?.addEventListener('submit', guardarEdicionRadicado);
   document.getElementById('formFuncionarioAsignado')?.addEventListener('submit', guardarFuncionarioAsignado);
-  document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', actualizarEstadoFuncionarioPreview);
+  inicializarBuscadorFuncionarios();
+  document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', event => {
+    actualizarEstadoFuncionarioPreview(event);
+    filtrarSugerenciasFuncionarios();
+  });
   document.getElementById('alternarDependenciasRemision')?.addEventListener('click', alternarDesplegableRemision);
   document.getElementById('dependenciasRemisionCompetencia')?.addEventListener('change', actualizarResumenRemision);
   document.addEventListener('pointerdown', seleccionarFilaRadicadoActiva, true);
@@ -186,6 +190,99 @@ function actualizarEstadoFuncionarioPreview(event) {
       ? 'Al guardar, el radicado quedará En Trámite y se habilitarán las acciones cuando también tenga tipo de petición.'
       : 'Escribe el nombre del funcionario para asignarlo al radicado.';
   }
+}
+
+const NOMBRES_FUNCIONARIOS = ['Yoice Castro', 'Kelly Garcia', 'Maria Davila'];
+
+function normalizarTextoBusqueda(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-CO')
+    .trim();
+}
+
+function cerrarSugerenciasFuncionarios() {
+  const input = document.getElementById('txtFuncionarioAsignado');
+  const lista = document.getElementById('opcionesFuncionariosAsignados');
+  if (!input || !lista) return;
+  lista.hidden = true;
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+}
+
+function filtrarSugerenciasFuncionarios() {
+  const input = document.getElementById('txtFuncionarioAsignado');
+  const lista = document.getElementById('opcionesFuncionariosAsignados');
+  if (!input || !lista) return;
+
+  const consulta = normalizarTextoBusqueda(input.value);
+  const coincidencias = consulta
+    ? NOMBRES_FUNCIONARIOS.filter(nombre => normalizarTextoBusqueda(nombre).includes(consulta))
+    : [];
+  lista.replaceChildren(...coincidencias.map((nombre, indice) => {
+    const opcion = document.createElement('button');
+    opcion.type = 'button';
+    opcion.id = `${lista.id}-opcion-${indice}`;
+    opcion.className = 'custom-select-option';
+    opcion.setAttribute('role', 'option');
+    opcion.setAttribute('aria-selected', 'false');
+    opcion.textContent = nombre;
+    opcion.addEventListener('click', () => {
+      input.value = nombre;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      cerrarSugerenciasFuncionarios();
+      input.focus();
+    });
+    return opcion;
+  }));
+
+  const mostrar = consulta.length > 0 && coincidencias.length > 0;
+  lista.hidden = !mostrar;
+  input.setAttribute('aria-expanded', String(mostrar));
+  input.removeAttribute('aria-activedescendant');
+  if (mostrar) {
+    const rectangulo = input.getBoundingClientRect();
+    lista.style.left = `${Math.max(8, Math.min(rectangulo.left, window.innerWidth - rectangulo.width - 8))}px`;
+    lista.style.top = `${rectangulo.bottom + 6}px`;
+    lista.style.width = `${Math.min(rectangulo.width, window.innerWidth - 16)}px`;
+    lista.style.maxHeight = '180px';
+  }
+}
+
+function inicializarBuscadorFuncionarios() {
+  const input = document.getElementById('txtFuncionarioAsignado');
+  const lista = document.getElementById('opcionesFuncionariosAsignados');
+  if (!input || !lista) return;
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      cerrarSugerenciasFuncionarios();
+    } else if (event.key === 'ArrowDown' && !lista.hidden) {
+      event.preventDefault();
+      lista.querySelector('button')?.focus();
+    }
+  });
+  lista.addEventListener('keydown', event => {
+    const opciones = Array.from(lista.querySelectorAll('button'));
+    const indice = opciones.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      cerrarSugerenciasFuncionarios();
+      input.focus();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direccion = event.key === 'ArrowDown' ? 1 : -1;
+      opciones[(indice + direccion + opciones.length) % opciones.length]?.focus();
+    }
+  });
+  document.addEventListener('pointerdown', event => {
+    if (!input.contains(event.target) && !lista.contains(event.target)) {
+      cerrarSugerenciasFuncionarios();
+    }
+  });
+  window.addEventListener('resize', () => {
+    if (!lista.hidden) filtrarSugerenciasFuncionarios();
+  });
 }
 
 async function guardarFuncionarioAsignado(event) {
@@ -353,6 +450,7 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
     const copiaRef = doc(db, RADICADOS_COLLECTION, id);
     const coleccionOrigen = radicado.remisionOrigenColeccion || RADICADOS_COLLECTION;
     const origenRef = doc(db, coleccionOrigen, radicado.remisionOrigenId);
+    const fechaRechazo = obtenerFechaActualBogota();
     await runTransaction(db, async transaction => {
       const copiaSnapshot = await transaction.get(copiaRef);
       if (!copiaSnapshot.exists()) throw new Error('La copia remitida ya no existe.');
@@ -366,7 +464,11 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
       }
 
       transaction.update(origenRef, {
-        dependenciasRechazadas: arrayUnion(radicado.dependencia)
+        dependenciasRechazadas: arrayUnion(radicado.dependencia),
+        rechazosCompetencia: arrayUnion({
+          dependencia: radicado.dependencia,
+          fechaRechazo
+        })
       });
       transaction.delete(copiaRef);
     });
@@ -563,7 +665,10 @@ window.abrirModalFuncionarioAsignado = function(id, coleccion = '') {
   document.getElementById('funcionarioAsignadoDocId').value = item.id;
   document.getElementById('funcionarioAsignadoDocId').dataset.collection = obtenerColeccionRegistro(item);
   const input = document.getElementById('txtFuncionarioAsignado');
-  input.value = item.funcionarioAsignado || '';
+  input.value = NOMBRES_FUNCIONARIOS.includes(item.funcionarioAsignado)
+    ? item.funcionarioAsignado
+    : '';
+  cerrarSugerenciasFuncionarios();
   actualizarEstadoFuncionarioPreview({ currentTarget: input });
   document.getElementById('modalFuncionarioAsignado').style.display = 'flex';
   input.focus();

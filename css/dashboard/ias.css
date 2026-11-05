@@ -474,6 +474,15 @@
   overflow-wrap: anywhere;
 }
 
+#pantallaIAS .ias-table td:nth-child(3),
+#pantallaIAS .ias-table td:nth-child(4),
+#pantallaIAS .ias-table td:nth-child(5),
+#pantallaIAS .ias-table td:nth-child(13) {
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
 #pantallaIAS .ias-table th:nth-child(1),
 #pantallaIAS .ias-table td:nth-child(1) { width: 75px !important; }
 #pantallaIAS .ias-table th:nth-child(2),

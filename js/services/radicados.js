@@ -138,6 +138,7 @@ function mapearRadicado(documento) {
     observaciones: item.observaciones || '',
     dependenciasRecibidas: Array.isArray(item.dependenciasRecibidas) ? item.dependenciasRecibidas : [],
     dependenciasRechazadas: Array.isArray(item.dependenciasRechazadas) ? item.dependenciasRechazadas : [],
+    rechazosCompetencia: Array.isArray(item.rechazosCompetencia) ? item.rechazosCompetencia : [],
     dependenciasDestino: Array.isArray(item.dependenciasDestino) ? item.dependenciasDestino : [],
     remisionOrigenId: item.remisionOrigenId || '',
     remisionOrigenColeccion: item.remisionOrigenColeccion || RADICADOS_COLLECTION,

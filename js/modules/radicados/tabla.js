@@ -61,6 +61,13 @@ function aTitulo(texto) {
   return texto.toLowerCase().replace(/(?:^|\s|-)\S/g, letra => letra.toUpperCase());
 }
 
+function formatearFechaTabla(fecha) {
+  const coincidencia = String(fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  return coincidencia
+    ? `${coincidencia[3]}-${coincidencia[2]}-${coincidencia[1]}`
+    : fecha || '';
+}
+
 export function renderizarTablaRadicados(
   lista,
   tbodyId = 'cuerpoTablaExclusiva',
@@ -73,6 +80,11 @@ export function renderizarTablaRadicados(
   );
   const radicadoActivoId = filaActiva?.dataset.radicadoId;
   const coleccionActiva = filaActiva?.dataset.collection;
+  const mesesDesplegados = new Set(
+    Array.from(tbody.querySelectorAll('.month-group-row .month-group-toggle[aria-expanded="true"]'))
+      .map(boton => boton.closest('tr')?.nextElementSibling?.dataset.monthGroup)
+      .filter(Boolean)
+  );
   tbody.innerHTML = '';
   
   // ... resto de tu código normal
@@ -211,8 +223,11 @@ export function renderizarTablaRadicados(
       ? reg.fechaCargaRespuesta
       : '';
     const fechaCargaRespuestaVisible = /^\d{4}-\d{2}-\d{2}$/.test(fechaCargaRespuesta)
-      ? `${fechaCargaRespuesta.slice(8, 10)}/${fechaCargaRespuesta.slice(5, 7)}/${fechaCargaRespuesta.slice(0, 4)}`
+      ? formatearFechaTabla(fechaCargaRespuesta)
       : '-';
+    const fechaRadicacionVisible = formatearFechaTabla(reg.fechaRadicacion);
+    const fechaEntregaManualVisible = formatearFechaTabla(reg.fechaEntregaManual);
+    const fechaVencimientoVisible = formatearFechaTabla(reg.fechaVencimiento);
     const etiquetaCumplimientoCierre = estadoObj.texto === 'CERRADO'
       ? obtenerEtiquetaCumplimientoCierre(fechaCargaRespuesta, reg.fechaVencimiento)
       : '';
@@ -281,15 +296,15 @@ if (soloLecturaIAS) {
     tr.innerHTML = `
       <td style="text-align: center;">${pdfCellHtml}</td>
       <td title="${reg.radicado || ''}"><strong>${reg.radicado || ''}</strong></td>
-      <td>${reg.fechaRadicacion || ''}</td>
+      <td>${fechaRadicacionVisible}</td>
       <td class="delivery-date-cell">
         <span class="delivery-date-value">${
           reg.remisionOrigenId && !reg.fechaRecepcionCompetencia
             ? ''
-            : reg.fechaEntregaManual || '-'
+            : fechaEntregaManualVisible || '-'
         }</span>
       </td>
-      <td><span class="badge-status ${estadoObj.clase}">${reg.fechaVencimiento || ''}</span></td>
+      <td><span class="badge-status ${estadoObj.clase}">${fechaVencimientoVisible}</span></td>
       <td>${estadoHtml}</td>
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
 
@@ -340,7 +355,7 @@ if (soloLecturaIAS) {
   </button>` : ''}
 </td>
 <td>${columnaRespuestaHtml}</td>
-<td>${fechaCargaRespuestaVisible}</td>
+<td><span class="delivery-date-value">${fechaCargaRespuestaVisible}</span></td>
 <td>${tipoPeticionHtml}</td>
 <td>${reg.tipoCanal || '-'}</td>
     `;
@@ -469,4 +484,20 @@ if (soloLecturaIAS) {
     tbody.appendChild(tr);
   }); // Cierra el forEach de reg (radicados)
 }); // Cierra el forEach de gruposPorMes
+
+tbody.querySelectorAll('.month-group-row .month-group-toggle').forEach(boton => {
+  const filaGrupo = boton.closest('tr');
+  const mesKey = filaGrupo?.nextElementSibling?.dataset.monthGroup;
+  if (!mesesDesplegados.has(mesKey)) return;
+
+  let filaRadicado = filaGrupo.nextElementSibling;
+  while (filaRadicado?.classList.contains('month-record-row')) {
+    filaRadicado.hidden = false;
+    filaRadicado = filaRadicado.nextElementSibling;
+  }
+  boton.setAttribute('aria-expanded', 'true');
+  const icono = boton.querySelector('i');
+  icono?.classList.remove('bi-chevron-right');
+  icono?.classList.add('bi-chevron-down');
+});
 } // Cierra la función renderizarTablaRadicados
