@@ -1,7 +1,10 @@
 import { datosRadicados } from '../../data/radicados.js';
 import { registrosIAS } from '../../data/ias.js';
 import { ENTIDADES_IAS } from '../ias/tablero.js';
-import { evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import {
+  evaluarEstadoAutomatico,
+  obtenerEtiquetaCumplimientoCierre
+} from '../../utils/helpers.js';
 
 const PLANTILLAS = {
   auditoria: new URL('../../../assets/plantillas/Informe_PQRS_Auditoria.xlsx', import.meta.url),
@@ -225,6 +228,38 @@ function textoOportunidad(registro) {
   return respuesta <= limite ? 'A Tiempo' : 'Extemporáneo';
 }
 
+function obtenerEstadoDependenciasDestino(registro, registros) {
+  const destinosRegistrados = Array.isArray(registro.dependenciasDestino)
+    ? registro.dependenciasDestino
+    : [];
+  const coleccionOrigen = registro.coleccion === 'radicadosIAS' ? 'radicadosIAS' : 'radicados';
+  const rechazadas = Array.isArray(registro.dependenciasRechazadas)
+    ? registro.dependenciasRechazadas
+    : [];
+  const destinos = destinosRegistrados.filter(dependencia => !rechazadas.includes(dependencia));
+  const recibidas = Array.isArray(registro.dependenciasRecibidas)
+    ? registro.dependenciasRecibidas
+    : [];
+  const estados = destinos.map(dependencia => {
+    const copia = registros.find(candidato => (
+      candidato.remisionOrigenId === registro.id
+      && candidato.dependencia === dependencia
+      && (candidato.remisionOrigenColeccion || 'radicados') === coleccionOrigen
+    ));
+    const estado = copia
+      ? obtenerEstado(copia).texto
+      : recibidas.includes(dependencia)
+          ? 'Recibida'
+          : 'Pendiente';
+    return `${capitalizarTexto(dependencia)}: ${estado}`;
+  });
+
+  return {
+    dependencias: destinos.map(capitalizarTexto).join(', '),
+    estados: estados.join('\n')
+  };
+}
+
 function clonarEstilo(estilo) {
   return JSON.parse(JSON.stringify(estilo || {}));
 }
@@ -332,9 +367,11 @@ async function generarInformeAuditoria(registros, todasDependencias) {
   matriz.getCell('C5').value = capitalizarTexto(obtenerNombreDependencias(registros, todasDependencias));
   establecerFuenteNormal(matriz.getCell('C5'));
   const filaModelo = matriz.getRow(7);
+  const todosLosRegistros = obtenerRegistros();
   registros.forEach((registro, indice) => {
-    const columnasTexto = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L', 'M'];
-    const fila = prepararFila(matriz, indice + 7, filaModelo, Array.from({ length: 13 }, (_, col) => col + 1), columnasTexto);
+    const columnasTexto = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L', 'M', 'N'];
+    const fila = prepararFila(matriz, indice + 7, filaModelo, Array.from({ length: 15 }, (_, col) => col + 1), columnasTexto);
+    const remisiones = obtenerEstadoDependenciasDestino(registro, todosLosRegistros);
     fila.getCell('A').value = registro.radicado || '';
     establecerFechaCelda(fila.getCell('B'), registro.fechaRadicacion);
     fila.getCell('C').value = capitalizarTexto(registro.tipoPeticion);
@@ -346,8 +383,10 @@ async function generarInformeAuditoria(registros, todasDependencias) {
     establecerFechaCelda(fila.getCell('I'), registro.fechaVencimiento);
     establecerFechaCelda(fila.getCell('J'), registro.fechaCargaRespuesta);
     fila.getCell('K').value = capitalizarTexto(obtenerEstado(registro).texto);
-    fila.getCell('L').value = textoOportunidad(registro);
-    fila.getCell('M').value = '';
+    fila.getCell('L').value = remisiones.dependencias;
+    fila.getCell('M').value = remisiones.estados;
+    fila.getCell('N').value = textoOportunidad(registro);
+    fila.getCell('O').value = '';
     ajustarAlturaFila(fila, columnasTexto);
   });
 
@@ -365,7 +404,14 @@ function obtenerConteoGeneral(registros) {
       || (Array.isArray(registro.dependenciasDestino) && registro.dependenciasDestino.length > 0);
     const esEspecial = esConocimiento || esSinRespuesta || esRemitido;
 
-    if (estado === 'status-cerrado' && !esEspecial) conteo.cerrados += 1;
+    if (estado === 'status-cerrado' && !esEspecial) {
+      const cumplimiento = obtenerEtiquetaCumplimientoCierre(
+        normalizarFecha(registro.fechaCargaRespuesta),
+        normalizarFecha(registro.fechaVencimiento)
+      );
+      if (cumplimiento === 'Cerrado a Tiempo') conteo.cerradosATiempo += 1;
+      if (cumplimiento === 'Cerrado Extemporaneo') conteo.cerradosExtemporaneos += 1;
+    }
     if (['status-vigente', 'status-proximo', 'status-extemporanea'].includes(estado) && !esEspecial) {
       conteo.vigentes += 1;
     }
@@ -376,7 +422,8 @@ function obtenerConteoGeneral(registros) {
     conteo.recibidos += 1;
     return conteo;
   }, {
-    cerrados: 0,
+    cerradosATiempo: 0,
+    cerradosExtemporaneos: 0,
     vigentes: 0,
     enTramite: 0,
     paraConocimiento: 0,
@@ -404,24 +451,25 @@ async function generarInformeGeneral(registros, dependencias, todasDependencias)
 
   datosPorDependencia.forEach(([dependencia, totales], indice) => {
     const columnasTexto = ['A'];
-    const fila = prepararFila(hoja, indice + 7, filaModelo, 'ABCDEFGH'.split(''), columnasTexto);
+    const fila = prepararFila(hoja, indice + 7, filaModelo, 'ABCDEFGHI'.split(''), columnasTexto);
     fila.getCell('A').value = capitalizarTexto(dependencia);
-    fila.getCell('B').value = totales.cerrados;
-    fila.getCell('C').value = totales.vigentes;
-    fila.getCell('D').value = totales.enTramite;
-    fila.getCell('E').value = totales.paraConocimiento;
-    fila.getCell('F').value = totales.remitidos;
-    fila.getCell('G').value = totales.noRequierenRespuesta;
-    fila.getCell('H').value = totales.recibidos;
+    fila.getCell('B').value = totales.cerradosATiempo;
+    fila.getCell('C').value = totales.cerradosExtemporaneos;
+    fila.getCell('D').value = totales.vigentes;
+    fila.getCell('E').value = totales.enTramite;
+    fila.getCell('F').value = totales.paraConocimiento;
+    fila.getCell('G').value = totales.remitidos;
+    fila.getCell('H').value = totales.noRequierenRespuesta;
+    fila.getCell('I').value = totales.recibidos;
     ajustarAlturaFila(fila, columnasTexto);
-    'BCDEFGH'.split('').forEach(columna => {
+    'BCDEFGHI'.split('').forEach(columna => {
       fila.getCell(columna).numFmt = '0';
     });
   });
 
   const ultimaFilaTotal = Math.max(6 + datosPorDependencia.length, hoja.rowCount);
   for (let numeroFila = 6; numeroFila <= ultimaFilaTotal; numeroFila += 1) {
-    const celdaTotalRecibidos = hoja.getCell(`H${numeroFila}`);
+    const celdaTotalRecibidos = hoja.getCell(`I${numeroFila}`);
     celdaTotalRecibidos.font = {
       ...celdaTotalRecibidos.font,
       bold: true,

@@ -1,5 +1,6 @@
 export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="display: none;">
       <button class="btn-back" onclick="mostrarMenuPrincipal()"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a Dependencias</button>
+      <button class="btn-back" onclick="mostrarPantallaInicio()"><i class="bi bi-house-door" aria-hidden="true"></i> Volver al Inicio</button>
       
       <div class="view-card">
         <div class="detail-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
