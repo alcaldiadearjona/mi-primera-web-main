@@ -61,6 +61,7 @@ service cloud.firestore {
           isEmployeeOf(request.resource.data.dependencia)
           && request.resource.data.keys().hasAll([
             'radicado',
+            'origenSolicitud',
             'estado',
             'tipoCanal',
             'fechaRadicacion',
@@ -74,6 +75,7 @@ service cloud.firestore {
           ])
           && request.resource.data.keys().hasOnly([
             'radicado',
+            'origenSolicitud',
             'estado',
             'tipoCanal',
             'fechaRadicacion',
@@ -90,6 +92,127 @@ service cloud.firestore {
             !request.resource.data.keys().hasAny(['fechaHoraRadicacion'])
             || request.resource.data.fechaHoraRadicacion is string
           )
+          && request.resource.data.origenSolicitud == 'ventanilla'
+        )
+        || (
+          isFuncionario()
+          && request.resource.data.remisionOrigenId is string
+          && request.resource.data.remisionOrigenColeccion == 'radicados'
+          && request.resource.data.remisionOrigenDependencia == profile().dependencia
+          && request.resource.data.dependencia != profile().dependencia
+          && request.resource.data.keys().hasAll([
+            'radicado',
+            'estado',
+            'tipoCanal',
+            'fechaRadicacion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'pdfUrl',
+            'dependencia',
+            'funcionarioAsignado',
+            'otrosEstados',
+            'respuestaUrl',
+            'observaciones',
+            'dependenciasRecibidas',
+            'dependenciasRechazadas',
+            'dependenciasDestino',
+            'remisionOrigenId',
+            'remisionOrigenColeccion',
+            'remisionOrigenDependencia',
+            'remisionOrigenRadicado',
+            'fechaRemisionCompetencia',
+            'fechaRecepcionCompetencia'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'radicado',
+            'origenSolicitud',
+            'estado',
+            'tipoCanal',
+            'fechaRadicacion',
+            'fechaHoraRadicacion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'pdfUrl',
+            'dependencia',
+            'tipoPeticion',
+            'funcionarioAsignado',
+            'otrosEstados',
+            'respuestaUrl',
+            'fechaCargaRespuesta',
+            'observaciones',
+            'dependenciasRecibidas',
+            'dependenciasRechazadas',
+            'rechazosCompetencia',
+            'recepcionesCompetencia',
+            'dependenciasDestino',
+            'remisionOrigenId',
+            'remisionOrigenColeccion',
+            'remisionOrigenDependencia',
+            'remisionOrigenRadicado',
+            'fechaRemisionCompetencia',
+            'fechaRecepcionCompetencia'
+          ])
+          && request.resource.data.dependencia in [
+            'Secretaría de Gobierno',
+            'Secretaría de Planeación',
+            'Oficina de Gestion del Riesgo y Desastres',
+            'Oficina de Desarrollo Social',
+            'Secretaría de Salud',
+            'Control Interno',
+            'Oficina Juridica',
+            'Despacho del Alcalde',
+            'Secretaría de Umata',
+            'Secretaría de Educación',
+            'Secretaría de Hacienda',
+            'Sisben',
+            'Talento Humano',
+            'Secretaría de Transito y Transporte',
+            'Gestion Social'
+          ]
+          && getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.dependencia == profile().dependencia
+          && getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.dependenciasDestino.hasAny([request.resource.data.dependencia])
+          && request.resource.data.radicado == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.radicado
+          && request.resource.data.remitente == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.remitente
+          && request.resource.data.asunto == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.asunto
+          && request.resource.data.tipoCanal == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.tipoCanal
+          && request.resource.data.fechaRadicacion == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.fechaRadicacion
+          && request.resource.data.diasHabiles == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.diasHabiles
+          && request.resource.data.fechaVencimiento == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.fechaVencimiento
+          && request.resource.data.pdfUrl == getAfter(
+            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+          ).data.pdfUrl
+          && request.resource.data.estado == 'VIGENTE'
+          && request.resource.data.funcionarioAsignado == ''
+          && request.resource.data.otrosEstados == ''
+          && request.resource.data.respuestaUrl == ''
+          && request.resource.data.observaciones == ''
+          && request.resource.data.fechaEntregaManual == ''
+          && request.resource.data.fechaRecepcionCompetencia == ''
+          && request.resource.data.remisionOrigenRadicado == request.resource.data.radicado
         );
       allow update: if isAdmin()
         || (
@@ -117,6 +240,22 @@ service cloud.firestore {
         || (
           isEmployeeOf(resource.data.dependencia)
           && request.resource.data.dependencia == resource.data.dependencia
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'dependenciasDestino',
+            'fechaRemisionCompetencia'
+          ])
+          && request.resource.data.dependenciasDestino is list
+          && request.resource.data.dependenciasDestino.size()
+            > resource.data.get('dependenciasDestino', []).size()
+          && request.resource.data.dependenciasDestino.hasAll(
+            resource.data.get('dependenciasDestino', [])
+          )
+          && request.resource.data.fechaRemisionCompetencia is string
+          && request.resource.data.fechaRemisionCompetencia.size() > 0
+        )
+        || (
+          isEmployeeOf(resource.data.dependencia)
+          && request.resource.data.dependencia == resource.data.dependencia
           && resource.data.remisionOrigenId is string
           && resource.data.remisionOrigenId.size() > 0
           && (
@@ -139,6 +278,7 @@ service cloud.firestore {
           && request.resource.data.dependencia == resource.data.dependencia
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'dependenciasRecibidas',
+            'recepcionesCompetencia',
             'estado'
           ])
           && request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -153,6 +293,18 @@ service cloud.firestore {
           )
           && request.resource.data.dependenciasRecibidas.hasAny([profile().dependencia])
           && !resource.data.get('dependenciasRecibidas', []).hasAny([profile().dependencia])
+          && request.resource.data.recepcionesCompetencia is list
+          && request.resource.data.recepcionesCompetencia.size()
+            == resource.data.get('recepcionesCompetencia', []).size() + 1
+          && request.resource.data.recepcionesCompetencia.hasAll(
+            resource.data.get('recepcionesCompetencia', [])
+          )
+          && request.resource.data.recepcionesCompetencia[
+            request.resource.data.recepcionesCompetencia.size() - 1
+          ].dependencia == profile().dependencia
+          && request.resource.data.recepcionesCompetencia[
+            request.resource.data.recepcionesCompetencia.size() - 1
+          ].fechaRecepcion.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         )
         || (
           isFuncionario()
@@ -160,7 +312,8 @@ service cloud.firestore {
           && resource.data.dependenciasDestino.hasAny([profile().dependencia])
           && request.resource.data.dependencia == resource.data.dependencia
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'dependenciasRechazadas'
+            'dependenciasRechazadas',
+            'rechazosCompetencia'
           ])
           && request.resource.data.dependenciasRechazadas is list
           && request.resource.data.dependenciasRechazadas.size()
@@ -170,6 +323,18 @@ service cloud.firestore {
           )
           && request.resource.data.dependenciasRechazadas.hasAny([profile().dependencia])
           && !resource.data.get('dependenciasRechazadas', []).hasAny([profile().dependencia])
+          && request.resource.data.rechazosCompetencia is list
+          && request.resource.data.rechazosCompetencia.size()
+            == resource.data.get('rechazosCompetencia', []).size() + 1
+          && request.resource.data.rechazosCompetencia.hasAll(
+            resource.data.get('rechazosCompetencia', [])
+          )
+          && request.resource.data.rechazosCompetencia[
+            request.resource.data.rechazosCompetencia.size() - 1
+          ].dependencia == profile().dependencia
+          && request.resource.data.rechazosCompetencia[
+            request.resource.data.rechazosCompetencia.size() - 1
+          ].fechaRechazo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         );
       allow delete: if isAdmin()
         || (
@@ -275,6 +440,7 @@ service cloud.firestore {
           && resource.data.dependenciasDestino.hasAny([profile().dependencia])
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'dependenciasRecibidas',
+            'recepcionesCompetencia',
             'estado'
           ])
           && request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -289,13 +455,26 @@ service cloud.firestore {
           )
           && request.resource.data.dependenciasRecibidas.hasAny([profile().dependencia])
           && !resource.data.get('dependenciasRecibidas', []).hasAny([profile().dependencia])
+          && request.resource.data.recepcionesCompetencia is list
+          && request.resource.data.recepcionesCompetencia.size()
+            == resource.data.get('recepcionesCompetencia', []).size() + 1
+          && request.resource.data.recepcionesCompetencia.hasAll(
+            resource.data.get('recepcionesCompetencia', [])
+          )
+          && request.resource.data.recepcionesCompetencia[
+            request.resource.data.recepcionesCompetencia.size() - 1
+          ].dependencia == profile().dependencia
+          && request.resource.data.recepcionesCompetencia[
+            request.resource.data.recepcionesCompetencia.size() - 1
+          ].fechaRecepcion.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         )
         || (
           isFuncionario()
           && resource.data.dependenciasDestino is list
           && resource.data.dependenciasDestino.hasAny([profile().dependencia])
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'dependenciasRechazadas'
+            'dependenciasRechazadas',
+            'rechazosCompetencia'
           ])
           && request.resource.data.dependenciasRechazadas is list
           && request.resource.data.dependenciasRechazadas.size()
@@ -305,6 +484,18 @@ service cloud.firestore {
           )
           && request.resource.data.dependenciasRechazadas.hasAny([profile().dependencia])
           && !resource.data.get('dependenciasRechazadas', []).hasAny([profile().dependencia])
+          && request.resource.data.rechazosCompetencia is list
+          && request.resource.data.rechazosCompetencia.size()
+            == resource.data.get('rechazosCompetencia', []).size() + 1
+          && request.resource.data.rechazosCompetencia.hasAll(
+            resource.data.get('rechazosCompetencia', [])
+          )
+          && request.resource.data.rechazosCompetencia[
+            request.resource.data.rechazosCompetencia.size() - 1
+          ].dependencia == profile().dependencia
+          && request.resource.data.rechazosCompetencia[
+            request.resource.data.rechazosCompetencia.size() - 1
+          ].fechaRechazo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         );
       allow delete: if isAdmin();
     }

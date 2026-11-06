@@ -387,26 +387,26 @@ if (soloLecturaIAS) {
       tr.cells[5].append(boton, detalle);
     };
 
-    if (dependenciasDestino.length) {
-      if (dependenciasRecibidas.length) {
-        crearDetalleRemision(
-          'Ver Destino',
-          `Aceptado R.C por: "${dependenciasRecibidas.join(', ')}"`
-        );
-      } else if (!dependenciasRechazadas.length) {
-        crearDetalleRemision(
-          'Ver destino',
-          `Remitido a: ${dependenciasDestino.join(', ')}`
-        );
-      }
+    if (dependenciasDestino.length && dependenciasRecibidas.length) {
+      crearDetalleRemision(
+        'Ver Destino',
+        `Aceptado R.C por: "${dependenciasRecibidas.join(', ')}"`
+      );
+    } else if (dependenciasDestino.length && !dependenciasRechazadas.length) {
+      crearDetalleRemision(
+        'Ver destino',
+        `Remitido a: ${dependenciasDestino.join(', ')}`
+      );
+    }
 
-      if (dependenciasRechazadas.length) {
-        crearDetalleRemision(
-          'Ver Rechazo',
-          `Rechazada R.C por: "${dependenciasRechazadas.join(', ')}"`
-        );
-      }
-    } else if (reg.remisionOrigenDependencia) {
+    if (dependenciasRechazadas.length) {
+      crearDetalleRemision(
+        'Ver Rechazo',
+        `Rechazada R.C por: "${dependenciasRechazadas.join(', ')}"`
+      );
+    }
+
+    if (!dependenciasDestino.length && reg.remisionOrigenDependencia) {
       crearDetalleRemision(
         'Ver origen',
         `Recibido de: ${abreviarNombreDependencia(reg.remisionOrigenDependencia)}`

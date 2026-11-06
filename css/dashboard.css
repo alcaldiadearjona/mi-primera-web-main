@@ -162,6 +162,18 @@
   color: #355a75;
 }
 
+.pqrs-notification-item.is-received {
+  border-color: #d7eadc;
+  border-left-color: #34814c;
+  background: #f7fcf8;
+  color: #28643a;
+}
+
+.pqrs-notification-item.is-received .pqrs-notification-content h3,
+.pqrs-notification-item.is-received .pqrs-notification-content p {
+  color: #355f40;
+}
+
 .pqrs-notification-item > i {
   padding-top: 2px;
   font-size: 16px;

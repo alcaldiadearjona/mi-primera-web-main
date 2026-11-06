@@ -138,7 +138,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               <span class="pqrs-notifications-heading">
                 <span class="pqrs-notifications-title">
                   <span id="tituloNotificacionesPqrs">Notificaciones</span>
-                  <span class="pqrs-notifications-description">Actualizaciones sobre remisiones por competencia.</span>
+                  <span class="pqrs-notifications-description">Nuevas solicitudes y actualizaciones sobre remisiones por competencia.</span>
                 </span>
                 <span id="contadorNotificacionesPqrs" class="pqrs-notifications-count" aria-label="0 notificaciones nuevas" hidden>0</span>
               </span>

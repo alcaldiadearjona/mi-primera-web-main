@@ -16,9 +16,9 @@ let claveAlmacenamientoDescartadas = '';
 function cargarNotificacionesDescartadas() {
   notificacionesDescartadas.clear();
   claveAlmacenamientoDescartadas = esFuncionario()
-    ? `pqrs-notificaciones-descartadas:funcionario:${obtenerDependenciaSesion()}`
+    ? `pqrs-notificaciones-descartadas:v2:funcionario:${obtenerDependenciaSesion()}`
     : esAdministrador()
-      ? 'pqrs-notificaciones-descartadas:administrador'
+      ? 'pqrs-notificaciones-descartadas:v2:administrador'
       : '';
   if (!claveAlmacenamientoDescartadas) return;
 
@@ -150,28 +150,56 @@ async function irARadicado(registro) {
   return true;
 }
 
-function crearNotificacionRemision(registro, tipo, contenedor, rechazo = null) {
+function crearNotificacionRemision(notificacion, contenedor) {
+  const { registro, tipo, rechazo, recepcion, destinos, notificationId } = notificacion;
   const esEntrante = tipo === 'entrante';
+  const esRechazada = tipo === 'rechazada';
+  const esRecibida = tipo === 'recibida';
+  const esNuevaSolicitud = tipo === 'nueva-solicitud';
   const tarjeta = document.createElement('article');
-  tarjeta.className = `pqrs-notification-item ${esEntrante ? 'is-incoming' : 'is-rejected'}`;
+  tarjeta.className = `pqrs-notification-item ${
+    esRechazada ? 'is-rejected' : esRecibida ? 'is-received' : 'is-incoming'
+  }`;
   tarjeta.dataset.radicadoId = registro.id;
+  tarjeta.dataset.notificationId = notificationId;
 
   const icono = document.createElement('i');
-  icono.className = esEntrante ? 'bi bi-send' : 'bi bi-arrow-return-left';
+  icono.className = esRechazada
+    ? 'bi bi-arrow-return-left'
+    : esRecibida
+      ? 'bi bi-check2-circle'
+      : esNuevaSolicitud
+        ? 'bi bi-inbox'
+        : 'bi bi-send';
   icono.setAttribute('aria-hidden', 'true');
 
   const contenido = document.createElement('div');
   contenido.className = 'pqrs-notification-content';
 
   const titulo = document.createElement('h3');
-  titulo.textContent = esEntrante
-    ? `${abreviarNombreDependencia(registro.remisionOrigenDependencia || 'Una dependencia')} te remitió por Competencia un oficio.`
-    : `${abreviarNombreDependencia(rechazo?.dependencia || 'Una dependencia')} te rechazó tu Remisión por Competencia.`;
+  titulo.textContent = esNuevaSolicitud
+    ? `Ventanilla cargó una nueva solicitud${registro.radicado ? ` (${registro.radicado})` : ''}.`
+    : esRecibida
+      ? `${abreviarNombreDependencia(recepcion?.dependencia || 'Una dependencia')} recibió una Remisión por Competencia.`
+      : esEntrante
+        ? `${abreviarNombreDependencia(registro.remisionOrigenDependencia || 'Una dependencia')} te remitió por Competencia un oficio.`
+        : `${abreviarNombreDependencia(rechazo?.dependencia || 'Una dependencia')} te rechazó tu Remisión por Competencia.`;
   const fecha = document.createElement('p');
   fecha.textContent = `Fecha: ${formatearFechaRemision(
-    esEntrante ? registro.fechaRemisionCompetencia : rechazo?.fechaRechazo
+    esNuevaSolicitud
+      ? registro.fechaHoraRadicacion || registro.fechaRadicacion
+      : esRecibida
+        ? recepcion?.fechaRecepcion
+        : esEntrante
+          ? registro.fechaRemisionCompetencia
+          : rechazo?.fechaRechazo
   )}`;
   contenido.append(titulo, fecha);
+  if (esNuevaSolicitud && destinos.length) {
+    const destino = document.createElement('p');
+    destino.textContent = `Dependencia${destinos.length === 1 ? '' : 's'}: ${destinos.join(', ')}`;
+    contenido.append(destino);
+  }
 
   const botonVer = document.createElement('button');
   botonVer.type = 'button';
@@ -189,22 +217,22 @@ function crearNotificacionRemision(registro, tipo, contenedor, rechazo = null) {
       await new Promise(resolve => window.setTimeout(resolve, 1000));
       const abierta = await irARadicado(registro);
       if (abierta) {
-        notificacionesDescartadas.add(registro.id);
+        notificacionesDescartadas.add(notificationId);
         try {
           guardarNotificacionesDescartadas();
         } catch (error) {
-          notificacionesDescartadas.delete(registro.id);
+          notificacionesDescartadas.delete(notificationId);
           throw error;
         }
         contenedor.querySelectorAll('.pqrs-notification-item').forEach(notificacion => {
-          if (notificacion.dataset.radicadoId === registro.id) notificacion.remove();
+          if (notificacion.dataset.notificationId === notificationId) notificacion.remove();
         });
         const notificacionesRestantes = contenedor.querySelectorAll('.pqrs-notification-item').length;
         actualizarContadorNotificaciones(notificacionesRestantes);
         if (notificacionesRestantes === 0) {
           mostrarEstadoNotificaciones(
             contenedor,
-            'No hay notificaciones pendientes sobre remisiones por competencia.'
+            'No hay notificaciones pendientes.'
           );
         }
       }
@@ -225,47 +253,101 @@ function crearNotificacionRemision(registro, tipo, contenedor, rechazo = null) {
 }
 
 function procesarNotificaciones(snapshot, contenedor) {
-  const notificaciones = snapshot.docs
-    .map(documento => ({
+  const registros = snapshot.docs.map(documento => ({
       ...documento.data(),
       id: documento.id
-    }))
-    .filter(registro => !notificacionesDescartadas.has(registro.id))
-    .flatMap(registro => {
-      const resultado = [];
-      const rechazosGuardados = Array.isArray(registro.rechazosCompetencia)
-        ? registro.rechazosCompetencia.filter(rechazo => (
-            rechazo && typeof rechazo.dependencia === 'string'
-          ))
-        : [];
-      const rechazos = rechazosGuardados.length
-        ? rechazosGuardados
-        : (Array.isArray(registro.dependenciasRechazadas)
-          ? registro.dependenciasRechazadas.map(dependencia => ({
-              dependencia,
-              fechaRechazo: ''
-            }))
-          : []);
-      rechazos.forEach(rechazo => {
-        resultado.push({ registro, tipo: 'rechazada', rechazo });
+    }));
+  const notificaciones = [];
+  const solicitudesVentanilla = new Map();
+  const agregarNotificacion = notificacion => {
+    if (
+      !notificacionesDescartadas.has(notificacion.notificationId)
+    ) {
+      notificaciones.push(notificacion);
+    }
+  };
+
+  registros.forEach(registro => {
+    const rechazosGuardados = Array.isArray(registro.rechazosCompetencia)
+      ? registro.rechazosCompetencia.filter(rechazo => (
+          rechazo && typeof rechazo.dependencia === 'string'
+        ))
+      : [];
+    const rechazos = rechazosGuardados.length
+      ? rechazosGuardados
+      : (Array.isArray(registro.dependenciasRechazadas)
+        ? registro.dependenciasRechazadas.map(dependencia => ({
+            dependencia,
+            fechaRechazo: ''
+          }))
+        : []);
+    rechazos.forEach((rechazo, indice) => {
+      const notificationId = `${registro.id}:rechazada:${rechazo.dependencia}:${rechazo.fechaRechazo || indice}`;
+      agregarNotificacion({ registro, tipo: 'rechazada', rechazo, notificationId });
+    });
+
+    const recepciones = Array.isArray(registro.recepcionesCompetencia)
+      ? registro.recepcionesCompetencia.filter(recepcion => (
+          recepcion && typeof recepcion.dependencia === 'string'
+        ))
+      : [];
+    recepciones.forEach((recepcion, indice) => {
+      const notificationId = `${registro.id}:recibida:${recepcion.dependencia}:${recepcion.fechaRecepcion || indice}`;
+      agregarNotificacion({ registro, tipo: 'recibida', recepcion, notificationId });
+    });
+
+    if (registro.remisionOrigenId && !registro.fechaRecepcionCompetencia) {
+      agregarNotificacion({
+        registro,
+        tipo: 'entrante',
+        notificationId: `${registro.id}:entrante`
       });
-      if (registro.remisionOrigenId && !registro.fechaRecepcionCompetencia) {
-        resultado.push({ registro, tipo: 'entrante' });
+    }
+
+    if (registro.origenSolicitud === 'ventanilla' && !registro.remisionOrigenId) {
+      const fechaEvento = registro.fechaHoraRadicacion || registro.fechaRadicacion || '';
+      const solicitudId = `${registro.radicado || registro.id}:${fechaEvento}`;
+      const notificacion = solicitudesVentanilla.get(solicitudId) || {
+        registro,
+        tipo: 'nueva-solicitud',
+        notificationId: `ventanilla:${solicitudId}`,
+        destinos: []
+      };
+      if (registro.dependencia && !notificacion.destinos.includes(registro.dependencia)) {
+        notificacion.destinos.push(registro.dependencia);
       }
-      return resultado;
-    })
-    .sort((a, b) => String(b.registro.fechaRadicacion || '')
-      .localeCompare(String(a.registro.fechaRadicacion || '')));
+      solicitudesVentanilla.set(solicitudId, notificacion);
+    }
+  });
+
+  solicitudesVentanilla.forEach(agregarNotificacion);
+  notificaciones.sort((a, b) => {
+    const fechaA = a.tipo === 'rechazada'
+      ? a.rechazo?.fechaRechazo
+      : a.tipo === 'recibida'
+        ? a.recepcion?.fechaRecepcion
+        : a.tipo === 'entrante'
+          ? a.registro.fechaRemisionCompetencia
+          : a.registro.fechaHoraRadicacion || a.registro.fechaRadicacion;
+    const fechaB = b.tipo === 'rechazada'
+      ? b.rechazo?.fechaRechazo
+      : b.tipo === 'recibida'
+        ? b.recepcion?.fechaRecepcion
+        : b.tipo === 'entrante'
+          ? b.registro.fechaRemisionCompetencia
+          : b.registro.fechaHoraRadicacion || b.registro.fechaRadicacion;
+    return String(fechaB || '').localeCompare(String(fechaA || ''));
+  });
 
   if (!notificaciones.length) {
-    mostrarEstadoNotificaciones(contenedor, 'No hay novedades sobre remisiones por competencia.');
+    mostrarEstadoNotificaciones(contenedor, 'No hay notificaciones pendientes.');
     actualizarContadorNotificaciones(0);
     return;
   }
 
   const fragmento = document.createDocumentFragment();
-  notificaciones.forEach(({ registro, tipo, rechazo }) => (
-    fragmento.append(crearNotificacionRemision(registro, tipo, contenedor, rechazo))
+  notificaciones.forEach(notificacion => (
+    fragmento.append(crearNotificacionRemision(notificacion, contenedor))
   ));
   contenedor.replaceChildren(fragmento);
   actualizarContadorNotificaciones(notificaciones.length);

@@ -406,6 +406,10 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
       });
       transaction.update(origenRef, {
         dependenciasRecibidas: arrayUnion(datosRadicado.dependencia),
+        recepcionesCompetencia: arrayUnion({
+          dependencia: datosRadicado.dependencia,
+          fechaRecepcion
+        }),
         estado: 'R. por C.'
       });
       return true;
@@ -702,7 +706,7 @@ window.abrirModalOtrosEstados = function(id, coleccion = '') {
     cargarOpcionesRemision(item);
     const seccionRemision = document.getElementById('alternarDependenciasRemision')?.closest('section');
     if (seccionRemision) {
-      seccionRemision.hidden = !esAdministrador();
+      seccionRemision.hidden = obtenerColeccionRegistro(item) === 'radicadosIAS' && !esAdministrador();
     }
     document.getElementById('modalOtrosEstados').style.display = 'flex';
   }
@@ -731,8 +735,12 @@ window.guardarOtrosEstados = async function() {
   const destinosSeleccionados = Array.from(
     document.querySelectorAll('input[name="dependenciaDestinoCompetencia"]:checked:not(:disabled)')
   ).map(casilla => casilla.value);
-  if (destinosSeleccionados.length && !esAdministrador()) {
-    alert('Solo el administrador puede remitir radicados por competencia.');
+  if (
+    destinosSeleccionados.length
+    && obtenerColeccionRegistro(radicado) === 'radicadosIAS'
+    && !esAdministrador()
+  ) {
+    alert('Solo el administrador puede remitir radicados IAS por competencia.');
     return;
   }
 
@@ -788,18 +796,8 @@ window.guardarOtrosEstados = async function() {
             db, RADICADOS_COLLECTION, generarIdCopiaCompetencia(id, dependencia)
           )
         }));
-        const snapshotsCopias = await Promise.all(
-          copias.map(copia => transaction.get(copia.referencia))
-        );
 
-        copias.forEach((copia, indice) => {
-          const copiaExistente = snapshotsCopias[indice];
-          if (copiaExistente.exists()) {
-            if (copiaExistente.data().remisionOrigenId !== id) {
-              throw new Error(`Ya existe un radicado con el identificador de copia para ${copia.dependencia}.`);
-            }
-            return;
-          }
+        copias.forEach(copia => {
           transaction.set(copia.referencia, {
             ...radicadoOriginal,
             dependencia: copia.dependencia,

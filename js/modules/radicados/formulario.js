@@ -206,6 +206,7 @@ async function guardarRadicado(e) {
     // 2. Estructuración de los datos del nuevo radicado
     const nuevoRadicado = {
       radicado: document.getElementById('radicado').value.trim(),
+      origenSolicitud: 'ventanilla',
       estado: 'VIGENTE',
       tipoCanal: document.getElementById('tipoCanal').value,
       fechaRadicacion: document.getElementById('fechaRadicacion').value,
