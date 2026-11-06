@@ -23,6 +23,7 @@ import {
 } from '../auth/roles.js';
 import { confirmarAccion } from '../ui/avisos.js';
 import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
+import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
 
 function obtenerFechaActualBogota() {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -422,6 +423,10 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
     }
 
     await recargarDatosRegistro(radicado);
+    await informarResultadoNotificacionCorreo('recibida', {
+      id: radicado.remisionOrigenId,
+      dependencia: radicado.dependencia
+    });
     alert(`Radicado recibido. La fecha de entrega se actualizó al ${fechaRecepcion}.`);
   } catch (error) {
     console.error('Error al recibir el radicado por competencia:', error);
@@ -478,6 +483,10 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
     });
 
     await recargarDatosRegistro(radicado);
+    await informarResultadoNotificacionCorreo('rechazo', {
+      id: radicado.remisionOrigenId,
+      dependencia: radicado.dependencia
+    });
     alert('Se rechazó la remisión. Las demás dependencias conservan sus copias pendientes.');
   } catch (error) {
     console.error('Error al rechazar el radicado por competencia:', error);
@@ -824,6 +833,7 @@ window.guardarOtrosEstados = async function() {
           fechaRemisionCompetencia: fechaRemision
         });
       });
+      await informarResultadoNotificacionCorreo('remision', { id });
     } else {
       await updateDoc(docRef, camposGestion);
     }

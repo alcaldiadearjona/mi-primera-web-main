@@ -4,6 +4,7 @@ import { abreviarNombreDependencia, convertirABase64, sumarDiasHabilesColombia }
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { esFuncionario, obtenerDependenciaSesion, obtenerPerfilSesion } from '../auth/roles.js';
 import { mostrarAviso } from '../ui/avisos.js';
+import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
 
 export function calcularFechaVencimiento() {
   const inputFechaRad = document.getElementById('fechaRadicacion');
@@ -231,6 +232,10 @@ async function guardarRadicado(e) {
       });
     });
     await lote.commit();
+    await informarResultadoNotificacionCorreo(
+      'nueva-solicitud',
+      { ids: registrosDestino.map(({ referencia }) => referencia.id) }
+    );
 
     alert(
       `La PQRS ${nuevoRadicado.radicado} se envió a las siguientes dependencias:\n\n`

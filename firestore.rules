@@ -55,7 +55,14 @@ service cloud.firestore {
     }
 
     match /radicados/{radicadoId} {
-      allow get, list: if isAdmin() || isEmployeeOf(resource.data.dependencia);
+      allow get: if isAdmin()
+        || isEmployeeOf(resource.data.dependencia)
+        || (
+          isFuncionario()
+          && resource.data.dependenciasDestino is list
+          && resource.data.dependenciasDestino.hasAny([profile().dependencia])
+        );
+      allow list: if isAdmin() || isEmployeeOf(resource.data.dependencia);
       allow create: if isAdmin()
         || (
           isEmployeeOf(request.resource.data.dependencia)
