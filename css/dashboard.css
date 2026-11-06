@@ -179,6 +179,15 @@
   font-size: 16px;
 }
 
+@media (min-width: 901px) {
+  .sidebar {
+    position: sticky;
+    top: 8px;
+    height: calc(100vh - 16px);
+    overflow-y: auto;
+  }
+}
+
 .pqrs-notification-content {
   min-width: 0;
 }

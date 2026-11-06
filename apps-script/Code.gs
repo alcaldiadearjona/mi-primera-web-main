@@ -1,4 +1,4 @@
-var EMAIL_NOTIFICATIONS_VERSION = "email-notifications-10";
+var EMAIL_NOTIFICATIONS_VERSION = "email-notifications-14";
 var PQRS_APP_URL = "https://alcaldia-municipal-de-arjona.vercel.app/";
 var ESCUDO_URL = "https://alcaldia-municipal-de-arjona.vercel.app/assets/images/escudo-alcaldia-sin-fondo.png";
 
@@ -141,7 +141,7 @@ function doPost(e) {
         + '</tr>';
     }
 
-    function crearHtmlNotificacionCorreo(tipo, registro, dependenciaDestino, mensaje, fechaEvento) {
+    function crearHtmlNotificacionCorreo(tipo, registro, dependenciaDestino, mensaje, fechaEvento, dependenciaEvento) {
       var eventos = {
         "nueva-solicitud": {
           titulo: "NUEVA SOLICITUD DE VENTANILLA",
@@ -189,17 +189,32 @@ function doPost(e) {
         crearFilaDetalleCorreo("Remitente:", registro.remitente),
         crearFilaDetalleCorreo("Asunto:", registro.asunto),
         crearFilaDetalleCorreo("Fecha:", fecha),
-        crearFilaDetalleCorreo("Radicado:", registro.radicado || "Sin número"),
-        crearFilaDetalleCorreo("Dependencia:", dependenciaDestino)
+        crearFilaDetalleCorreo("Radicado:", registro.radicado || "Sin número")
       ];
-      if (registro.dependencia && registro.dependencia !== dependenciaDestino) {
+      if (tipo === "rechazo") {
+        filas.push(
+          crearFilaDetalleCorreo("Dependencia que rechazó:", dependenciaEvento),
+          crearFilaDetalleCorreo("Dependencia de origen:", dependenciaDestino)
+        );
+      } else if (tipo === "recibida") {
+        filas.push(
+          crearFilaDetalleCorreo("Dependencia que recibió:", dependenciaEvento),
+          crearFilaDetalleCorreo("Dependencia de origen:", dependenciaDestino)
+        );
+      } else if (tipo === "remision") {
+        filas.push(
+          crearFilaDetalleCorreo("Dependencia que remite:", registro.dependencia || "No disponible"),
+          crearFilaDetalleCorreo("Dependencia destinataria:", dependenciaDestino)
+        );
+      } else {
+        filas.push(crearFilaDetalleCorreo("Dependencia destinataria:", dependenciaDestino));
+      }
+      if (tipo !== "rechazo" && tipo !== "recibida"
+        && registro.dependencia && registro.dependencia !== dependenciaDestino) {
         filas.push(crearFilaDetalleCorreo("Dependencia de origen:", registro.dependencia));
       }
-      var indicadorEvento = tipo === "nueva-solicitud"
-        ? '<img src="' + escaparHtmlCorreo(ESCUDO_URL) + '" alt="Escudo de Arjona" width="72" style="display:block;width:72px;height:auto;border:0;">'
-        : '<span style="display:inline-block;padding:6px 9px;border-radius:4px;background:' + evento.color + ';color:#ffffff;font-size:10px;font-weight:700;">'
-          + escaparHtmlCorreo(evento.etiqueta)
-          + '</span>';
+      var indicadorEvento = '<img src="' + escaparHtmlCorreo(ESCUDO_URL)
+        + '" alt="Escudo de Arjona" width="72" style="display:block;width:72px;height:auto;border:0;">';
 
       return '<div style="margin:0;padding:24px 12px;background:#f3f6f4;font-family:Arial,Helvetica,sans-serif;color:#243447;">'
         + '<div style="max-width:560px;margin:0 auto;border:1px solid #d1d5db;background:#ffffff;">'
@@ -234,7 +249,7 @@ function doPost(e) {
         + '</div></div></div>';
     }
 
-    function enviarCorreoDependencia(tipo, registro, dependenciaDestino, eventoId, fechaEvento) {
+    function enviarCorreoDependencia(tipo, registro, dependenciaDestino, eventoId, fechaEvento, dependenciaEvento) {
       var correo = dependenciaNombreCorreo(dependenciaDestino);
       if (!correo) return "unconfigured";
 
@@ -257,20 +272,33 @@ function doPost(e) {
             + " remitió un oficio por competencia a " + dependenciaDestino + ".";
         } else if (tipo === "recibida") {
           asunto = "Remisión por competencia recibida - " + radicado;
-          mensaje = "La dependencia " + dependenciaDestino
-            + " recibió la remisión por competencia.";
+          mensaje = "La dependencia " + dependenciaEvento
+            + " recibió la remisión por competencia enviada por " + dependenciaDestino + ".";
         } else {
           asunto = "Remisión por competencia rechazada - " + radicado;
-          mensaje = "La dependencia " + dependenciaDestino
-            + " rechazó la remisión por competencia.";
+          mensaje = "La dependencia " + dependenciaEvento
+            + " rechazó la remisión por competencia enviada por " + dependenciaDestino + ".";
         }
 
+        var detalleDependencias;
+        if (tipo === "rechazo") {
+          detalleDependencias = "\nDependencia que rechazó: " + dependenciaEvento
+            + "\nDependencia de origen: " + dependenciaDestino;
+        } else if (tipo === "recibida") {
+          detalleDependencias = "\nDependencia que recibió: " + dependenciaEvento
+            + "\nDependencia de origen: " + dependenciaDestino;
+        } else if (tipo === "remision") {
+          detalleDependencias = "\nDependencia que remite: " + (registro.dependencia || "No disponible")
+            + "\nDependencia destinataria: " + dependenciaDestino;
+        } else {
+          detalleDependencias = "\nDependencia destinataria: " + dependenciaDestino;
+        }
         MailApp.sendEmail({
           to: correo,
           subject: asunto,
           body: mensaje
             + "\n\nRadicado: " + radicado
-            + "\nDependencia: " + dependenciaDestino
+            + detalleDependencias
             + (registro.remitente ? "\nRemitente: " + registro.remitente : "")
             + (registro.asunto ? "\nAsunto: " + registro.asunto : "")
             + "\nFecha: " + formatearFechaCorreo(fechaEvento
@@ -283,7 +311,8 @@ function doPost(e) {
             registro,
             dependenciaDestino,
             mensaje,
-            fechaEvento
+            fechaEvento,
+            dependenciaEvento
           )
         });
         propiedades.setProperty(clave, new Date().toISOString());
@@ -380,7 +409,8 @@ function doPost(e) {
               registro,
               registro.dependencia,
               idRegistro + ":" + dependenciaEvento + ":" + fechaEvento,
-              fechaEvento
+              fechaEvento,
+              dependenciaEvento
             );
             if (resultadoCorreo === "sent") enviados++;
             else if (resultadoCorreo === "already-sent") duplicados++;

@@ -252,6 +252,33 @@ function crearNotificacionRemision(notificacion, contenedor) {
   return tarjeta;
 }
 
+function obtenerFechaNotificacion(notificacion) {
+  const { registro, tipo, rechazo, recepcion } = notificacion;
+  if (tipo === 'rechazada') return rechazo?.fechaHoraRechazo || rechazo?.fechaRechazo;
+  if (tipo === 'recibida') return recepcion?.fechaHoraRecepcion || recepcion?.fechaRecepcion;
+  if (tipo === 'entrante') return registro.fechaRemisionCompetencia;
+  return registro.fechaHoraRadicacion || registro.fechaRadicacion;
+}
+
+function obtenerPrioridadTipoNotificacion(tipo) {
+  if (tipo === 'rechazada') return 3;
+  if (tipo === 'recibida') return 2;
+  if (tipo === 'entrante') return 1;
+  return 0;
+}
+
+function compararNotificacionesRecientes(a, b) {
+  const valorFechaA = String(obtenerFechaNotificacion(a) || '');
+  const valorFechaB = String(obtenerFechaNotificacion(b) || '');
+  const fechaA = Date.parse(valorFechaA);
+  const fechaB = Date.parse(valorFechaB);
+  if (!Number.isFinite(fechaA)) return Number.isFinite(fechaB) ? 1 : 0;
+  if (!Number.isFinite(fechaB)) return -1;
+  const diferenciaFecha = fechaB - fechaA;
+  return diferenciaFecha || obtenerPrioridadTipoNotificacion(b.tipo)
+    - obtenerPrioridadTipoNotificacion(a.tipo);
+}
+
 function procesarNotificaciones(snapshot, contenedor) {
   const registros = snapshot.docs.map(documento => ({
       ...documento.data(),
@@ -321,23 +348,7 @@ function procesarNotificaciones(snapshot, contenedor) {
   });
 
   solicitudesVentanilla.forEach(agregarNotificacion);
-  notificaciones.sort((a, b) => {
-    const fechaA = a.tipo === 'rechazada'
-      ? a.rechazo?.fechaRechazo
-      : a.tipo === 'recibida'
-        ? a.recepcion?.fechaRecepcion
-        : a.tipo === 'entrante'
-          ? a.registro.fechaRemisionCompetencia
-          : a.registro.fechaHoraRadicacion || a.registro.fechaRadicacion;
-    const fechaB = b.tipo === 'rechazada'
-      ? b.rechazo?.fechaRechazo
-      : b.tipo === 'recibida'
-        ? b.recepcion?.fechaRecepcion
-        : b.tipo === 'entrante'
-          ? b.registro.fechaRemisionCompetencia
-          : b.registro.fechaHoraRadicacion || b.registro.fechaRadicacion;
-    return String(fechaB || '').localeCompare(String(fechaA || ''));
-  });
+  notificaciones.sort(compararNotificacionesRecientes);
 
   if (!notificaciones.length) {
     mostrarEstadoNotificaciones(contenedor, 'No hay notificaciones pendientes.');

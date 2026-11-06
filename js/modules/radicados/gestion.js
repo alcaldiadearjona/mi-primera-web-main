@@ -384,6 +384,7 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
   }
 
   const fechaRecepcion = obtenerFechaActualBogota();
+  const fechaHoraRecepcion = new Date().toISOString();
   try {
     const recibido = await runTransaction(db, async transaction => {
       const docRef = doc(db, obtenerColeccionRegistro(radicado), id);
@@ -409,7 +410,8 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
         dependenciasRecibidas: arrayUnion(datosRadicado.dependencia),
         recepcionesCompetencia: arrayUnion({
           dependencia: datosRadicado.dependencia,
-          fechaRecepcion
+          fechaRecepcion,
+          fechaHoraRecepcion
         }),
         estado: 'R. por C.'
       });
@@ -460,6 +462,7 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
     const coleccionOrigen = radicado.remisionOrigenColeccion || RADICADOS_COLLECTION;
     const origenRef = doc(db, coleccionOrigen, radicado.remisionOrigenId);
     const fechaRechazo = obtenerFechaActualBogota();
+    const fechaHoraRechazo = new Date().toISOString();
     await runTransaction(db, async transaction => {
       const copiaSnapshot = await transaction.get(copiaRef);
       if (!copiaSnapshot.exists()) throw new Error('La copia remitida ya no existe.');
@@ -476,7 +479,8 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
         dependenciasRechazadas: arrayUnion(radicado.dependencia),
         rechazosCompetencia: arrayUnion({
           dependencia: radicado.dependencia,
-          fechaRechazo
+          fechaRechazo,
+          fechaHoraRechazo
         })
       });
       transaction.delete(copiaRef);
