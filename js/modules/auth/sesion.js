@@ -316,7 +316,7 @@ async function recuperarContrasena(event) {
     auth.languageCode = 'es';
     await sendPasswordResetEmail(auth, credencial.email);
     if (estado) {
-      estado.textContent = `Si la cuenta existe, Firebase enviará un enlace de recuperación a ${credencial.email}.`;
+      estado.textContent = `Si la cuenta existe, se enviará un enlace de recuperación a ${credencial.email}.`;
       estado.hidden = false;
     }
   } catch (error) {
@@ -328,7 +328,7 @@ async function recuperarContrasena(event) {
     ]);
     if (erroresDeCuenta.has(error?.code)) {
       if (estado) {
-        estado.textContent = `Si la cuenta existe, Firebase enviará un enlace de recuperación a ${credencial.email}.`;
+        estado.textContent = `Si la cuenta existe, se enviará un enlace de recuperación a ${credencial.email}.`;
         estado.hidden = false;
       }
     } else {
