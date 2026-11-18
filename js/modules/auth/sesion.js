@@ -1,6 +1,8 @@
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import {
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInAnonymously,
   signInWithEmailAndPassword,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -14,8 +16,10 @@ import {
   esAdministrador,
   esControlInterno,
   esFuncionario,
+  esInvitado,
   limpiarSesionUsuario,
   obtenerCredencialLogin,
+  obtenerCredencialPorCorreo,
   obtenerDependenciaSesion,
   puedeConsultarIAS,
   puedeGestionarIAS
@@ -34,6 +38,7 @@ let rolSolicitado = '';
 let usuarioConfigurado = '';
 let configuracionEnCurso = null;
 let modulosInicializados = false;
+let modulosGeneracionInicializados = false;
 let ordenOriginalTarjetasDependencias = null;
 
 function mostrarErrorLogin(mensaje) {
@@ -52,7 +57,7 @@ function obtenerMensajeErrorAutenticacion(error) {
     'auth/wrong-password': 'Usuario o Contraseña Incorrecta.',
     'auth/too-many-requests': 'Firebase bloqueó temporalmente los intentos. Espera unos minutos e inténtalo de nuevo.',
     'auth/network-request-failed': 'No se pudo conectar con Firebase. Revisa tu conexión a Internet e inténtalo de nuevo.',
-    'auth/operation-not-allowed': 'Falta habilitar el proveedor: en Firebase Console abre Authentication > Sign-in method, activa Correo electrónico/Contraseña y guarda los cambios.',
+    'auth/operation-not-allowed': 'El método de acceso no está habilitado. En Firebase Console abre Authentication > Sign-in method y activa el proveedor necesario.',
     'auth/unauthorized-domain': 'El dominio de esta aplicación no está autorizado en Firebase Authentication.',
     'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'La clave de Firebase no es válida para este proyecto. Revisa la configuración de Firebase de la aplicación.',
     'permission-denied': 'Firebase aceptó la cuenta, pero denegó la lectura de su perfil. Verifica que exista usuarios/{uid} y que las reglas de Firestore estén desplegadas.',
@@ -102,7 +107,9 @@ function mostrarPantallaDespuesDeLogin() {
     ? 'Control Interno'
     : esAdministrador()
       ? 'Administrador'
-      : obtenerDependenciaSesion();
+      : esInvitado()
+        ? 'Invitado'
+        : obtenerDependenciaSesion();
   const saludo = document.getElementById('saludoSesion');
   const nombreSaludo = document.getElementById('nombreSaludoSesion');
   if (nombreSaludo) nombreSaludo.textContent = nombre;
@@ -112,10 +119,17 @@ function mostrarPantallaDespuesDeLogin() {
   if (rolMenu) {
     rolMenu.textContent = esAdministrador() && !esControlInterno()
       ? 'Administrador'
-      : 'Funcionario';
+      : esInvitado()
+        ? 'Invitado'
+        : 'Funcionario';
   }
   if (nombreMenu) nombreMenu.textContent = nombre;
 
+  document.querySelectorAll('.menu-item').forEach(elemento => {
+    const ocultar = esInvitado() && elemento.dataset.menuView !== 'generacion';
+    elemento.hidden = ocultar;
+    elemento.style.display = ocultar ? 'none' : '';
+  });
   document.querySelectorAll('.admin-only').forEach(elemento => {
     elemento.hidden = !esAdministrador();
   });
@@ -130,10 +144,13 @@ function mostrarPantallaDespuesDeLogin() {
 }
 
 function inicializarModulosAutorizados() {
-  if (modulosInicializados) return;
+  if (!modulosGeneracionInicializados) {
+    inicializarFormularioGeneracionSalida();
+    modulosGeneracionInicializados = true;
+  }
+  if (esInvitado() || modulosInicializados) return;
   inicializarAccionesRadicados();
   inicializarFormulario();
-  inicializarFormularioGeneracionSalida();
   inicializarExportacionPlanilla();
   inicializarExportacionInformes();
   modulosInicializados = true;
@@ -145,23 +162,37 @@ async function configurarUsuario(usuario, rolElegido = '') {
   if (configuracionEnCurso) await configuracionEnCurso.promesa;
 
   const promesa = (async () => {
-    const snapshotPerfil = await getDoc(doc(db, 'usuarios', usuario.uid));
-    if (!snapshotPerfil.exists()) {
-      throw new Error('La cuenta no tiene un perfil de acceso configurado. Contacta al administrador.');
-    }
+    let perfil;
+    if (usuario.isAnonymous) {
+      if (rolElegido && rolElegido !== 'invitado') {
+        throw new Error('La sesión anónima solo puede usar el rol Invitado.');
+      }
+      perfil = { rol: 'invitado', nombre: 'Invitado' };
+    } else {
+      const snapshotPerfil = await getDoc(doc(db, 'usuarios', usuario.uid));
+      if (!snapshotPerfil.exists()) {
+        throw new Error('La cuenta no tiene un perfil de acceso configurado. Contacta al administrador.');
+      }
 
-    const perfil = snapshotPerfil.data();
-    const usuarioEsperado = obtenerCredencialLogin(usuario.email?.split('@')[0]);
-    if (!usuarioEsperado
-      || perfil.rol !== usuarioEsperado.rol
-      || (usuarioEsperado.dependencia && perfil.dependencia !== usuarioEsperado.dependencia)
-      || (rolElegido && perfil.rol !== rolElegido)) {
-      throw new Error('El rol o la dependencia de la cuenta no coincide con su perfil.');
+      perfil = snapshotPerfil.data();
+      const usuarioEsperado = obtenerCredencialPorCorreo(usuario.email);
+      if (!usuarioEsperado
+        || perfil.rol !== usuarioEsperado.rol
+        || (usuarioEsperado.dependencia && perfil.dependencia !== usuarioEsperado.dependencia)
+        || (rolElegido && perfil.rol !== rolElegido)) {
+        throw new Error('El rol o la dependencia de la cuenta no coincide con su perfil.');
+      }
     }
 
     establecerSesionUsuario(usuario, perfil);
     mostrarPantallaDespuesDeLogin();
     inicializarModulosAutorizados();
+    if (esInvitado()) {
+      window.mostrarGeneracionRadicados();
+      usuarioConfigurado = usuario.uid;
+      return;
+    }
+
     const anoActual = new Intl.DateTimeFormat('sv-SE', {
       timeZone: 'America/Bogota',
       year: 'numeric'
@@ -214,14 +245,14 @@ window.iniciarSesion = async function(event) {
   const boton = document.getElementById('btnIngresarLogin');
   const spinner = document.getElementById('spinnerLogin');
   const texto = document.getElementById('textoBtnLogin');
+  const rol = document.getElementById('loginRol')?.value || '';
   const usuario = document.getElementById('loginUsuario')?.value.trim().toLowerCase() || '';
   const clave = document.getElementById('loginClave')?.value || '';
-  const rol = document.getElementById('loginRol')?.value || '';
-  const credencial = obtenerCredencialLogin(usuario);
+  const credencial = rol === 'invitado' ? null : obtenerCredencialLogin(usuario);
   const error = document.getElementById('errorLogin');
   if (error) error.hidden = true;
 
-  if (!credencial || credencial.rol !== rol) {
+  if (rol !== 'invitado' && (!credencial || credencial.rol !== rol)) {
     mostrarErrorLogin('El usuario no corresponde al rol seleccionado.');
     return;
   }
@@ -232,7 +263,9 @@ window.iniciarSesion = async function(event) {
   rolSolicitado = rol;
 
   try {
-    const resultado = await signInWithEmailAndPassword(auth, credencial.email, clave);
+    const resultado = rol === 'invitado'
+      ? await signInAnonymously(auth)
+      : await signInWithEmailAndPassword(auth, credencial.email, clave);
     try {
       await configurarUsuario(resultado.user, rol);
       rolSolicitado = '';
@@ -244,7 +277,8 @@ window.iniciarSesion = async function(event) {
   } catch (errorAutenticacion) {
     console.error('Error de Firebase Authentication:', errorAutenticacion);
     mostrarErrorLogin(obtenerMensajeErrorAutenticacion(errorAutenticacion));
-    document.getElementById('loginClave').value = '';
+    const campoClave = document.getElementById('loginClave');
+    if (campoClave) campoClave.value = '';
   } finally {
     rolSolicitado = '';
     if (spinner) spinner.style.display = 'none';
@@ -252,6 +286,60 @@ window.iniciarSesion = async function(event) {
     if (boton) boton.disabled = false;
   }
 };
+
+async function recuperarContrasena(event) {
+  event.preventDefault();
+  const rol = document.getElementById('loginRol')?.value || '';
+  const usuario = document.getElementById('loginUsuario')?.value.trim().toLowerCase() || '';
+  const estado = document.getElementById('estadoRecuperacionLogin');
+  const errorLogin = document.getElementById('errorLogin');
+  if (errorLogin) errorLogin.hidden = true;
+  if (estado) {
+    estado.hidden = true;
+    estado.textContent = '';
+  }
+
+  if (rol === 'invitado') {
+    mostrarErrorLogin('El rol Invitado no usa contraseña.');
+    return;
+  }
+
+  const credencial = obtenerCredencialLogin(usuario);
+  if (!credencial || credencial.rol !== rol) {
+    mostrarErrorLogin('Selecciona el rol e ingresa un usuario válido para recuperar la contraseña.');
+    return;
+  }
+
+  const boton = event.currentTarget;
+  boton.setAttribute('aria-disabled', 'true');
+  try {
+    auth.languageCode = 'es';
+    await sendPasswordResetEmail(auth, credencial.email);
+    if (estado) {
+      estado.textContent = `Si la cuenta existe, Firebase enviará un enlace de recuperación a ${credencial.email}.`;
+      estado.hidden = false;
+    }
+  } catch (error) {
+    console.error('No fue posible solicitar la recuperación de contraseña:', error);
+    const erroresDeCuenta = new Set([
+      'auth/user-not-found',
+      'auth/invalid-email',
+      'auth/invalid-credential'
+    ]);
+    if (erroresDeCuenta.has(error?.code)) {
+      if (estado) {
+        estado.textContent = `Si la cuenta existe, Firebase enviará un enlace de recuperación a ${credencial.email}.`;
+        estado.hidden = false;
+      }
+    } else {
+      mostrarErrorLogin(`No fue posible enviar el enlace de recuperación: ${obtenerMensajeErrorAutenticacion(error)}`);
+    }
+  } finally {
+    boton.removeAttribute('aria-disabled');
+  }
+}
+
+window.recuperarContrasena = recuperarContrasena;
 
 window.togglePasswordVisibility = function() {
   const input = document.getElementById('loginClave');
@@ -311,6 +399,32 @@ export function inicializarSesion() {
   document.querySelectorAll('.ias-manage-only').forEach(elemento => {
     elemento.hidden = true;
   });
+  const selectorRol = document.getElementById('loginRol');
+  const grupoUsuario = document.getElementById('grupoUsuarioLogin');
+  const grupoClave = document.getElementById('grupoClaveLogin');
+  const campoUsuario = document.getElementById('loginUsuario');
+  const campoClave = document.getElementById('loginClave');
+  const actualizarCamposLogin = () => {
+    const esInvitadoSeleccionado = selectorRol?.value === 'invitado';
+    if (grupoUsuario) grupoUsuario.hidden = esInvitadoSeleccionado;
+    if (grupoClave) grupoClave.hidden = esInvitadoSeleccionado;
+    if (campoUsuario) {
+      campoUsuario.required = !esInvitadoSeleccionado;
+      campoUsuario.disabled = esInvitadoSeleccionado;
+      if (esInvitadoSeleccionado) campoUsuario.value = '';
+    }
+    if (campoClave) {
+      campoClave.required = !esInvitadoSeleccionado;
+      campoClave.disabled = esInvitadoSeleccionado;
+      if (esInvitadoSeleccionado) campoClave.value = '';
+    }
+    const enlaceRecuperacion = document.getElementById('enlaceRecuperarContrasena');
+    if (enlaceRecuperacion) enlaceRecuperacion.hidden = esInvitadoSeleccionado;
+  };
+  selectorRol?.addEventListener('change', actualizarCamposLogin);
+  actualizarCamposLogin();
+  document.getElementById('enlaceRecuperarContrasena')
+    ?.addEventListener('click', recuperarContrasena);
   onAuthStateChanged(auth, usuario => {
     void procesarCambioAutenticacion(usuario);
   });

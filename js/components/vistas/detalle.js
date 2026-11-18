@@ -65,7 +65,7 @@ export const detalleMarkup = String.raw`<div id="pantallaDependencia" style="dis
                 <th>Días Háb.</th>
                 <th>Remitente</th>
                 <th>Asunto</th>
-                <th>Funcionario Asignado</th>
+                <th>Responsable Asignado</th>
                 <th>Acciones</th>
                 <th>Respuesta</th>
                 <th>F. Carga Respuesta</th>

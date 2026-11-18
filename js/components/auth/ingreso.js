@@ -33,14 +33,15 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
           <select id="loginRol" required>
             <option value="funcionario">Funcionario</option>
             <option value="administrador">Administrador</option>
+            <option value="invitado">Invitado</option>
           </select>
         </div>
-        <div>
+        <div id="grupoUsuarioLogin">
           <label for="loginUsuario" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Usuario</label>
           <input type="text" id="loginUsuario" autocomplete="username" required placeholder="Ingrese su usuario..." style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;" onfocus="this.style.borderColor='#00a838'" onblur="this.style.borderColor='#cbd5e1'">
         </div>
 
-        <div>
+        <div id="grupoClaveLogin">
           <label for="loginClave" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Contraseña</label>
           <div class="login-password-field">
             <input type="password" id="loginClave" autocomplete="current-password" required placeholder="••••••••" style="width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #cbd5e1; outline: none; font-size: 15px; background: transparent; color: #1e293b;" onfocus="this.style.borderColor='#00a838'" onblur="this.style.borderColor='#cbd5e1'">
@@ -54,9 +55,10 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
 
         <!-- Opciones secundarias -->
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-top: 5px; margin-bottom: 10px;">
-          <a href="#" onclick="alert('Contacte al administrador del sistema para restablecer su clave.')" style="color: #64748b; text-decoration: none;">Olvidé mi Contraseña</a>
+          <a href="#" id="enlaceRecuperarContrasena" style="color: #64748b; text-decoration: none;">Olvidé mi Contraseña</a>
           <a href="#" onclick="alert('El registro requiere autorización previa de la oficina de sistemas.')" style="color: #64748b; text-decoration: none;">Registrarse</a>
         </div>
+        <p id="estadoRecuperacionLogin" role="status" aria-live="polite" hidden style="margin:0; color:#166534; font-size:13px;"></p>
 
         <!-- Botón Ingresar con Ruedita de Carga -->
         <div style="text-align: center;">

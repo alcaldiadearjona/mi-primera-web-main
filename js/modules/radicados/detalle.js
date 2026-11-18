@@ -1,8 +1,11 @@
 import { datosRadicados, dependenciaActual, establecerDependenciaActual } from '../../data/radicados.js';
-import { esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
+import { esFuncionario, esInvitado, obtenerDependenciaSesion } from '../auth/roles.js';
 import { renderizarTablaRadicados } from './tabla.js';
 
+let ultimaBusquedaRadicados = '';
+
 export function abrirDependencia(nombreDep) {
+  if (esInvitado()) return;
   if (esFuncionario() && nombreDep !== obtenerDependenciaSesion()) {
     alert('No tienes permiso para consultar esta dependencia.');
     return;
@@ -43,6 +46,7 @@ export function abrirDependencia(nombreDep) {
   const selectAno = document.getElementById('filtroAno');
   const selectMes = document.getElementById('filtroMes');
   if (inputBuscar) inputBuscar.value = "";
+  ultimaBusquedaRadicados = '';
   const fechaActual = new Date();
   if (selectAno) selectAno.value = String(fechaActual.getFullYear());
   if (selectMes) selectMes.value = '';
@@ -61,8 +65,24 @@ window.aplicarFiltrosRadicados = async function() {
   if (!dependenciaActual) return;
 
   const textoBusqueda = document.getElementById('inputBuscar')?.value.toLowerCase().trim() || "";
-  const anoSeleccionado = document.getElementById('filtroAno')?.value || "";
-  const mesSeleccionado = document.getElementById('filtroMes')?.value || "";
+  const filtroAno = document.getElementById('filtroAno');
+  const filtroMes = document.getElementById('filtroMes');
+  if (!textoBusqueda && ultimaBusquedaRadicados && filtroMes && !filtroMes.value) {
+    const anoSeleccionado = filtroAno?.value || '';
+    const fechasDisponibles = (datosRadicados[dependenciaActual] || [])
+      .map(registro => String(registro.fechaRadicacion || '').slice(0, 10))
+      .filter(fecha => /^\d{4}-\d{2}-\d{2}$/.test(fecha))
+      .filter(fecha => !anoSeleccionado || fecha.startsWith(`${anoSeleccionado}-`))
+      .sort();
+    const ultimaFecha = fechasDisponibles[fechasDisponibles.length - 1];
+    if (ultimaFecha) {
+      if (filtroAno && !anoSeleccionado) filtroAno.value = ultimaFecha.slice(0, 4);
+      filtroMes.value = ultimaFecha.slice(5, 7);
+    }
+  }
+  ultimaBusquedaRadicados = textoBusqueda;
+  const anoSeleccionado = filtroAno?.value || "";
+  const mesSeleccionado = filtroMes?.value || "";
   try {
     const { cargarDatosDesdeFirebase } = await import('../../services/radicados.js');
     const cargado = await cargarDatosDesdeFirebase({

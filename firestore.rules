@@ -29,6 +29,11 @@ service cloud.firestore {
       return hasProfile() && profile().rol == 'funcionario';
     }
 
+    function isInvitado() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
     function isEmployeeOf(dependencia) {
       return hasProfile()
         && profile().rol == 'funcionario'
@@ -508,10 +513,10 @@ service cloud.firestore {
     }
 
     match /radicadosSalida/{radicadoId} {
-      allow get, list: if isAdmin() || isFuncionario();
+      allow get, list: if isAdmin() || isFuncionario() || isInvitado();
       allow create: if isAdmin()
         || (
-          isFuncionario()
+          (isFuncionario() || isInvitado())
           && request.resource.data.keys().hasAll([
             'radicado',
             'dependencia',
@@ -552,7 +557,7 @@ service cloud.firestore {
         );
       allow update: if isAdmin()
         || (
-          isFuncionario()
+          (isFuncionario() || isInvitado())
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'dependencia',
             'destinatario',
@@ -574,11 +579,11 @@ service cloud.firestore {
     }
 
     match /radicadosSalidaSecuencias/{secuenciaId} {
-      allow get: if isAdmin() || isFuncionario();
+      allow get: if isAdmin() || isFuncionario() || isInvitado();
       allow list: if isAdmin();
       allow create: if isAdmin()
         || (
-          isFuncionario()
+          (isFuncionario() || isInvitado())
           && request.resource.data.keys().hasOnly(['anio', 'ultimo'])
           && request.resource.data.anio is int
           && request.resource.data.ultimo is int
@@ -586,7 +591,7 @@ service cloud.firestore {
         );
       allow update: if isAdmin()
         || (
-          isFuncionario()
+          (isFuncionario() || isInvitado())
           && request.resource.data.keys().hasOnly(['anio', 'ultimo'])
           && request.resource.data.anio == resource.data.anio
           && request.resource.data.ultimo is int

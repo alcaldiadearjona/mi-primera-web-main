@@ -4,11 +4,11 @@ El inicio de sesión usa Firebase Authentication. Las contraseñas no se almacen
 
 ## 1. Activar Firebase Authentication
 
-En Firebase Console del proyecto `pqrsalcaldiaarjona`, abre **Authentication > Sign-in method**, habilita el proveedor **Correo electrónico/Contraseña** y guarda los cambios. Si este proveedor está desactivado, Firebase rechaza todos los intentos aunque la contraseña sea correcta.
+En Firebase Console del proyecto `pqrsalcaldiaarjona`, abre **Authentication > Sign-in method**, habilita los proveedores **Correo electrónico/Contraseña** y **Anónimo**, y guarda los cambios. El proveedor anónimo permite entrar como Invitado sin usuario ni contraseña.
 
-Después, crea una cuenta por cada usuario usando el correo sintético `usuario@usuarios.pqrsalcaldiaarjona.invalid`, donde `usuario` es el nombre de usuario de inicio de sesión. El administrador usa `admin@usuarios.pqrsalcaldiaarjona.invalid`.
+Cada usuario inicia sesión con la clave corta indicada en la tabla de abajo; la aplicación la asocia con el correo real de Firebase. El administrador usa el usuario `admin`. Si ya existen cuentas con correos `@usuarios.pqrsalcaldiaarjona.invalid`, cambia su correo en **Authentication > Users**, conservando cada UID; así los perfiles de Firestore y sus permisos siguen asociados.
 
-Configura cada contraseña en Firebase Console. No la agregues a este repositorio.
+Configura o restablece cada contraseña desde Firebase Console. No la agregues a este repositorio.
 
 ## 2. Crear perfiles
 
@@ -33,25 +33,32 @@ Perfil de funcionario:
 }
 ```
 
-El nombre de usuario determina la dependencia esperada en el cliente. Usa las claves exactas:
+Al elegir el rol Invitado y pulsar Ingresar, la aplicación inicia una sesión anónima sin crear un perfil en `usuarios`. Invitado solo puede acceder a **Generación de Radicados** y sus funciones. Como el acceso no requiere credenciales, cualquier persona que abra la aplicación puede entrar como Invitado.
 
-| Usuario | Dependencia |
-|---|---|
-| gobierno | Secretaría de Gobierno |
-| planeacion | Secretaría de Planeación |
-| gestionriesgo | Oficina de Gestion del Riesgo y Desastres |
-| desarrollosocial | Oficina de Desarrollo Social |
-| salud | Secretaría de Salud |
-| controlinterno | Control Interno |
-| juridica | Oficina Juridica |
-| despachoalcalde | Despacho del Alcalde |
-| umata | Secretaría de Umata |
-| educacion | Secretaría de Educación |
-| hacienda | Secretaría de Hacienda |
-| sisben | Sisben |
-| talentohumano | Talento Humano |
-| transito | Secretaría de Transito y Transporte |
-| gestionsocial | Gestion Social |
+El nombre de usuario determina la dependencia y el correo de inicio de sesión. Usa las claves exactas:
+
+| Usuario | Dependencia | Correo de Firebase |
+|---|---|---|
+| gobierno | Secretaría de Gobierno | gobierno@arjona-bolivar.gov.co |
+| planeacion | Secretaría de Planeación | planeacion@arjona-bolivar.gov.co |
+| gestionriesgo | Oficina de Gestion del Riesgo y Desastres | riesgos@arjona-bolivar.gov.co |
+| desarrollosocial | Oficina de Desarrollo Social | desarrollosocial@arjona-bolivar.gov.co |
+| salud | Secretaría de Salud | salud@arjona-bolivar.gov.co |
+| controlinterno | Control Interno | controlinterno@arjona-bolivar.gov.co |
+| juridica | Oficina Juridica | juridica@arjona-bolivar.gov.co |
+| despachoalcalde | Despacho del Alcalde | alcaldia@arjona-bolivar.gov.co |
+| umata | Secretaría de Umata | umata@arjona-bolivar.gov.co |
+| educacion | Secretaría de Educación | educacion@arjona-bolivar.gov.co |
+| hacienda | Secretaría de Hacienda | hacienda@arjona-bolivar.gov.co |
+| sisben | Sisben | sisben@arjona-bolivar.gov.co |
+| talentohumano | Talento Humano | talentohumano@arjona-bolivar.gov.co |
+| transito | Secretaría de Transito y Transporte | direcciondetransito@arjona-bolivar.gov.co |
+| gestionsocial | Gestion Social | gestionsocialalcaldiaarjona@gmail.com |
+| admin | Administrador | majodabel19@gmail.com |
+
+El correo `alcaldia@arjona-bolivar.gov.co` queda reservado para Despacho; Administrador usa `majodabel19@gmail.com`, pues Firebase requiere correos únicos por cuenta.
+
+Para ajustar el mensaje de recuperación, abre **Authentication > Templates > Password reset** en Firebase Console y personaliza el asunto y el texto en español. Firebase envía el enlace seguro de restablecimiento; no se envía la contraseña actual. El correo usa la plantilla de Firebase, independiente del diseño HTML de las notificaciones.
 
 ## 3. Aplicar reglas de Firestore
 
@@ -63,4 +70,4 @@ firebase deploy --only firestore:rules
 
 También puedes desplegarlas desde Firebase Console. Sin estas reglas desplegadas, ocultar elementos de la interfaz no protege los datos.
 
-El administrador y Control Interno pueden consultar y gestionar todas las colecciones, administrar usuarios y eliminar radicados. Los funcionarios ven todas las tarjetas de dependencias, pero solo pueden abrir la propia; las demás muestran “Acceso restringido”. En sus PQRS pueden registrar, asignar y actualizar el seguimiento, pero no editar los datos generales ni eliminar radicados. También pueden usar informes y planillas. La generación de radicados de salida es general: pueden consultar y gestionar radicados de todas las dependencias y seleccionar cualquier dependencia. Allí pueden editar y anular registros; la eliminación permanente sigue reservada al administrador y a Control Interno. Jurídica tiene acceso completo de consulta y gestión a IAS, incluida la creación, edición, asignación, seguimiento y gestión de respuestas, pero no puede eliminar registros IAS. IAS y su gestión quedan restringidas a los demás funcionarios.
+El administrador y Control Interno pueden consultar y gestionar todas las colecciones, administrar usuarios y eliminar radicados. Los funcionarios ven todas las tarjetas de dependencias, pero solo pueden abrir la propia; las demás muestran “Acceso restringido”. En sus PQRS pueden registrar, asignar y actualizar el seguimiento, pero no editar los datos generales ni eliminar radicados. También pueden usar informes y planillas. La generación de radicados de salida es general: pueden consultar y gestionar radicados de todas las dependencias y seleccionar cualquier dependencia. Allí pueden editar y anular registros; la eliminación permanente sigue reservada al administrador y a Control Interno. Invitado solo puede consultar, generar y gestionar registros de salida y sus consecutivos; el resto de las colecciones y pantallas no están disponibles para este rol. Jurídica tiene acceso completo de consulta y gestión a IAS, incluida la creación, edición, asignación, seguimiento y gestión de respuestas, pero no puede eliminar registros IAS. IAS y su gestión quedan restringidas a los demás funcionarios.

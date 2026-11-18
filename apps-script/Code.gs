@@ -94,11 +94,29 @@ function doPost(e) {
 
     function dependenciaNombreCorreo(dependencia) {
       var correos = {
-        "Gestion Social": "majodabel19@gmail.com",
-        "Secretaría de Gobierno": "majodabel19@gmail.com",
-        "Secretaría de Planeación": "majodabel19@gmail.com"
+        "secretaria de gobierno": "gobierno@arjona-bolivar.gov.co",
+        "secretaria de planeacion": "planeacion@arjona-bolivar.gov.co",
+        "oficina de gestion del riesgo y desastres": "riesgos@arjona-bolivar.gov.co",
+        "oficina de desarrollo social": "desarrollosocial@arjona-bolivar.gov.co",
+        "secretaria de salud": "salud@arjona-bolivar.gov.co",
+        "control interno": "controlinterno@arjona-bolivar.gov.co",
+        "oficina juridica": "juridica@arjona-bolivar.gov.co",
+        "despacho del alcalde": "alcaldia@arjona-bolivar.gov.co",
+        "secretaria de umata": "umata@arjona-bolivar.gov.co",
+        "secretaria de educacion": "educacion@arjona-bolivar.gov.co",
+        "secretaria de hacienda": "hacienda@arjona-bolivar.gov.co",
+        "sisben": "sisben@arjona-bolivar.gov.co",
+        "talento humano": "talentohumano@arjona-bolivar.gov.co",
+        "secretaria de transito y transporte": "direcciondetransito@arjona-bolivar.gov.co",
+        "gestion social": "gestionsocialalcaldiaarjona@gmail.com"
       };
-      return correos[dependencia] || "";
+      var dependenciaNormalizada = String(dependencia || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, " ");
+      return correos[dependenciaNormalizada] || "";
     }
 
     function formatearFechaCorreo(fecha) {

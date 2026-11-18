@@ -15,6 +15,7 @@ import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { completarClaveIdempotencia, obtenerClaveIdempotencia } from '../../utils/idempotencia.js';
 import { confirmarAccion, mostrarAviso } from '../ui/avisos.js';
+import { esInvitado } from '../auth/roles.js';
 
 const MAX_ARCHIVOS = 10;
 const MAX_TAMANO_ARCHIVO = 10 * 1024 * 1024;
@@ -1470,14 +1471,18 @@ function crearFilaTabla(registro) {
   const celdaAcciones = document.createElement('td');
   const acciones = document.createElement('div');
   acciones.className = 'generation-table-actions';
-  const editar = document.createElement('button');
-  editar.type = 'button';
-  editar.className = 'generation-action-edit';
-  editar.title = 'Editar radicado';
-  editar.setAttribute('aria-label', `Editar ${registro.radicado}`);
-  editar.innerHTML = '<i class="bi bi-pencil" aria-hidden="true"></i>';
-  editar.disabled = registro.estado === 'ANULADO';
-  editar.addEventListener('click', () => abrirModalEdicionSalida(registro));
+  const invitado = esInvitado();
+  if (!invitado) {
+    const editar = document.createElement('button');
+    editar.type = 'button';
+    editar.className = 'generation-action-edit';
+    editar.title = 'Editar radicado';
+    editar.setAttribute('aria-label', `Editar ${registro.radicado}`);
+    editar.innerHTML = '<i class="bi bi-pencil" aria-hidden="true"></i>';
+    editar.disabled = registro.estado === 'ANULADO';
+    editar.addEventListener('click', () => abrirModalEdicionSalida(registro));
+    acciones.append(editar);
+  }
   if (registro.estado !== 'ANULADO') {
     const anular = document.createElement('button');
     anular.type = 'button';
@@ -1486,9 +1491,7 @@ function crearFilaTabla(registro) {
     anular.setAttribute('aria-label', `Anular ${registro.radicado}`);
     anular.innerHTML = '<i class="bi bi-ban" aria-hidden="true"></i><span>Anular</span>';
     anular.addEventListener('click', () => anularRadicadoSalida(registro, anular));
-    acciones.append(editar, anular);
-  } else {
-    acciones.append(editar);
+    acciones.append(anular);
   }
   celdaAcciones.append(acciones);
   fila.append(celdaAcciones);

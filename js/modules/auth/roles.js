@@ -1,22 +1,22 @@
 const CUENTAS_FUNCIONARIO = {
-  gobierno: 'Secretaría de Gobierno',
-  planeacion: 'Secretaría de Planeación',
-  gestionriesgo: 'Oficina de Gestion del Riesgo y Desastres',
-  desarrollosocial: 'Oficina de Desarrollo Social',
-  salud: 'Secretaría de Salud',
-  controlinterno: 'Control Interno',
-  juridica: 'Oficina Juridica',
-  despachoalcalde: 'Despacho del Alcalde',
-  umata: 'Secretaría de Umata',
-  educacion: 'Secretaría de Educación',
-  hacienda: 'Secretaría de Hacienda',
-  sisben: 'Sisben',
-  talentohumano: 'Talento Humano',
-  transito: 'Secretaría de Transito y Transporte',
-  gestionsocial: 'Gestion Social'
+  gobierno: { dependencia: 'Secretaría de Gobierno', email: 'gobierno@arjona-bolivar.gov.co' },
+  planeacion: { dependencia: 'Secretaría de Planeación', email: 'planeacion@arjona-bolivar.gov.co' },
+  gestionriesgo: { dependencia: 'Oficina de Gestion del Riesgo y Desastres', email: 'riesgos@arjona-bolivar.gov.co' },
+  desarrollosocial: { dependencia: 'Oficina de Desarrollo Social', email: 'desarrollosocial@arjona-bolivar.gov.co' },
+  salud: { dependencia: 'Secretaría de Salud', email: 'salud@arjona-bolivar.gov.co' },
+  controlinterno: { dependencia: 'Control Interno', email: 'controlinterno@arjona-bolivar.gov.co' },
+  juridica: { dependencia: 'Oficina Juridica', email: 'juridica@arjona-bolivar.gov.co' },
+  despachoalcalde: { dependencia: 'Despacho del Alcalde', email: 'alcaldia@arjona-bolivar.gov.co' },
+  umata: { dependencia: 'Secretaría de Umata', email: 'umata@arjona-bolivar.gov.co' },
+  educacion: { dependencia: 'Secretaría de Educación', email: 'educacion@arjona-bolivar.gov.co' },
+  hacienda: { dependencia: 'Secretaría de Hacienda', email: 'hacienda@arjona-bolivar.gov.co' },
+  sisben: { dependencia: 'Sisben', email: 'sisben@arjona-bolivar.gov.co' },
+  talentohumano: { dependencia: 'Talento Humano', email: 'talentohumano@arjona-bolivar.gov.co' },
+  transito: { dependencia: 'Secretaría de Transito y Transporte', email: 'direcciondetransito@arjona-bolivar.gov.co' },
+  gestionsocial: { dependencia: 'Gestion Social', email: 'gestionsocialalcaldiaarjona@gmail.com' }
 };
 
-const DOMINIO_CUENTAS = 'usuarios.pqrsalcaldiaarjona.invalid';
+const CORREO_ADMINISTRADOR = 'majodabel19@gmail.com';
 let perfilSesion = null;
 let usuarioSesion = null;
 
@@ -24,17 +24,29 @@ export function obtenerCredencialLogin(usuario) {
   const nombreUsuario = String(usuario || '').trim().toLowerCase();
   if (nombreUsuario === 'admin') {
     return {
-      email: `admin@${DOMINIO_CUENTAS}`,
+      email: CORREO_ADMINISTRADOR,
       rol: 'administrador',
       dependencia: ''
     };
   }
   if (!Object.prototype.hasOwnProperty.call(CUENTAS_FUNCIONARIO, nombreUsuario)) return null;
+  const cuenta = CUENTAS_FUNCIONARIO[nombreUsuario];
   return {
-    email: `${nombreUsuario}@${DOMINIO_CUENTAS}`,
+    email: cuenta.email,
     rol: 'funcionario',
-    dependencia: CUENTAS_FUNCIONARIO[nombreUsuario]
+    dependencia: cuenta.dependencia
   };
+}
+
+export function obtenerCredencialPorCorreo(correo) {
+  const correoNormalizado = String(correo || '').trim().toLowerCase();
+  if (correoNormalizado === CORREO_ADMINISTRADOR) {
+    return { email: CORREO_ADMINISTRADOR, rol: 'administrador', dependencia: '' };
+  }
+  const usuario = Object.keys(CUENTAS_FUNCIONARIO).find(
+    nombre => CUENTAS_FUNCIONARIO[nombre].email === correoNormalizado
+  );
+  return usuario ? obtenerCredencialLogin(usuario) : null;
 }
 
 export function establecerSesionUsuario(usuario, perfil) {
@@ -71,6 +83,10 @@ export function esAdministrador() {
 
 export function esFuncionario() {
   return perfilSesion?.rol === 'funcionario' && !esControlInterno();
+}
+
+export function esInvitado() {
+  return perfilSesion?.rol === 'invitado';
 }
 
 export function puedeGestionarIAS() {

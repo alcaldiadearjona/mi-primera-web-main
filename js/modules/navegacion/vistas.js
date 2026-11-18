@@ -1,5 +1,5 @@
 import { establecerDependenciaActual } from '../../data/radicados.js';
-import { esAdministrador, esFuncionario, obtenerDependenciaSesion, puedeConsultarIAS } from '../auth/roles.js';
+import { esAdministrador, esFuncionario, esInvitado, obtenerDependenciaSesion, puedeConsultarIAS } from '../auth/roles.js';
 import {
   asegurarAniosInformes,
   actualizarInformes,
@@ -26,7 +26,14 @@ function activarMenu(vista) {
   });
 }
 
+function redirigirInvitadoAGeneracion() {
+  if (!esInvitado()) return false;
+  window.mostrarGeneracionRadicados();
+  return true;
+}
+
 window.mostrarPantallaInicio = function() {
+  if (redirigirInvitadoAGeneracion()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaInicio');
   establecerFormularioVisible(false);
@@ -47,6 +54,7 @@ window.mostrarGeneracionRadicados = function() {
 };
 
 window.mostrarIAS = function() {
+  if (redirigirInvitadoAGeneracion()) return;
   if (!puedeConsultarIAS()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaIAS');
@@ -56,6 +64,7 @@ window.mostrarIAS = function() {
 };
 
 window.mostrarInformes = function() {
+  if (redirigirInvitadoAGeneracion()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaInformes');
   actualizarInformes();
@@ -79,6 +88,7 @@ window.mostrarInformes = function() {
 };
 
 window.mostrarDependenciasMenu = function() {
+  if (redirigirInvitadoAGeneracion()) return;
   establecerDependenciaActual("");
   mostrarVista('vista-dependencias');
   establecerFormularioVisible(false);

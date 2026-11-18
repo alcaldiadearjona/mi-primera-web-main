@@ -1,6 +1,6 @@
 # Notificaciones por correo
 
-El sistema usa el Apps Script existente para enviar avisos de nuevas solicitudes, remisiones, recepciones y rechazos. `Gestion Social`, `Secretaría de Gobierno` y `Secretaría de Planeación` están configuradas temporalmente para recibir los avisos en `majodabel19@gmail.com`; los demás destinatarios se agregan en `dependenciaNombreCorreo` de `apps-script/Code.gs`.
+El sistema usa el Apps Script existente para enviar avisos de nuevas solicitudes, remisiones, recepciones y rechazos. Cada dependencia tiene el correo de destino configurado en `dependenciaNombreCorreo` de `apps-script/Code.gs`. La comparación ignora tildes y diferencias entre mayúsculas y minúsculas. Las cuentas Invitado y Administrador no son dependencias destinatarias.
 
 ## Publicar el Apps Script
 

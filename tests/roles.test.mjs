@@ -4,7 +4,10 @@ import {
   establecerSesionUsuario,
   esAdministrador,
   esFuncionario,
+  esInvitado,
   limpiarSesionUsuario,
+  obtenerCredencialLogin,
+  obtenerCredencialPorCorreo,
   puedeConsultarIAS,
   puedeEditarRadicado,
   puedeGestionarIAS
@@ -40,4 +43,34 @@ test('Los demás funcionarios no pueden gestionar ni editar IAS', () => {
   assert.equal(puedeGestionarIAS(), false);
   assert.equal(puedeEditarRadicado({ coleccion: 'radicadosIAS' }), false);
   limpiarSesionUsuario();
+});
+
+test('Invitado solo obtiene el rol configurado para generación de radicados', () => {
+  establecerSesionUsuario({}, { rol: 'invitado', nombre: 'Invitado' });
+
+  assert.equal(obtenerCredencialLogin('Invitado'), null);
+  assert.equal(esInvitado(), true);
+  assert.equal(esAdministrador(), false);
+  assert.equal(esFuncionario(), false);
+  assert.equal(puedeConsultarIAS(), false);
+  assert.equal(puedeGestionarIAS(), false);
+  limpiarSesionUsuario();
+});
+
+test('Las credenciales de acceso usan el correo real de cada dependencia', () => {
+  assert.deepEqual(obtenerCredencialLogin('gobierno'), {
+    email: 'gobierno@arjona-bolivar.gov.co',
+    rol: 'funcionario',
+    dependencia: 'Secretaría de Gobierno'
+  });
+  assert.deepEqual(obtenerCredencialLogin('admin'), {
+    email: 'majodabel19@gmail.com',
+    rol: 'administrador',
+    dependencia: ''
+  });
+  assert.equal(
+    obtenerCredencialPorCorreo('alcaldia@arjona-bolivar.gov.co').dependencia,
+    'Despacho del Alcalde'
+  );
+  assert.equal(obtenerCredencialPorCorreo('no-es-cuenta@example.com'), null);
 });
