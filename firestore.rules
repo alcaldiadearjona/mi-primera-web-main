@@ -25,6 +25,10 @@ service cloud.firestore {
         );
     }
 
+    function isAdministradorEstricto() {
+      return hasProfile() && profile().rol == 'administrador';
+    }
+
     function isFuncionario() {
       return hasProfile() && profile().rol == 'funcionario';
     }
@@ -250,6 +254,38 @@ service cloud.firestore {
           )
         )
         || (
+          isAdministradorEstricto()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'fechaVencimiento',
+            'fechaEntrega',
+            'prorroga',
+            'actualizadoEn'
+          ])
+          && request.resource.data.fechaVencimiento is string
+          && request.resource.data.fechaVencimiento > resource.data.fechaVencimiento
+          && request.resource.data.prorroga is map
+          && request.resource.data.prorroga.nuevaFecha is string
+          && request.resource.data.prorroga.nuevaFecha == request.resource.data.fechaVencimiento
+          && request.resource.data.prorroga.archivoUrl is string
+          && request.resource.data.prorroga.archivoUrl.size() > 0
+        )
+        || (
+          isAdministradorEstricto()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'fechaVencimiento',
+            'fechaEntrega',
+            'prorroga',
+            'actualizadoEn'
+          ])
+          && request.resource.data.fechaVencimiento is string
+          && request.resource.data.fechaVencimiento > resource.data.fechaVencimiento
+          && request.resource.data.prorroga is map
+          && request.resource.data.prorroga.nuevaFecha is string
+          && request.resource.data.prorroga.nuevaFecha == request.resource.data.fechaVencimiento
+          && request.resource.data.prorroga.archivoUrl is string
+          && request.resource.data.prorroga.archivoUrl.size() > 0
+        )
+        || (
           isEmployeeOf(resource.data.dependencia)
           && request.resource.data.dependencia == resource.data.dependencia
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -447,6 +483,22 @@ service cloud.firestore {
           )
         )
         || (
+          isAdministradorEstricto()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'fechaVencimiento',
+            'fechaEntrega',
+            'prorroga',
+            'actualizadoEn'
+          ])
+          && request.resource.data.fechaVencimiento is string
+          && request.resource.data.fechaVencimiento > resource.data.fechaVencimiento
+          && request.resource.data.prorroga is map
+          && request.resource.data.prorroga.nuevaFecha is string
+          && request.resource.data.prorroga.nuevaFecha == request.resource.data.fechaVencimiento
+          && request.resource.data.prorroga.archivoUrl is string
+          && request.resource.data.prorroga.archivoUrl.size() > 0
+        )
+        || (
           isFuncionario()
           && resource.data.dependenciasDestino is list
           && resource.data.dependenciasDestino.hasAny([profile().dependencia])
@@ -555,27 +607,70 @@ service cloud.firestore {
             'extremoLote'
           ])
         );
-      allow update: if isAdmin()
-        || (
-          (isFuncionario() || isInvitado())
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'dependencia',
-            'destinatario',
-            'asunto',
-            'folios',
-            'anexos',
-            'dependenciaOtra',
-            'archivos',
-            'actualizadoEn',
-            'estado',
-            'anuladoEn'
-          ])
-          && (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
-            || request.resource.data.estado == 'ANULADO'
+      allow update: if (
+        isAdministradorEstricto()
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'estado',
+              'anuladoEn',
+              'actualizadoEn',
+              'consecutivoAnulacion',
+              'motivoAnulacion',
+              'justificacionAnulacion',
+              'usuarioAnulacion',
+              'archivoAnulacion'
+            ])
+            && request.resource.data.estado == 'ANULADO'
+            && request.resource.data.anuladoEn is string
+            && request.resource.data.consecutivoAnulacion is string
+            && request.resource.data.consecutivoAnulacion.matches('^ANU-[0-9]{4}-[0-9]{5}$')
+            && request.resource.data.motivoAnulacion is string
+            && request.resource.data.motivoAnulacion in [
+              'Error de digitación',
+              'Radicado duplicado',
+              'Documento ilegible/erróneo',
+              'Otro'
+            ]
+            && request.resource.data.justificacionAnulacion is string
+            && request.resource.data.justificacionAnulacion.size() > 0
+            && request.resource.data.archivoAnulacion is map
+            && request.resource.data.archivoAnulacion.nombre is string
+            && request.resource.data.archivoAnulacion.url is string
+            && request.resource.data.archivoAnulacion.url.size() > 0
           )
-        );
+        )
+      ) || (
+        isAdmin()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado', 'anuladoEn', 'archivoAnulacion'])
+      ) || (
+        (isFuncionario() || isInvitado())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'dependencia',
+          'destinatario',
+          'asunto',
+          'folios',
+          'anexos',
+          'dependenciaOtra',
+          'archivos',
+          'actualizadoEn'
+        ])
+      );
       allow delete: if isAdmin();
+    }
+
+    match /radicadosAnulacionSecuencias/{anioId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdministradorEstricto()
+        && request.resource.data.ultimo is int
+        && request.resource.data.ultimo > 0
+        && request.resource.data.actualizadoEn is string;
+      allow update: if isAdministradorEstricto()
+        && request.resource.data.ultimo is int
+        && request.resource.data.ultimo > resource.data.ultimo
+        && request.resource.data.actualizadoEn is string;
+      allow delete: if false;
     }
 
     match /radicadosSalidaSecuencias/{secuenciaId} {

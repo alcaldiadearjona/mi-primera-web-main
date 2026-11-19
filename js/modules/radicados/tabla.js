@@ -5,6 +5,7 @@ import {
 } from '../../utils/helpers.js';
 import {
   esAdministrador,
+  obtenerPerfilSesion,
   puedeEditarRadicado,
   puedeGestionarIAS,
   puedeGestionarRadicado
@@ -304,7 +305,9 @@ if (soloLecturaIAS) {
             : fechaEntregaManualVisible || '-'
         }</span>
       </td>
-      <td><span class="badge-status ${estadoObj.clase}">${fechaVencimientoVisible}</span></td>
+      <td>
+        <span class="badge-status ${estadoObj.clase}">${fechaVencimientoVisible}</span>
+      </td>
       <td>${estadoHtml}</td>
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
 
@@ -342,6 +345,7 @@ if (soloLecturaIAS) {
       </td>
       
       <td>
+  <div class="radicado-actions-main">
   ${puedeEditarRegistro ? `<button onclick="prepararEdicion('${reg.id}', '${coleccion}')" style="background:#2563eb; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="Editar radicado" aria-label="Editar radicado">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 4 4 4"></path><path d="M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"></path><path d="m14.5 6.5 3 3"></path></svg>
   </button>` : ''}
@@ -349,10 +353,21 @@ if (soloLecturaIAS) {
   <button class="other-states-button" onclick="abrirModalOtrosEstados('${reg.id}', '${coleccion}')" style="background:#00a838; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center;" title="${accionesHabilitadas ? 'Gestionar / Agregar Estado' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" aria-label="Gestionar / Agregar Estado" ${accionesHabilitadas ? '' : 'disabled'}>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
   </button>` : ''}
-  ${esAdministrador() ? `
+  ${obtenerPerfilSesion()?.rol === 'administrador' ? `
   <button onclick="eliminarRadicado('${reg.id}', this)" style="background:#dc2626; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Eliminar" aria-label="Eliminar">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
   </button>` : ''}
+  </div>
+  <div class="radicado-actions-prorroga">
+  ${reg.prorroga?.archivoUrl ? `
+  <a class="prorroga-view-link" href="${reg.prorroga.archivoUrl}" target="_blank" rel="noopener noreferrer" title="Ver oficio de prórroga" aria-label="Ver oficio de prórroga">
+    <i class="bi bi-eye" aria-hidden="true"></i><span>Ver</span>
+  </a>` : obtenerPerfilSesion()?.rol === 'administrador' ? `
+  <button class="prorroga-action-button" onclick="abrirModalProrrogaRadicado('${reg.id}', '${coleccion}')" style="background:#2563eb; color:#ffffff; border:1px solid #2563eb; min-width:92px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 8px;" title="Agregar prórroga" aria-label="Prórroga">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path><path d="M18.5 6.5 20 5"></path></svg>
+    <span>Prórroga</span>
+  </button>` : ''}
+  </div>
 </td>
 <td>${columnaRespuestaHtml}</td>
 <td><span class="delivery-date-value">${fechaCargaRespuestaVisible}</span></td>

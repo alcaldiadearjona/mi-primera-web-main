@@ -145,7 +145,17 @@ function mapearRadicado(documento) {
     remisionOrigenDependencia: item.remisionOrigenDependencia || '',
     remisionOrigenRadicado: item.remisionOrigenRadicado || '',
     fechaRemisionCompetencia: item.fechaRemisionCompetencia || '',
-    fechaRecepcionCompetencia: item.fechaRecepcionCompetencia || ''
+    fechaRecepcionCompetencia: item.fechaRecepcionCompetencia || '',
+    prorroga: item.prorroga && typeof item.prorroga === 'object'
+      ? {
+          fechaAnterior: item.prorroga.fechaAnterior || '',
+          nuevaFecha: item.prorroga.nuevaFecha || '',
+          diasHabilesAdicionales: Number(item.prorroga.diasHabilesAdicionales) || 0,
+          archivoNombre: item.prorroga.archivoNombre || '',
+          archivoUrl: item.prorroga.archivoUrl || '',
+          registradoEn: item.prorroga.registradoEn || ''
+        }
+      : null
   };
 }
 

@@ -51,6 +51,36 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
     </div>
   </div>
 
+  <!-- MODAL PARA PRÓRROGA DE RADICADO -->
+  <div id="modalProrrogaRadicado" class="modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.48); z-index:1002; justify-content:center; align-items:center; padding:16px;">
+    <div style="width:100%; max-width:520px; padding:24px; border:1px solid #e2eee5; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(22,80,48,.2);">
+      <h3 style="margin:0 0 8px; color:#244735; font-size:18px;">Prórroga del radicado</h3>
+      <p id="textoProrrogaRadicado" style="margin:0 0 18px; color:#64748b; font-size:13px;"></p>
+      <form id="formProrrogaRadicado">
+        <input type="hidden" id="prorrogaRadicadoId">
+        <input type="hidden" id="prorrogaRadicadoColeccion">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="prorrogaDias">Días hábiles adicionales *</label>
+            <input id="prorrogaDias" type="number" min="1" step="1" inputmode="numeric" required>
+          </div>
+          <div class="form-group full-width">
+            <label for="prorrogaNuevaFecha">Nueva fecha de vencimiento</label>
+            <input id="prorrogaNuevaFecha" type="text" readonly style="background:#e2e8f0; color:#475569;">
+          </div>
+          <div class="form-group">
+            <label for="prorrogaArchivo">Oficio de prórroga * (PDF)</label>
+            <input id="prorrogaArchivo" type="file" accept=".pdf,application/pdf" required>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:9px; margin-top:22px;">
+          <button type="button" onclick="cerrarModalProrrogaRadicado()" style="padding:9px 15px; border:0; border-radius:8px; background:#e2e8f0; color:#475569; cursor:pointer; font-weight:600;">Cancelar</button>
+          <button id="guardarProrrogaRadicado" type="submit" style="padding:9px 15px; border:0; border-radius:8px; background:#16804a; color:#fff; cursor:pointer; font-weight:700;">Guardar prórroga</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL PARA ASIGNAR FUNCIONARIO -->
   <div id="modalFuncionarioAsignado" class="modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.48); z-index:1001; justify-content:center; align-items:center; padding:16px;">
     <div style="width:100%; max-width:440px; padding:24px; border:1px solid #e2eee5; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(22,80,48,.2);">

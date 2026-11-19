@@ -461,9 +461,25 @@ function doPost(e) {
     // Recibe el mimeType desde el frontend; si no viene, usa "application/pdf" por defecto
     var mimeType = data.mimeType || "application/pdf";
     var blob = Utilities.newBlob(decoded, mimeType, data.nombreArchivo);
-    
     var folder = DriveApp.getFolderById(FOLDER_ID);
-    var file = folder.createFile(blob);
+    var file;
+
+    // Convierte automáticamente los documentos Word a PDF antes de conservarlos.
+    if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      || String(data.nombreArchivo || "").toLowerCase().endsWith(".docx")) {
+      var temporal = folder.createFile(blob);
+      try {
+        var pdfBlob = temporal.getAs("application/pdf");
+        var nombrePdf = String(data.nombreArchivo || "documento")
+          .replace(/\.docx$/i, "") + ".pdf";
+        pdfBlob.setName(nombrePdf);
+        file = folder.createFile(pdfBlob);
+      } finally {
+        temporal.setTrashed(true);
+      }
+    } else {
+      file = folder.createFile(blob);
+    }
     
     try {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);

@@ -14,14 +14,15 @@ import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
 import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { completarClaveIdempotencia, obtenerClaveIdempotencia } from '../../utils/idempotencia.js';
-import { confirmarAccion, mostrarAviso } from '../ui/avisos.js';
-import { esInvitado } from '../auth/roles.js';
+import { mostrarAviso } from '../ui/avisos.js';
+import { esInvitado, obtenerPerfilSesion, obtenerUsuarioSesion } from '../auth/roles.js';
 
 const MAX_ARCHIVOS = 10;
 const MAX_TAMANO_ARCHIVO = 10 * 1024 * 1024;
 const MAX_RADICADOS_POR_LOTE = 400;
 const COLECCION_SALIDA = 'radicadosSalida';
 const COLECCION_SECUENCIAS_SALIDA = 'radicadosSalidaSecuencias';
+const COLECCION_SECUENCIAS_ANULACION = 'radicadosAnulacionSecuencias';
 const STORAGE_SOLICITUDES_PENDIENTES = 'radicadosSalida:solicitudesPendientes';
 const RUTA_PLANTILLA_SALIDA = new URL(
   '../../../assets/plantillas/Registro de Radicación de Comunicaciones Oficiales Salientes.xlsx',
@@ -36,13 +37,25 @@ let radicadosSalida = [];
 let radicadosRecientesSalida = [];
 let conteosRadicadosPorMes = new Map();
 const mesesGeneracionCargados = new Set();
+const gruposEdadExpandidos = new Set();
 let cargaResumenGeneracion;
 let resumenGeneracionCargado = false;
 let mesAbierto = '';
 let filtroGeneracion = '';
+let radicadoGestionadoSalida = '';
 let solicitudGeneracionEnCurso = false;
 let cargaExcelJsSalida;
 const solicitudesGeneracionCompletadas = new Set();
+
+function obtenerUrlVistaDrive(url) {
+  const texto = String(url || '').trim();
+  if (!texto) return '#';
+  const coincidenciaId = texto.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+    || texto.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return coincidenciaId
+    ? `https://drive.google.com/file/d/${coincidenciaId[1]}/preview`
+    : texto;
+}
 
 window.toggleFormularioGeneracion = function() {
   const formulario = document.getElementById('contenedorFormularioGeneracion');
@@ -282,6 +295,11 @@ export function inicializarFormularioGeneracionSalida() {
   document.getElementById('formEditarSalida')?.addEventListener('submit', guardarEdicionRadicadoSalida);
   document.getElementById('volverCarpetasGeneracion')?.addEventListener('click', cerrarCarpetaGeneracion);
   document.getElementById('cancelarEditarSalida')?.addEventListener('click', cerrarModalEdicionSalida);
+  document.getElementById('cancelarAnularSalida')?.addEventListener('click', cerrarModalAnulacionSalida);
+  document.getElementById('formAnularSalida')?.addEventListener('submit', confirmarAnulacionRadicadoSalida);
+  document.getElementById('modalAnularSalida')?.addEventListener('click', event => {
+    if (event.target.id === 'modalAnularSalida') cerrarModalAnulacionSalida();
+  });
   document.getElementById('modalEditarSalida')?.addEventListener('click', event => {
     if (event.target.id === 'modalEditarSalida') cerrarModalEdicionSalida();
   });
@@ -585,7 +603,10 @@ async function subirArchivosSalida(archivos) {
         method: 'POST',
         body: JSON.stringify({
           archivoBase64: base64.split(',')[1] || '',
-          nombreArchivo: `RadicadoSalida_${Date.now()}_${indice++}_${archivo.name}`
+          nombreArchivo: `RadicadoSalida_${Date.now()}_${indice++}_${archivo.name}`,
+          mimeType: archivo.type || (archivo.name.toLowerCase().endsWith('.docx')
+            ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            : 'application/octet-stream')
         })
       });
 
@@ -1366,7 +1387,7 @@ function renderizarDetalleCarpeta(mes) {
   grupos.forEach(([clave, etiqueta]) => {
     const registrosGrupo = registros.filter(registro => obtenerGrupoAntiguedad(registro) === clave);
     if (filtroGeneracion && registrosGrupo.length === 0) return;
-    const expandido = Boolean(filtroGeneracion);
+    const expandido = Boolean(filtroGeneracion) || gruposEdadExpandidos.has(clave);
     const filaGrupo = document.createElement('tr');
     filaGrupo.className = 'generation-age-group-row';
     const celdaGrupo = document.createElement('th');
@@ -1410,6 +1431,8 @@ function renderizarDetalleCarpeta(mes) {
       const nuevoEstado = botonGrupo.getAttribute('aria-expanded') !== 'true';
       botonGrupo.setAttribute('aria-expanded', String(nuevoEstado));
       botonGrupo.classList.toggle('is-expanded', nuevoEstado);
+      if (nuevoEstado) gruposEdadExpandidos.add(clave);
+      else gruposEdadExpandidos.delete(clave);
       tbody.querySelectorAll(`[data-age-group="${clave}"]`).forEach(fila => {
         fila.hidden = !nuevoEstado;
       });
@@ -1420,6 +1443,7 @@ function renderizarDetalleCarpeta(mes) {
 function crearFilaTabla(registro) {
   const fila = document.createElement('tr');
   if (registro.estado === 'ANULADO') fila.classList.add('is-annulled-row');
+  if (registro.id === radicadoGestionadoSalida) fila.classList.add('is-managed-row');
   const valores = [
     registro.radicado || '',
     obtenerFechaRegistro(registro),
@@ -1466,6 +1490,18 @@ function crearFilaTabla(registro) {
     });
     celdaArchivos.append(lista);
   }
+  if (registro.archivoAnulacion?.url) {
+    const listaAnulacion = document.createElement('div');
+    listaAnulacion.className = 'generation-annulation-file';
+    const enlaceAnulacion = document.createElement('a');
+    enlaceAnulacion.href = obtenerUrlVistaDrive(registro.archivoAnulacion.url);
+    enlaceAnulacion.target = '_blank';
+    enlaceAnulacion.rel = 'noopener noreferrer';
+    enlaceAnulacion.innerHTML = '<i class="bi bi-file-earmark-text" aria-hidden="true"></i> Visualizar soporte de anulación';
+    enlaceAnulacion.title = registro.archivoAnulacion.nombre || 'Soporte de anulación';
+    listaAnulacion.append(enlaceAnulacion);
+    celdaArchivos.append(listaAnulacion);
+  }
   fila.append(celdaArchivos);
 
   const celdaAcciones = document.createElement('td');
@@ -1484,14 +1520,17 @@ function crearFilaTabla(registro) {
     acciones.append(editar);
   }
   if (registro.estado !== 'ANULADO') {
-    const anular = document.createElement('button');
-    anular.type = 'button';
-    anular.className = 'generation-action-annul';
-    anular.title = 'Anular radicado';
-    anular.setAttribute('aria-label', `Anular ${registro.radicado}`);
-    anular.innerHTML = '<i class="bi bi-ban" aria-hidden="true"></i><span>Anular</span>';
-    anular.addEventListener('click', () => anularRadicadoSalida(registro, anular));
-    acciones.append(anular);
+    const perfil = obtenerPerfilSesion();
+    if (perfil?.rol === 'administrador') {
+      const anular = document.createElement('button');
+      anular.type = 'button';
+      anular.className = 'generation-action-annul';
+      anular.title = 'Anular radicado';
+      anular.setAttribute('aria-label', `Anular ${registro.radicado}`);
+      anular.innerHTML = '<i class="bi bi-ban" aria-hidden="true"></i><span>Anular</span>';
+      anular.addEventListener('click', () => abrirModalAnulacionSalida(registro));
+      acciones.append(anular);
+    }
   }
   celdaAcciones.append(acciones);
   fila.append(celdaAcciones);
@@ -1499,6 +1538,7 @@ function crearFilaTabla(registro) {
 }
 
 function abrirModalEdicionSalida(registro) {
+  radicadoGestionadoSalida = registro.id;
   document.getElementById('idEditarSalida').value = registro.id;
   document.getElementById('destinatarioEditarSalida').value = registro.destinatario || '';
   document.getElementById('asuntoEditarSalida').value = registro.asunto || '';
@@ -1604,61 +1644,228 @@ async function guardarEdicionRadicadoSalida(event) {
   }
 }
 
-async function anularRadicadoSalida(registro, boton) {
-  const confirmado = await confirmarAccion(
-    `¿Deseas anular el radicado ${registro.radicado}? El registro y sus archivos se conservarán en el historial.`,
-    { titulo: 'Anular radicado', aceptarTexto: 'Anular' }
-  );
-  if (!confirmado) return;
+function abrirModalAnulacionSalida(registro) {
+  if (obtenerPerfilSesion()?.rol !== 'administrador') {
+    mostrarResultadoGeneracion('warning', 'Acceso restringido', 'Solo los administradores pueden anular radicados.');
+    return;
+  }
+  radicadoGestionadoSalida = registro.id;
+  document.getElementById('idAnularSalida').value = registro.id;
+  document.getElementById('radicadoAnularSalida').textContent = registro.radicado;
+  document.getElementById('motivoAnulacionSalida').value = '';
+  document.getElementById('justificacionAnulacionSalida').value = '';
+  document.getElementById('nombreAdministradorAnulacionSalida').value = '';
+  document.getElementById('cedulaAdministradorAnulacionSalida').value = '';
+  document.getElementById('confirmarAnularSalida').disabled = false;
+  document.getElementById('modalAnularSalida').style.display = 'flex';
+}
+
+function cerrarModalAnulacionSalida(conservarGestion = false) {
+  const modal = document.getElementById('modalAnularSalida');
+  if (modal) modal.style.display = 'none';
+  if (!conservarGestion) radicadoGestionadoSalida = '';
+  if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
+}
+
+async function confirmarAnulacionRadicadoSalida(event) {
+  event.preventDefault();
+  if (obtenerPerfilSesion()?.rol !== 'administrador') {
+    mostrarResultadoGeneracion('warning', 'Acceso restringido', 'Solo los administradores pueden anular radicados.');
+    return;
+  }
+
+  const id = document.getElementById('idAnularSalida').value;
+  const registro = radicadosSalida.find(item => item.id === id);
+  const motivo = document.getElementById('motivoAnulacionSalida').value;
+  const justificacion = document.getElementById('justificacionAnulacionSalida').value.trim();
+  const nombreAdministrador = document.getElementById('nombreAdministradorAnulacionSalida').value.trim();
+  const cedulaAdministrador = document.getElementById('cedulaAdministradorAnulacionSalida').value.trim();
+  if (!registro) {
+    mostrarResultadoGeneracion('warning', 'Radicado no encontrado', 'No fue posible identificar el radicado seleccionado.');
+    return;
+  }
+  if (!motivo || !justificacion) {
+    mostrarResultadoGeneracion('warning', 'Información obligatoria', 'Selecciona el motivo y escribe la justificación detallada.');
+    return;
+  }
+
+  const boton = document.getElementById('confirmarAnularSalida');
   boton.disabled = true;
-  boton.replaceChildren();
-  const spinner = document.createElement('span');
-  spinner.className = 'action-delete-spinner';
-  spinner.setAttribute('aria-label', 'Anulando radicado');
-  boton.append(spinner);
-  let anulacionGuardada = false;
+  boton.textContent = 'Guardando...';
+  let archivoSubido = null;
   try {
     const instanteAnulacion = new Date().toISOString();
+    const fechaAnulacion = obtenerFechaBogota(new Date(instanteAnulacion));
+    const horaAnulacion = obtenerHoraBogota(new Date(instanteAnulacion));
+    const anio = Number(fechaAnulacion.slice(0, 4));
+
+    const secuenciaRef = doc(db, COLECCION_SECUENCIAS_ANULACION, String(anio));
+    const consecutivoAnulacion = await runTransaction(db, async transaccion => {
+      const secuencia = await transaccion.get(secuenciaRef);
+      const ultimo = secuencia.exists() ? Number(secuencia.data().ultimo) : 0;
+      if (!Number.isSafeInteger(ultimo) || ultimo < 0) {
+        throw new Error(`La secuencia de anulaciones de ${anio} no es válida.`);
+      }
+      const numero = ultimo + 1;
+      transaccion.set(secuenciaRef, { ultimo: numero, actualizadoEn: instanteAnulacion });
+      return `ANU-${anio}-${String(numero).padStart(5, '0')}`;
+    });
+
+    if (!window.PizZip) {
+      throw new Error('No se pudo cargar el generador de documentos Word.');
+    }
+    const plantillaRespuesta = await fetch(`acta-anulacion.docx?v=${encodeURIComponent(consecutivoAnulacion)}`, {
+      cache: 'no-store'
+    });
+    if (!plantillaRespuesta.ok) {
+      throw new Error('No se encontró la plantilla del acta de anulación.');
+    }
+    const zip = new window.PizZip(await plantillaRespuesta.arrayBuffer());
+    let documentXml = zip.file('word/document.xml').asText();
+    const reemplazos = {
+      '[REMPLAZA POR CONSECUTIVO_ANULACION, ej: ANU-2026-0015]': consecutivoAnulacion,
+      'Fecha y Hora de Anulación: ': `Fecha y Hora de Anulación: ${fechaAnulacion} ${horaAnulacion}`,
+      'Número de Radicado:': `Número de Radicado: ${registro.radicado || ''}`,
+      'Fecha de Radicación:': `Fecha de Radicación: ${obtenerFechaRegistro(registro)}`,
+      'Remitente / Ciudadano:': `Remitente / Ciudadano: ${registro.destinatario || ''}`,
+      'Dependencia Asignada:': `Dependencia Asignada: ${registro.dependencia === 'Otro' ? registro.dependenciaOtra || 'Otro' : registro.dependencia || ''}`,
+      'Asunto Original:': `Asunto Original: ${registro.asunto || ''}`,
+      'Categoría: ': 'Categoría:',
+      '[   ] Error de digitación': `[${motivo === 'Error de digitación' ? 'X' : ' '}] Error de digitación`,
+      '[   ] Radicado duplicado': `[${motivo === 'Radicado duplicado' ? 'X' : ' '}] Radicado duplicado`,
+      '[   ] Documento ilegible/erróneo': `[${motivo === 'Documento ilegible/erróneo' ? 'X' : ' '}] Documento ilegible/erróneo`,
+      '[   ] Otro': `[${motivo === 'Otro' ? 'X' : ' '}] Otro`,
+      'Usuario Administrador que ejecuta: ': `Usuario Administrador que ejecuta: ${nombreAdministrador || obtenerUsuarioSesion()?.email || 'Administrador'}`,
+      'Cargo / Dependencia:': 'Cargo / Dependencia: Administrador',
+      'Nombre:': `Nombre: ${nombreAdministrador}`,
+      'C.C.:': `C.C.: ${cedulaAdministrador}`
+    };
+    const escapeXml = valor => String(valor)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+    const decodificarXml = valor => String(valor)
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
+
+    documentXml = documentXml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, parrafo => {
+      const textos = Array.from(parrafo.matchAll(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>/g), coincidencia =>
+        decodificarXml(coincidencia[1])
+      );
+      let textoParrafo = textos.join('');
+      if (textoParrafo.trim() === 'Justificación detallada:') {
+        const etiquetaInicio = parrafo.match(/^<w:p\b[^>]*>/)?.[0] || '<w:p>';
+        const propiedades = parrafo.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] || '';
+        return `${etiquetaInicio}${propiedades}<w:r><w:rPr><w:rFonts w:ascii="Century Gothic" w:hAnsi="Century Gothic" w:eastAsia="Century Gothic" w:cs="Century Gothic"/><w:b w:val="1"/><w:bCs w:val="1"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">JUSTIFICACIÓN DETALLADA:</w:t></w:r></w:p>`;
+      }
+      let modifico = false;
+      Object.entries(reemplazos).forEach(([busqueda, reemplazo]) => {
+        if (textoParrafo.includes(busqueda)) {
+          textoParrafo = textoParrafo.split(busqueda).join(reemplazo);
+          modifico = true;
+        }
+      });
+      if (!modifico) return parrafo;
+      if (textoParrafo.trim() === 'Justificación detallada:') {
+        const etiquetaInicio = parrafo.match(/^<w:p\b[^>]*>/)?.[0] || '<w:p>';
+        const propiedades = parrafo.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] || '';
+        return `${etiquetaInicio}${propiedades}<w:r><w:rPr><w:rFonts w:ascii="Century Gothic" w:hAnsi="Century Gothic" w:eastAsia="Century Gothic" w:cs="Century Gothic"/><w:b w:val="1"/><w:bCs w:val="1"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">JUSTIFICACIÓN DETALLADA:</w:t></w:r></w:p>`;
+      }
+      const etiquetaInicio = parrafo.match(/^<w:p\b[^>]*>/)?.[0] || '<w:p>';
+      const propiedades = parrafo.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] || '';
+      return `${etiquetaInicio}${propiedades}<w:r><w:rPr><w:rFonts w:ascii="Century Gothic" w:hAnsi="Century Gothic" w:eastAsia="Century Gothic" w:cs="Century Gothic"/><w:b w:val="0"/><w:bCs w:val="0"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">${escapeXml(textoParrafo)}</w:t></w:r></w:p>`;
+    });
+
+    let hayJustificacion = false;
+    documentXml = documentXml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, parrafo => {
+      const texto = parrafo.replace(/<[^>]+>/g, '').trim();
+      if (texto === 'JUSTIFICACIÓN DETALLADA:') {
+        hayJustificacion = true;
+        return parrafo;
+      }
+      if (hayJustificacion && texto === '') {
+        hayJustificacion = false;
+        const etiquetaInicio = parrafo.match(/^<w:p\b[^>]*>/)?.[0] || '<w:p>';
+        const propiedades = parrafo.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] || '';
+        return `${etiquetaInicio}${propiedades}<w:r><w:rPr><w:rFonts w:ascii="Century Gothic" w:hAnsi="Century Gothic" w:eastAsia="Century Gothic" w:cs="Century Gothic"/><w:b w:val="0"/><w:bCs w:val="0"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">${escapeXml(justificacion)}</w:t></w:r></w:p>`;
+      }
+      return parrafo;
+    });
+    zip.file('word/document.xml', documentXml);
+    const actaBlob = zip.generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const actaArchivo = new File([actaBlob], `Acta_Anulacion_${consecutivoAnulacion}.docx`, {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    [archivoSubido] = await subirArchivosSalida([actaArchivo]);
+    archivoSubido = {
+      ...archivoSubido,
+      nombre: `Acta_Anulacion_${consecutivoAnulacion}.pdf`
+    };
+
     await updateDoc(doc(db, COLECCION_SALIDA, registro.id), {
       estado: 'ANULADO',
       anuladoEn: instanteAnulacion,
-      actualizadoEn: instanteAnulacion
+      actualizadoEn: instanteAnulacion,
+      consecutivoAnulacion,
+      motivoAnulacion: motivo,
+      justificacionAnulacion: justificacion,
+      usuarioAnulacion: nombreAdministrador || obtenerUsuarioSesion()?.email || 'Administrador',
+      archivoAnulacion: {
+        nombre: String(archivoSubido.nombre || `Acta_Anulacion_${consecutivoAnulacion}.pdf`).replace(/\.docx$/i, '.pdf'),
+        url: archivoSubido.url
+      }
     });
-    anulacionGuardada = true;
-    mostrarResultadoGeneracion(
-      'success',
-      'Radicado anulado',
-      `El radicado ${registro.radicado} fue anulado correctamente. El registro y sus archivos se conservaron en el historial.`
-    );
-
+    cerrarModalAnulacionSalida(true);
     radicadosSalida = radicadosSalida.map(item =>
       item.id === registro.id
-        ? { ...item, estado: 'ANULADO', anuladoEn: instanteAnulacion }
+        ? {
+            ...item,
+            estado: 'ANULADO',
+            anuladoEn: instanteAnulacion,
+            consecutivoAnulacion,
+            motivoAnulacion: motivo,
+            justificacionAnulacion: justificacion,
+            archivoAnulacion: archivoSubido
+          }
         : item
     );
     radicadosRecientesSalida = radicadosRecientesSalida.map(item =>
       item.id === registro.id
-        ? { ...item, estado: 'ANULADO', anuladoEn: instanteAnulacion }
+        ? {
+            ...item,
+            estado: 'ANULADO',
+            anuladoEn: instanteAnulacion,
+            consecutivoAnulacion,
+            motivoAnulacion: motivo,
+            justificacionAnulacion: justificacion,
+            archivoAnulacion: archivoSubido
+          }
         : item
     );
-    try {
-      renderizarCarpetasMes();
-      renderizarRecientesSalida(radicadosRecientesSalida);
-      if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
-    } catch (error) {
-      console.error('El radicado fue anulado, pero no se pudo actualizar la vista:', error);
-    }
+    renderizarCarpetasMes();
+    renderizarRecientesSalida(radicadosRecientesSalida);
+    if (mesAbierto) renderizarDetalleCarpeta(mesAbierto);
+    mostrarResultadoGeneracion(
+      'success',
+      'Radicado anulado',
+      `El radicado ${registro.radicado} fue anulado. Acta ${consecutivoAnulacion} generada y adjunta al historial.`
+    );
   } catch (error) {
     console.error('Error al anular el radicado de salida:', error);
+    if (archivoSubido) await eliminarArchivosDrive([archivoSubido]);
     mostrarResultadoGeneracion(
       'error',
       'No se pudo anular',
       `No se guardó la anulación del radicado ${registro.radicado}. ${error.message}`
     );
   } finally {
-    if (boton.isConnected && !anulacionGuardada) {
-      boton.disabled = false;
-      boton.innerHTML = '<i class="bi bi-ban" aria-hidden="true"></i><span>Anular</span>';
-    }
+    boton.textContent = 'Anular radicado';
+    boton.disabled = false;
   }
 }

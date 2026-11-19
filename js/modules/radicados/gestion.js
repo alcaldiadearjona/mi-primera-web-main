@@ -14,9 +14,10 @@ import { datosRadicados } from '../../data/radicados.js';
 import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
-import { abreviarNombreDependencia } from '../../utils/helpers.js';
+import { abreviarNombreDependencia, sumarDiasHabilesColombia } from '../../utils/helpers.js';
 import {
   esAdministrador,
+  obtenerPerfilSesion,
   puedeEditarRadicado,
   puedeGestionarIAS,
   puedeGestionarRadicado
@@ -24,6 +25,7 @@ import {
 import { confirmarAccion } from '../ui/avisos.js';
 import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
+import { convertirABase64 } from '../../utils/helpers.js';
 
 function obtenerFechaActualBogota() {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -36,6 +38,8 @@ function obtenerFechaActualBogota() {
 
 export function inicializarAccionesRadicados() {
   document.getElementById('formEditar')?.addEventListener('submit', guardarEdicionRadicado);
+  document.getElementById('formProrrogaRadicado')?.addEventListener('submit', guardarProrrogaRadicado);
+  document.getElementById('prorrogaDias')?.addEventListener('input', actualizarFechaProrroga);
   document.getElementById('formFuncionarioAsignado')?.addEventListener('submit', guardarFuncionarioAsignado);
   inicializarBuscadorFuncionarios();
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', event => {
@@ -616,6 +620,122 @@ window.prepararEdicion = function(id, coleccion = '') {
 window.cerrarModalEditar = function() {
   document.getElementById('modalEditar').style.display = 'none';
 };
+
+window.abrirModalProrrogaRadicado = function(id, coleccion = '') {
+  const radicado = buscarRadicadoPorId(id, coleccion);
+  if (!radicado) return;
+  if (obtenerPerfilSesion()?.rol !== 'administrador') return;
+  document.getElementById('prorrogaRadicadoId').value = id;
+  document.getElementById('prorrogaRadicadoColeccion').value = obtenerColeccionRegistro(radicado);
+  document.getElementById('prorrogaDias').value = '';
+  document.getElementById('prorrogaNuevaFecha').value = radicado.fechaVencimiento || '';
+  document.getElementById('prorrogaNuevaFecha').dataset.iso = radicado.fechaVencimiento || '';
+  document.getElementById('prorrogaArchivo').value = '';
+  document.getElementById('textoProrrogaRadicado').textContent =
+    `Radicado ${radicado.radicado || ''}. Fecha vigente: ${radicado.fechaVencimiento || 'sin definir'}.`;
+  document.getElementById('modalProrrogaRadicado').style.display = 'flex';
+};
+
+window.cerrarModalProrrogaRadicado = function() {
+  document.getElementById('modalProrrogaRadicado').style.display = 'none';
+};
+
+function actualizarFechaProrroga() {
+  const id = document.getElementById('prorrogaRadicadoId').value;
+  const coleccion = document.getElementById('prorrogaRadicadoColeccion').value;
+  const radicado = buscarRadicadoPorId(id, coleccion);
+  const dias = Number(document.getElementById('prorrogaDias').value);
+  const campoFecha = document.getElementById('prorrogaNuevaFecha');
+  if (!radicado || !Number.isInteger(dias) || dias < 1) {
+    campoFecha.value = radicado?.fechaVencimiento || '';
+    return;
+  }
+  const fechaCalculada = sumarDiasHabilesColombia(radicado.fechaVencimiento, dias);
+  campoFecha.value = fechaCalculada
+    ? new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        .format(new Date(`${fechaCalculada}T12:00:00`))
+    : radicado.fechaVencimiento || '';
+  campoFecha.dataset.iso = fechaCalculada;
+}
+
+async function guardarProrrogaRadicado(event) {
+  event.preventDefault();
+  const id = document.getElementById('prorrogaRadicadoId').value;
+  const coleccion = document.getElementById('prorrogaRadicadoColeccion').value;
+  const radicado = buscarRadicadoPorId(id, coleccion);
+  const dias = Number(document.getElementById('prorrogaDias').value);
+  const nuevaFecha = document.getElementById('prorrogaNuevaFecha').dataset.iso
+    || sumarDiasHabilesColombia(radicado?.fechaVencimiento || '', dias);
+  const archivo = document.getElementById('prorrogaArchivo').files?.[0];
+  if (!radicado || !Number.isInteger(dias) || dias < 1 || !nuevaFecha || !archivo) {
+    alert('Debes indicar los días hábiles adicionales y cargar el oficio de prórroga.');
+    return;
+  }
+  if (archivo.size > 10 * 1024 * 1024) {
+    alert('El oficio de prórroga no puede superar 10 MB.');
+    return;
+  }
+  const encabezadoPdf = new TextDecoder().decode(await archivo.slice(0, 5).arrayBuffer());
+  if (!archivo.name.toLocaleLowerCase('es-CO').endsWith('.pdf') || encabezadoPdf !== '%PDF-') {
+    alert('El oficio de prórroga debe ser un archivo PDF válido.');
+    return;
+  }
+  if (nuevaFecha <= (radicado.fechaVencimiento || '')) {
+    alert('La nueva fecha de vencimiento debe ser posterior a la fecha vigente.');
+    return;
+  }
+  const boton = document.getElementById('guardarProrrogaRadicado');
+  boton.disabled = true;
+  boton.textContent = 'Guardando...';
+  try {
+    const base64 = await convertirABase64(archivo);
+    const respuesta = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        archivoBase64: base64.split(',')[1] || '',
+        nombreArchivo: `Prorroga_${radicado.radicado || id}_${archivo.name}`,
+        mimeType: 'application/pdf'
+      })
+    });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok || resultado.status !== 'success' || !resultado.url) {
+      throw new Error(resultado.message || 'No fue posible cargar el oficio en Google Drive.');
+    }
+    const instante = new Date().toISOString();
+    await updateDoc(doc(db, obtenerColeccionRegistro(radicado), id), {
+      fechaVencimiento: nuevaFecha,
+      fechaEntrega: nuevaFecha,
+      prorroga: {
+        fechaAnterior: radicado.fechaVencimiento || '',
+        nuevaFecha,
+        diasHabilesAdicionales: dias,
+        archivoNombre: archivo.name,
+        archivoUrl: resultado.url,
+        registradoEn: instante
+      },
+      actualizadoEn: instante
+    });
+    radicado.fechaVencimiento = nuevaFecha;
+    radicado.fechaEntrega = nuevaFecha;
+    radicado.prorroga = {
+      fechaAnterior: radicado.prorroga?.fechaAnterior || '',
+      nuevaFecha,
+      diasHabilesAdicionales: dias,
+      archivoNombre: archivo.name,
+      archivoUrl: resultado.url,
+      registradoEn: instante
+    };
+    window.cerrarModalProrrogaRadicado();
+    alert('Prórroga registrada y fecha de vencimiento actualizada.');
+    await recargarDatosRegistro(radicado);
+  } catch (error) {
+    console.error('Error al registrar la prórroga:', error);
+    alert(`No se pudo registrar la prórroga: ${error.message}`);
+  } finally {
+    boton.disabled = false;
+    boton.textContent = 'Guardar prórroga';
+  }
+}
 
 async function guardarEdicionRadicado(e) {
   e.preventDefault();

@@ -374,6 +374,84 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
+#pantallaDependencia .table-custom td:nth-child(11) .prorroga-action-button,
+#pantallaDependencia .table-custom td:nth-child(11) .prorroga-action-button:hover,
+#pantallaDependencia .table-custom td:nth-child(11) .prorroga-action-button:active,
+#pantallaDependencia .table-custom td:nth-child(11) .prorroga-action-button:focus,
+#pantallaDependencia .table-custom td:nth-child(11) .prorroga-action-button:focus-visible {
+  background: #2563eb !important;
+  background-color: #2563eb !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  filter: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  width: auto !important;
+  min-width: 92px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 132px !important;
+  margin: 6px auto 0 !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-main,
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-main {
+  gap: 2px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga {
+  margin-top: 5px;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-action-button {
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  margin: 0 !important;
+  font-size: 9px !important;
+  gap: 3px;
+  padding: 0 5px !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link {
+  width: 92px;
+  min-height: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  margin: 0;
+  border-radius: 5px;
+  background: #fed7aa;
+  border-color: #fdba74;
+  color: #9a3d05;
+  font-size: 12px;
+  gap: 3px;
+  padding: 0 5px;
+  font-size: 11px !important;
+}
+
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link:hover,
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link:active,
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link:focus,
+#pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link:focus-visible {
+  background: #fdba74;
+  border-color: #f59e0b;
+  color: #9a3d05;
+  outline: none;
+  box-shadow: none;
+}
+
 /* Desactivar pseudo-elementos previos para que no superpongan iconos */
 #pantallaDependencia .table-custom td:nth-child(11) button::before,
 #pantallaDependencia .table-custom td:nth-child(11) button::after {
@@ -453,7 +531,7 @@
   #pantallaDependencia .table-custom th:nth-child(10),
   #pantallaDependencia .table-custom td:nth-child(10) { width: 140px !important; }
   #pantallaDependencia .table-custom th:nth-child(11),
-  #pantallaDependencia .table-custom td:nth-child(11) { width: 130px !important; }
+  #pantallaDependencia .table-custom td:nth-child(11) { width: 170px !important; }
   #pantallaDependencia .table-custom th:nth-child(12),
   #pantallaDependencia .table-custom td:nth-child(12) { width: 125px !important; }
   #pantallaDependencia .table-custom th:nth-child(13),
@@ -679,4 +757,40 @@
   cursor: not-allowed !important;
   filter: grayscale(.6);
   opacity: .48;
+}
+
+#pantallaDependencia .prorroga-view-link {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 3px 8px;
+  border: 1px solid #cfe4d6;
+  border-radius: 6px;
+  background: #f3faf6;
+  color: #16804a;
+  font-size: 9px !important;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+#pantallaDependencia .prorroga-view-link i {
+  font-size: 10px !important;
+}
+
+#pantallaDependencia .prorroga-view-link:hover,
+#pantallaDependencia .prorroga-view-link:active,
+#pantallaDependencia .prorroga-view-link:focus,
+#pantallaDependencia .prorroga-view-link:focus-visible {
+  border-color: #b4d5c0;
+  background: #edf7f1;
+  color: #16804a;
+  outline: none;
+  box-shadow: none;
+  text-decoration: none;
 }

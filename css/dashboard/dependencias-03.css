@@ -335,6 +335,7 @@
 
 #pantallaDependencia .table-custom td:nth-child(11) {
   white-space: nowrap;
+  text-align: center;
 }
 
 #pantallaDependencia .table-custom td:nth-child(11) button {

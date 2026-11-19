@@ -299,6 +299,42 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
           </form>
         </div>
       </div>
+      <div id="modalAnularSalida" class="generation-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="tituloAnularSalida">
+        <div class="generation-modal-card">
+          <h2 id="tituloAnularSalida"><i class="bi bi-ban" aria-hidden="true"></i> Anular radicado de salida</h2>
+          <form id="formAnularSalida">
+            <input id="idAnularSalida" type="hidden">
+            <p>Radicado: <strong id="radicadoAnularSalida"></strong></p>
+            <p>Se generará automáticamente el acta de anulación en formato Word con los datos del radicado.</p>
+            <div class="form-group generation-full-width">
+              <label for="motivoAnulacionSalida">Motivo de la anulación *</label>
+              <select id="motivoAnulacionSalida" required>
+                <option value="">Seleccione una categoría</option>
+                <option value="Error de digitación">Error de digitación</option>
+                <option value="Radicado duplicado">Radicado duplicado</option>
+                <option value="Documento ilegible/erróneo">Documento ilegible/erróneo</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div class="form-group generation-full-width">
+              <label for="justificacionAnulacionSalida">Justificación detallada *</label>
+              <textarea id="justificacionAnulacionSalida" required rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="nombreAdministradorAnulacionSalida">Nombre del administrador</label>
+              <input id="nombreAdministradorAnulacionSalida" type="text">
+            </div>
+            <div class="form-group">
+              <label for="cedulaAdministradorAnulacionSalida">C.C.</label>
+              <input id="cedulaAdministradorAnulacionSalida" type="text">
+            </div>
+            <div class="generation-modal-actions">
+              <button id="cancelarAnularSalida" type="button" class="generation-cancel">Cancelar</button>
+              <button id="confirmarAnularSalida" type="submit" class="btn-guardar generation-submit" disabled>Anular radicado</button>
+            </div>
+          </form>
+        </div>
+      </div>
       <dialog id="modalExportarGeneracion" class="received-register-dialog" aria-labelledby="tituloModalExportarGeneracion">
         <form id="formExportarGeneracion" class="received-register-dialog-card">
           <div class="received-register-dialog-heading">
