@@ -39,7 +39,10 @@ service cloud.firestore {
     }
 
     function isInvitado() {
-      return isAnonymous() && hasProfile() && profile().rol == 'invitado';
+      return hasProfile()
+        && profile().rol == 'invitado'
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && request.auth.token.email == 'invitado@pqrsalcaldiaarjona.firebaseapp.com';
     }
 
     function isCiudadano() {
@@ -100,9 +103,17 @@ service cloud.firestore {
           && request.auth.uid == userId
           && request.resource.data.keys().hasAll(['rol', 'nombre'])
           && request.resource.data.keys().hasOnly(['rol', 'nombre'])
-          && request.resource.data.rol in ['invitado', 'ciudadano']
-          && request.resource.data.nombre
-            == (request.resource.data.rol == 'ciudadano' ? 'Ciudadano' : 'Invitado')
+          && request.resource.data.rol == 'ciudadano'
+          && request.resource.data.nombre == 'Ciudadano'
+        )
+        || (
+          request.auth.uid == userId
+          && request.auth.token.firebase.sign_in_provider == 'password'
+          && request.auth.token.email == 'invitado@pqrsalcaldiaarjona.firebaseapp.com'
+          && request.resource.data.keys().hasAll(['rol', 'nombre'])
+          && request.resource.data.keys().hasOnly(['rol', 'nombre'])
+          && request.resource.data.rol == 'invitado'
+          && request.resource.data.nombre == 'Invitado'
         );
     }
 

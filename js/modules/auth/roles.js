@@ -17,6 +17,7 @@ const CUENTAS_FUNCIONARIO = {
 };
 
 const CORREO_ADMINISTRADOR = 'majodabel19@gmail.com';
+const CORREO_INVITADO = 'invitado@pqrsalcaldiaarjona.firebaseapp.com';
 let perfilSesion = null;
 let usuarioSesion = null;
 
@@ -26,6 +27,13 @@ export function obtenerCredencialLogin(usuario) {
     return {
       email: CORREO_ADMINISTRADOR,
       rol: 'administrador',
+      dependencia: ''
+    };
+  }
+  if (nombreUsuario === 'invitado') {
+    return {
+      email: CORREO_INVITADO,
+      rol: 'invitado',
       dependencia: ''
     };
   }
@@ -42,6 +50,9 @@ export function obtenerCredencialPorCorreo(correo) {
   const correoNormalizado = String(correo || '').trim().toLowerCase();
   if (correoNormalizado === CORREO_ADMINISTRADOR) {
     return { email: CORREO_ADMINISTRADOR, rol: 'administrador', dependencia: '' };
+  }
+  if (correoNormalizado === CORREO_INVITADO) {
+    return { email: CORREO_INVITADO, rol: 'invitado', dependencia: '' };
   }
   const usuario = Object.keys(CUENTAS_FUNCIONARIO).find(
     nombre => CUENTAS_FUNCIONARIO[nombre].email === correoNormalizado

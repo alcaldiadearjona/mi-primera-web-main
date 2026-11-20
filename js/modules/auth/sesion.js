@@ -185,31 +185,43 @@ async function configurarUsuario(usuario, rolElegido = '') {
       const snapshotPerfil = await getDoc(referenciaPerfil);
       if (snapshotPerfil.exists()) {
         perfil = snapshotPerfil.data();
-        if (!['invitado', 'ciudadano'].includes(perfil.rol)
+        if (perfil.rol === 'invitado') {
+          throw new Error('El rol Invitado requiere ingresar con su contraseña.');
+        }
+        if (perfil.rol !== 'ciudadano'
           || (rolElegido && perfil.rol !== rolElegido)) {
           throw new Error('El rol de la sesión anónima no coincide con su perfil.');
         }
       } else {
-        const rolAnonimo = rolElegido || 'invitado';
-        if (!['invitado', 'ciudadano'].includes(rolAnonimo)) {
-          throw new Error('La sesión anónima solo puede usar el rol Invitado o Ciudadano.');
+        const rolAnonimo = rolElegido || 'ciudadano';
+        if (rolAnonimo !== 'ciudadano') {
+          throw new Error('La sesión anónima solo puede usar el rol Ciudadano.');
         }
         perfil = {
           rol: rolAnonimo,
-          nombre: rolAnonimo === 'ciudadano' ? 'Ciudadano' : 'Invitado'
+          nombre: 'Ciudadano'
         };
         await setDoc(referenciaPerfil, perfil);
       }
     } else {
-      const snapshotPerfil = await getDoc(doc(db, 'usuarios', usuario.uid));
-      if (!snapshotPerfil.exists()) {
-        throw new Error('La cuenta no tiene un perfil de acceso configurado. Contacta al administrador.');
-      }
-
-      perfil = snapshotPerfil.data();
+      const referenciaPerfil = doc(db, 'usuarios', usuario.uid);
+      const snapshotPerfil = await getDoc(referenciaPerfil);
       const usuarioEsperado = obtenerCredencialPorCorreo(usuario.email);
       if (!usuarioEsperado
-        || perfil.rol !== usuarioEsperado.rol
+        || (rolElegido && usuarioEsperado.rol !== rolElegido)) {
+        throw new Error('El usuario no corresponde al rol seleccionado.');
+      }
+      if (!snapshotPerfil.exists()) {
+        if (usuarioEsperado.rol !== 'invitado') {
+          throw new Error('La cuenta no tiene un perfil de acceso configurado. Contacta al administrador.');
+        }
+        perfil = { rol: 'invitado', nombre: 'Invitado' };
+        await setDoc(referenciaPerfil, perfil);
+      } else {
+        perfil = snapshotPerfil.data();
+      }
+
+      if (perfil.rol !== usuarioEsperado.rol
         || (usuarioEsperado.dependencia && perfil.dependencia !== usuarioEsperado.dependencia)
         || (rolElegido && perfil.rol !== rolElegido)) {
         throw new Error('El rol o la dependencia de la cuenta no coincide con su perfil.');
@@ -300,8 +312,10 @@ window.iniciarSesion = async function(event) {
   const rol = document.getElementById('loginRol')?.value || '';
   const usuario = document.getElementById('loginUsuario')?.value.trim().toLowerCase() || '';
   const clave = document.getElementById('loginClave')?.value || '';
-  const rolAnonimo = rol === 'invitado' || rol === 'ciudadano';
-  const credencial = rolAnonimo ? null : obtenerCredencialLogin(usuario);
+  const rolAnonimo = rol === 'ciudadano';
+  const credencial = rolAnonimo
+    ? null
+    : obtenerCredencialLogin(rol === 'invitado' ? 'invitado' : usuario);
   const error = document.getElementById('errorLogin');
   if (error) error.hidden = true;
 
@@ -458,21 +472,23 @@ export function inicializarSesion() {
   const campoUsuario = document.getElementById('loginUsuario');
   const campoClave = document.getElementById('loginClave');
   const actualizarCamposLogin = () => {
-    const esAccesoAnonimo = selectorRol?.value === 'invitado' || selectorRol?.value === 'ciudadano';
-    if (grupoUsuario) grupoUsuario.hidden = esAccesoAnonimo;
-    if (grupoClave) grupoClave.hidden = esAccesoAnonimo;
+    const esInvitadoSeleccionado = selectorRol?.value === 'invitado';
+    const esCiudadanoSeleccionado = selectorRol?.value === 'ciudadano';
+    const ocultarUsuario = esInvitadoSeleccionado || esCiudadanoSeleccionado;
+    if (grupoUsuario) grupoUsuario.hidden = ocultarUsuario;
+    if (grupoClave) grupoClave.hidden = esCiudadanoSeleccionado;
     if (campoUsuario) {
-      campoUsuario.required = !esAccesoAnonimo;
-      campoUsuario.disabled = esAccesoAnonimo;
-      if (esAccesoAnonimo) campoUsuario.value = '';
+      campoUsuario.required = !ocultarUsuario;
+      campoUsuario.disabled = ocultarUsuario;
+      if (ocultarUsuario) campoUsuario.value = '';
     }
     if (campoClave) {
-      campoClave.required = !esAccesoAnonimo;
-      campoClave.disabled = esAccesoAnonimo;
-      if (esAccesoAnonimo) campoClave.value = '';
+      campoClave.required = !esCiudadanoSeleccionado;
+      campoClave.disabled = esCiudadanoSeleccionado;
+      if (esCiudadanoSeleccionado) campoClave.value = '';
     }
     const enlaceRecuperacion = document.getElementById('enlaceRecuperarContrasena');
-    if (enlaceRecuperacion) enlaceRecuperacion.hidden = esAccesoAnonimo;
+    if (enlaceRecuperacion) enlaceRecuperacion.hidden = ocultarUsuario;
   };
   selectorRol?.addEventListener('change', actualizarCamposLogin);
   actualizarCamposLogin();
