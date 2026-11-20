@@ -3,7 +3,10 @@ import test from 'node:test';
 import {
   calcularPascua,
   evaluarEstadoAutomatico,
+  formatearMayusculasIniciales,
   formatearIso,
+  formatearRadicadoEntrada,
+  obtenerUrlHttpsSegura,
   obtenerFestivosColombia,
   obtenerEtiquetaCumplimientoCierre,
   obtenerRadicadosProximosAVencer,
@@ -24,6 +27,29 @@ test('siguienteLunes conserva los lunes y mueve los demás días al lunes siguie
 
 test('formatearIso rellena con ceros mes y día', () => {
   assert.equal(formatearIso(new Date(2026, 0, 5)), '2026-01-05');
+});
+
+test('formatearMayusculasIniciales normaliza el texto y conserva correos y enlaces', () => {
+  assert.equal(
+    formatearMayusculasIniciales('  MARÍA pÉREZ, ASUNTO PQRSF  '),
+    '  María Pérez, Asunto Pqrsf  '
+  );
+  assert.equal(
+    formatearMayusculasIniciales('MARÍA PÉREZ maria.perez@ejemplo.com https://Ejemplo.com/Path'),
+    'María Pérez maria.perez@ejemplo.com https://Ejemplo.com/Path'
+  );
+});
+
+test('formatearRadicadoEntrada completa el consecutivo anual con cinco cifras', () => {
+  assert.equal(formatearRadicadoEntrada(2026, 1), 'R-2026-00001');
+  assert.equal(formatearRadicadoEntrada(2026, 12345), 'R-2026-12345');
+});
+
+test('obtenerUrlHttpsSegura solo acepta enlaces HTTPS válidos', () => {
+  assert.equal(obtenerUrlHttpsSegura('https://drive.google.com/file/d/123'), 'https://drive.google.com/file/d/123');
+  assert.equal(obtenerUrlHttpsSegura('javascript:alert(1)'), '');
+  assert.ok(!obtenerUrlHttpsSegura('https://ejemplo.com/" onclick="alert(1)').includes('"'));
+  assert.equal(obtenerUrlHttpsSegura(''), '');
 });
 
 test('clasifica cierres a tiempo o extemporáneos comparando sus fechas', () => {

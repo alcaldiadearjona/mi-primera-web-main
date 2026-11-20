@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import {
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -15,6 +15,7 @@ import {
   establecerSesionUsuario,
   esAdministrador,
   esControlInterno,
+  esCiudadano,
   esFuncionario,
   esInvitado,
   limpiarSesionUsuario,
@@ -27,6 +28,7 @@ import {
 import { inicializarFormulario } from '../radicados/formulario.js';
 import { inicializarFormularioGeneracionSalida } from '../radicados/generacion-salida.js';
 import { inicializarExportacionPlanilla } from '../radicados/exportar-planilla.js';
+import { inicializarExportacionPlanillaRecepcion } from '../radicados/exportar-planilla-recepcion.js';
 import { inicializarExportacionInformes } from '../radicados/exportar-informes.js';
 import { inicializarAccionesRadicados } from '../radicados/gestion.js';
 import { inicializarTableroIAS } from '../ias/tablero.js';
@@ -107,9 +109,11 @@ function mostrarPantallaDespuesDeLogin() {
     ? 'Control Interno'
     : esAdministrador()
       ? 'Administrador'
-      : esInvitado()
-        ? 'Invitado'
-        : obtenerDependenciaSesion();
+      : esCiudadano()
+        ? 'Ciudadano'
+        : esInvitado()
+          ? 'Invitado'
+          : obtenerDependenciaSesion();
   const saludo = document.getElementById('saludoSesion');
   const nombreSaludo = document.getElementById('nombreSaludoSesion');
   if (nombreSaludo) nombreSaludo.textContent = nombre;
@@ -119,14 +123,18 @@ function mostrarPantallaDespuesDeLogin() {
   if (rolMenu) {
     rolMenu.textContent = esAdministrador() && !esControlInterno()
       ? 'Administrador'
-      : esInvitado()
-        ? 'Invitado'
-        : 'Funcionario';
+      : esCiudadano()
+        ? 'Ciudadano'
+        : esInvitado()
+          ? 'Invitado'
+          : 'Funcionario';
   }
   if (nombreMenu) nombreMenu.textContent = nombre;
 
   document.querySelectorAll('.menu-item').forEach(elemento => {
-    const ocultar = esInvitado() && elemento.dataset.menuView !== 'generacion';
+    const ocultar = esInvitado()
+      ? elemento.dataset.menuView !== 'generacion'
+      : esCiudadano() && elemento.dataset.menuView !== 'ciudadano';
     elemento.hidden = ocultar;
     elemento.style.display = ocultar ? 'none' : '';
   });
@@ -144,6 +152,13 @@ function mostrarPantallaDespuesDeLogin() {
 }
 
 function inicializarModulosAutorizados() {
+  if (esCiudadano()) {
+    if (!modulosInicializados) {
+      inicializarFormulario();
+      modulosInicializados = true;
+    }
+    return;
+  }
   if (!modulosGeneracionInicializados) {
     inicializarFormularioGeneracionSalida();
     modulosGeneracionInicializados = true;
@@ -152,6 +167,7 @@ function inicializarModulosAutorizados() {
   inicializarAccionesRadicados();
   inicializarFormulario();
   inicializarExportacionPlanilla();
+  inicializarExportacionPlanillaRecepcion();
   inicializarExportacionInformes();
   modulosInicializados = true;
 }
@@ -164,10 +180,25 @@ async function configurarUsuario(usuario, rolElegido = '') {
   const promesa = (async () => {
     let perfil;
     if (usuario.isAnonymous) {
-      if (rolElegido && rolElegido !== 'invitado') {
-        throw new Error('La sesión anónima solo puede usar el rol Invitado.');
+      const referenciaPerfil = doc(db, 'usuarios', usuario.uid);
+      const snapshotPerfil = await getDoc(referenciaPerfil);
+      if (snapshotPerfil.exists()) {
+        perfil = snapshotPerfil.data();
+        if (!['invitado', 'ciudadano'].includes(perfil.rol)
+          || (rolElegido && perfil.rol !== rolElegido)) {
+          throw new Error('El rol de la sesión anónima no coincide con su perfil.');
+        }
+      } else {
+        const rolAnonimo = rolElegido || 'invitado';
+        if (!['invitado', 'ciudadano'].includes(rolAnonimo)) {
+          throw new Error('La sesión anónima solo puede usar el rol Invitado o Ciudadano.');
+        }
+        perfil = {
+          rol: rolAnonimo,
+          nombre: rolAnonimo === 'ciudadano' ? 'Ciudadano' : 'Invitado'
+        };
+        await setDoc(referenciaPerfil, perfil);
       }
-      perfil = { rol: 'invitado', nombre: 'Invitado' };
     } else {
       const snapshotPerfil = await getDoc(doc(db, 'usuarios', usuario.uid));
       if (!snapshotPerfil.exists()) {
@@ -189,6 +220,11 @@ async function configurarUsuario(usuario, rolElegido = '') {
     inicializarModulosAutorizados();
     if (esInvitado()) {
       window.mostrarGeneracionRadicados();
+      usuarioConfigurado = usuario.uid;
+      return;
+    }
+    if (esCiudadano()) {
+      window.mostrarAtencionCiudadano();
       usuarioConfigurado = usuario.uid;
       return;
     }
@@ -248,11 +284,12 @@ window.iniciarSesion = async function(event) {
   const rol = document.getElementById('loginRol')?.value || '';
   const usuario = document.getElementById('loginUsuario')?.value.trim().toLowerCase() || '';
   const clave = document.getElementById('loginClave')?.value || '';
-  const credencial = rol === 'invitado' ? null : obtenerCredencialLogin(usuario);
+  const rolAnonimo = rol === 'invitado' || rol === 'ciudadano';
+  const credencial = rolAnonimo ? null : obtenerCredencialLogin(usuario);
   const error = document.getElementById('errorLogin');
   if (error) error.hidden = true;
 
-  if (rol !== 'invitado' && (!credencial || credencial.rol !== rol)) {
+  if (!rolAnonimo && (!credencial || credencial.rol !== rol)) {
     mostrarErrorLogin('El usuario no corresponde al rol seleccionado.');
     return;
   }
@@ -263,7 +300,7 @@ window.iniciarSesion = async function(event) {
   rolSolicitado = rol;
 
   try {
-    const resultado = rol === 'invitado'
+    const resultado = rolAnonimo
       ? await signInAnonymously(auth)
       : await signInWithEmailAndPassword(auth, credencial.email, clave);
     try {
@@ -299,8 +336,8 @@ async function recuperarContrasena(event) {
     estado.textContent = '';
   }
 
-  if (rol === 'invitado') {
-    mostrarErrorLogin('El rol Invitado no usa contraseña.');
+  if (rol === 'invitado' || rol === 'ciudadano') {
+    mostrarErrorLogin(`El rol ${rol === 'ciudadano' ? 'Ciudadano' : 'Invitado'} no usa contraseña.`);
     return;
   }
 
@@ -405,21 +442,21 @@ export function inicializarSesion() {
   const campoUsuario = document.getElementById('loginUsuario');
   const campoClave = document.getElementById('loginClave');
   const actualizarCamposLogin = () => {
-    const esInvitadoSeleccionado = selectorRol?.value === 'invitado';
-    if (grupoUsuario) grupoUsuario.hidden = esInvitadoSeleccionado;
-    if (grupoClave) grupoClave.hidden = esInvitadoSeleccionado;
+    const esAccesoAnonimo = selectorRol?.value === 'invitado' || selectorRol?.value === 'ciudadano';
+    if (grupoUsuario) grupoUsuario.hidden = esAccesoAnonimo;
+    if (grupoClave) grupoClave.hidden = esAccesoAnonimo;
     if (campoUsuario) {
-      campoUsuario.required = !esInvitadoSeleccionado;
-      campoUsuario.disabled = esInvitadoSeleccionado;
-      if (esInvitadoSeleccionado) campoUsuario.value = '';
+      campoUsuario.required = !esAccesoAnonimo;
+      campoUsuario.disabled = esAccesoAnonimo;
+      if (esAccesoAnonimo) campoUsuario.value = '';
     }
     if (campoClave) {
-      campoClave.required = !esInvitadoSeleccionado;
-      campoClave.disabled = esInvitadoSeleccionado;
-      if (esInvitadoSeleccionado) campoClave.value = '';
+      campoClave.required = !esAccesoAnonimo;
+      campoClave.disabled = esAccesoAnonimo;
+      if (esAccesoAnonimo) campoClave.value = '';
     }
     const enlaceRecuperacion = document.getElementById('enlaceRecuperarContrasena');
-    if (enlaceRecuperacion) enlaceRecuperacion.hidden = esInvitadoSeleccionado;
+    if (enlaceRecuperacion) enlaceRecuperacion.hidden = esAccesoAnonimo;
   };
   selectorRol?.addEventListener('change', actualizarCamposLogin);
   actualizarCamposLogin();

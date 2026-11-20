@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { confirmarAccion, inicializarAvisos } from '../js/modules/ui/avisos.js';
+import { confirmarAccion, inicializarAvisos, mostrarAviso } from '../js/modules/ui/avisos.js';
 
 function crearElemento(id) {
   const listeners = new Map();
@@ -9,6 +9,7 @@ function crearElemento(id) {
     hidden: false,
     className: '',
     classList: { toggle() {} },
+    children: [],
     parentElement: null,
     isConnected: true,
     addEventListener(tipo, callback) {
@@ -16,7 +17,9 @@ function crearElemento(id) {
     },
     append() {},
     focus() {},
-    replaceChildren() {},
+    replaceChildren(...children) {
+      this.children = children;
+    },
     setAttribute() {},
     click(tipo = 'click') {
       listeners.get(tipo)?.({ target: this, key: '' });
@@ -56,6 +59,16 @@ test('confirmarAccion devuelve true al aceptar y false al cancelar', async () =>
   const cancelada = confirmarAccion('¿Anular el radicado?');
   elementos.cancelarAvisoApp.click();
   assert.equal(await cancelada, false);
+
+  const avisoRadicado = mostrarAviso('Quedó pendiente por gestionar.', {
+    tipo: 'success',
+    radicado: 'R-2026-00002',
+    etiquetaRadicado: 'Número de radicado de entrada:'
+  });
+  assert.equal(elementos.mensajeAvisoApp.children[1].textContent, 'R-2026-00002');
+  assert.equal(elementos.mensajeAvisoApp.children[1].className, 'app-notice-radicado-number');
+  elementos.aceptarAvisoApp.click();
+  await avisoRadicado;
 
   delete globalThis.document;
   delete globalThis.window;

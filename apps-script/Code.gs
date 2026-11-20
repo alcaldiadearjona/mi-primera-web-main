@@ -347,13 +347,17 @@ function doPost(e) {
         etapa = "validando el perfil en Firestore";
         var perfil = obtenerDocumentoFirestore("usuarios/" + encodeURIComponent(sesion.uid), sesion.token);
         var funcionario = perfil.rol === "funcionario";
+        var ciudadano = perfil.rol === "ciudadano";
         var administrador = perfil.rol === "administrador"
           || (funcionario && perfil.dependencia === "Control Interno");
-        if (!funcionario && !administrador) {
+        if (!funcionario && !administrador && !ciudadano) {
           throw new Error("El perfil no está autorizado para notificar.");
         }
 
         var tipo = String(data.tipo || "");
+        if (ciudadano && tipo !== "nueva-solicitud") {
+          throw new Error("El perfil ciudadano solo puede notificar sus solicitudes.");
+        }
         var registro;
         var enviados = 0;
         var duplicados = 0;
@@ -364,8 +368,10 @@ function doPost(e) {
           ids.forEach(function(id) {
             etapa = "consultando el radicado";
             var solicitud = obtenerDocumentoFirestore("radicados/" + encodeURIComponent(String(id)), sesion.token);
-            if (solicitud.origenSolicitud !== "ventanilla"
-              || (!administrador && solicitud.dependencia !== perfil.dependencia)) {
+            if (ciudadano
+              ? solicitud.origenSolicitud !== "ciudadano" || solicitud.ciudadanoUid !== sesion.uid
+              : solicitud.origenSolicitud !== "ventanilla"
+                || (!administrador && solicitud.dependencia !== perfil.dependencia)) {
               throw new Error("No tienes permiso para notificar esta solicitud.");
             }
             etapa = "enviando el correo a " + solicitud.dependencia;

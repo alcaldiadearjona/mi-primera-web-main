@@ -1,7 +1,8 @@
 import {
   abreviarNombreDependencia,
   evaluarEstadoAutomatico,
-  obtenerEtiquetaCumplimientoCierre
+  obtenerEtiquetaCumplimientoCierre,
+  obtenerUrlHttpsSegura
 } from '../../utils/helpers.js';
 import {
   esAdministrador,
@@ -238,10 +239,18 @@ export function renderizarTablaRadicados(
         : '-'}</span>`
       : `<span class="badge-status ${estadoObj.clase}">${textoEstado}</span>`;
 
-    // Validacion para ti PDF
-    const tienePdf = reg.pdfUrl && reg.pdfUrl.trim() !== '' && reg.pdfUrl.startsWith('http');
-    const pdfCellHtml = tienePdf 
-      ? `<a class="pdf-badge" href="${reg.pdfUrl}" target="_blank">📄 Abrir PDF</a>` 
+    const urlPdf = obtenerUrlHttpsSegura(reg.pdfUrl);
+    const urlSolicitudCiudadano = obtenerUrlHttpsSegura(reg.pdfCiudadanoUrl);
+    const pdfLinks = [
+      urlPdf
+        ? `<a class="pdf-badge" href="${urlPdf}" target="_blank" rel="noopener noreferrer">📄 Abrir PDF</a>`
+        : '',
+      urlSolicitudCiudadano
+        ? `<a class="pdf-badge" href="${urlSolicitudCiudadano}" target="_blank" rel="noopener noreferrer">📄 Solicitud original</a>`
+        : ''
+    ].filter(Boolean);
+    const pdfCellHtml = pdfLinks.length
+      ? `<div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">${pdfLinks.join('')}</div>`
       : '<span style="color: #9ca3af; font-size: 11px;">Sin PDF</span>';
 
     let columnaRespuestaHtml = "";

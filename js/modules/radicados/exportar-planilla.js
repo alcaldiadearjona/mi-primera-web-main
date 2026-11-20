@@ -9,7 +9,7 @@ const RUTA_PLANTILLA = new URL(
 const URL_EXCELJS = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
 let cargaExcelJs;
 
-function cargarExcelJs() {
+export function cargarExcelJs() {
   if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
   if (cargaExcelJs) return cargaExcelJs;
 

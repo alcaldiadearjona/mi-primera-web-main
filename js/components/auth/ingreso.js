@@ -34,6 +34,7 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
             <option value="funcionario">Funcionario</option>
             <option value="administrador">Administrador</option>
             <option value="invitado">Invitado</option>
+            <option value="ciudadano">Ciudadano</option>
           </select>
         </div>
         <div id="grupoUsuarioLogin">

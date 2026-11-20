@@ -124,13 +124,19 @@ function mapearRadicado(documento) {
     tipoCanal: item.tipoCanal || '',
     fechaRadicacion: item.fechaRadicacion || '',
     fechaHoraRadicacion: item.fechaHoraRadicacion || '',
+    horaRadicacion: item.horaRadicacion || '',
     fechaEntregaManual: item.fechaEntregaManual || '',
     fechaVencimiento: item.fechaVencimiento || item.fechaEntrega || sumarDiasHabilesColombia(item.fechaRadicacion, item.diasHabiles || 15),
-    diasHabiles: item.diasHabiles || 15,
+    diasHabiles: item.diasHabiles === '' ? '' : item.diasHabiles ?? 15,
+    folios: item.folios ?? '',
+    anexos: item.anexos ?? '',
+    dependenciaResponsable: item.dependenciaResponsable || '',
     remitente: item.remitente,
     asunto: item.asunto,
     funcionarioAsignado: item.funcionarioAsignado || '',
     pdfUrl: item.pdfUrl || '',
+    pdfCiudadanoUrl: item.pdfCiudadanoUrl || '',
+    pdfCiudadanoNombre: item.pdfCiudadanoNombre || '',
     respuestaUrl: item.respuestaUrl || '',
     fechaCargaRespuesta: item.fechaCargaRespuesta || '',
     tipoPeticion: item.tipoPeticion || '',
@@ -199,7 +205,10 @@ export async function cargarDatosDesdeFirebase(opciones = {}) {
       console.log(`Consulta Firestore a "${RADICADOS_COLLECTION}" (${rango.clave}): ${querySnapshot.size} documentos encontrados.`);
       const registrosNuevos = querySnapshot.docs
         .map(mapearRadicado)
-        .filter(registro => datosRadicados[registro.dependencia]);
+        .filter(registro => (
+          registro.estado !== 'PENDIENTE_GESTION'
+          && datosRadicados[registro.dependencia]
+        ));
       const identificadores = new Set(registrosNuevos.map(registro => registro.id));
       const datosActualizados = Object.fromEntries(
         Object.entries(datosRadicados).map(([dependencia, lista]) => [

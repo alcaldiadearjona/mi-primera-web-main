@@ -12,6 +12,14 @@
   white-space: nowrap;
 }
 
+#vista-dependencias #abrirExportarPlanillaRecepcion {
+  margin-left: auto;
+}
+
+#vista-dependencias #abrirExportarPlanilla {
+  margin-left: 0;
+}
+
 #vista-dependencias .received-register-button,
 .received-register-submit,
 .received-register-cancel,
@@ -335,6 +343,11 @@
 
   #vista-dependencias .received-register-button {
     width: 100%;
+  }
+
+  #vista-dependencias #abrirExportarPlanilla,
+  #vista-dependencias #abrirExportarPlanillaRecepcion {
+    margin-left: 0;
   }
 
   .received-register-dialog-card {

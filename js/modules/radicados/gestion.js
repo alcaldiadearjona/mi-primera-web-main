@@ -14,7 +14,11 @@ import { datosRadicados } from '../../data/radicados.js';
 import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
-import { abreviarNombreDependencia, sumarDiasHabilesColombia } from '../../utils/helpers.js';
+import {
+  abreviarNombreDependencia,
+  formatearMayusculasIniciales,
+  sumarDiasHabilesColombia
+} from '../../utils/helpers.js';
 import {
   esAdministrador,
   obtenerPerfilSesion,
@@ -760,7 +764,11 @@ async function guardarEdicionRadicado(e) {
   if (texto) texto.textContent = 'Guardando...';
 
   try {
-    const docRef = doc(db, obtenerColeccionRegistro(radicado), id);
+    const coleccion = obtenerColeccionRegistro(radicado);
+    const docRef = doc(db, coleccion, id);
+    const normalizarTextoPQRSF = coleccion === RADICADOS_COLLECTION
+      ? formatearMayusculasIniciales
+      : valor => valor;
     await updateDoc(docRef, {
       radicado: document.getElementById('editRadicado').value,
       fechaRadicacion: document.getElementById('editFechaRadicacion').value,
@@ -768,8 +776,8 @@ async function guardarEdicionRadicado(e) {
       diasHabiles: document.getElementById('editDiasHabiles').value,
       [obtenerColeccionRegistro(radicado) === 'radicadosIAS' ? 'fechaVencimiento' : 'fechaEntrega']:
         document.getElementById('editFechaEntrega').value,
-      remitente: document.getElementById('editRemitente').value,
-      asunto: document.getElementById('editAsunto').value
+      remitente: normalizarTextoPQRSF(document.getElementById('editRemitente').value),
+      asunto: normalizarTextoPQRSF(document.getElementById('editAsunto').value)
     });
 
     alert("Radicado actualizado correctamente.");
@@ -892,6 +900,10 @@ window.guardarOtrosEstados = async function() {
   const otrosEstados = document.getElementById('selectOtrosEstados').value; // <--- Corregido a selectOtrosEstados
   const observaciones = document.getElementById('txtObservaciones').value;
   const fechaGestion = obtenerFechaActualBogota();
+  const normalizarTextoPQRSF = obtenerColeccionRegistro(radicado) === RADICADOS_COLLECTION
+    ? formatearMayusculasIniciales
+    : valor => valor;
+  const observacionesGuardadas = normalizarTextoPQRSF(observaciones);
   const debeActualizarFechaRespuesta = Boolean(
     otrosEstados && (!radicado.fechaCargaRespuesta || otrosEstados !== radicado.otrosEstados)
   );
@@ -900,7 +912,7 @@ window.guardarOtrosEstados = async function() {
     const docRef = doc(db, obtenerColeccionRegistro(radicado), id);
     const camposGestion = {
       otrosEstados: otrosEstados,
-      observaciones: observaciones,
+      observaciones: observacionesGuardadas,
       ...(debeActualizarFechaRespuesta ? { fechaCargaRespuesta: fechaGestion } : {})
     };
 
@@ -935,6 +947,8 @@ window.guardarOtrosEstados = async function() {
             ...radicadoOriginal,
             dependencia: copia.dependencia,
             estado: 'VIGENTE',
+            remitente: normalizarTextoPQRSF(radicadoOriginal.remitente),
+            asunto: normalizarTextoPQRSF(radicadoOriginal.asunto),
             funcionarioAsignado: '',
             otrosEstados: '',
             respuestaUrl: '',

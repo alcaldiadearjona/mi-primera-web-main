@@ -34,6 +34,33 @@ export function formatearIso(fecha) {
   return `${y}-${m}-${d}`;
 }
 
+export function formatearMayusculasIniciales(valor) {
+  const partes = String(valor ?? '').split(
+    /(https?:\/\/\S+|www\.\S+|[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[\p{L}]{2,})/giu
+  );
+  return partes.map((parte, indice) => {
+    if (indice % 2 === 1) return parte;
+    return parte.toLocaleLowerCase('es-CO').replace(
+      /(^|[^\p{L}\p{N}])(\p{L})/gu,
+      (coincidencia, separador, letra) => `${separador}${letra.toLocaleUpperCase('es-CO')}`
+    );
+  }).join('');
+}
+
+export function formatearRadicadoEntrada(anio, numero) {
+  return `R-${anio}-${String(numero).padStart(5, '0')}`;
+}
+
+export function obtenerUrlHttpsSegura(valor) {
+  if (typeof valor !== 'string' || !valor.trim()) return '';
+  try {
+    const url = new URL(valor);
+    return url.protocol === 'https:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 export function obtenerFestivosColombia(year) {
   const festivos = [];
   festivos.push(`${year}-01-01`); 

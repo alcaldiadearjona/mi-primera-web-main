@@ -25,6 +25,69 @@
   display: none !important;
 }
 
+.dashboard-summary[hidden] {
+  display: none !important;
+}
+
+.pqrs-pending-section[hidden] {
+  display: none !important;
+}
+
+.pqrs-pending-section {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid #e1e9e3;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(24, 50, 76, 0.06);
+}
+
+.pqrs-pending-section h3 {
+  margin: 0 0 12px;
+  color: #243b30;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.pqrs-pending-list {
+  display: grid;
+  max-height: 45vh;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pqrs-pending-item {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e3eaf0;
+  border-radius: 10px;
+  background: #fff;
+  color: #1e293b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pqrs-pending-item:hover,
+.pqrs-pending-item:focus-visible {
+  border-color: #16804a;
+  background: #f6fbf7;
+}
+
+.pqrs-pending-number {
+  color: #166534;
+  font-weight: 750;
+}
+
+.pqrs-pending-details,
+.pqrs-pending-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
 .pqrs-notifications {
   margin-top: 16px;
   border: 1px solid #e1e9e3;

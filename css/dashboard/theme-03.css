@@ -87,7 +87,7 @@
   gap: 16px;
   padding: 13px 16px;
   border: 1px solid #e3eaf0;
-  border-radius: 14px 14px 0 0;
+  border-radius: 14px;
   background: #ffffff;
   color: #1e293b;
   font: inherit;
@@ -117,6 +117,14 @@
   border-radius: 14px;
 }
 
+.dashboard-form-toggle + .dashboard-form-toggle {
+  margin-top: 12px;
+}
+
+#toggleGestionPQRSF {
+  margin-top: 20px;
+}
+
 .dashboard-form-toggle.is-collapsed > .bi-chevron-up {
   transform: rotate(180deg);
 }
@@ -135,9 +143,9 @@
 }
 
 .dashboard-form-column .form-card {
-  margin-bottom: 0;
-  border-top: 0;
-  border-radius: 0 0 14px 14px;
+  margin: 12px 0;
+  border-top: 1px solid #e3eaf0;
+  border-radius: 14px;
   box-shadow: 0 8px 24px rgba(24, 50, 76, 0.055);
 }
 

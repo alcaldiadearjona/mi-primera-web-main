@@ -23,6 +23,7 @@ const MAX_RADICADOS_POR_LOTE = 400;
 const COLECCION_SALIDA = 'radicadosSalida';
 const COLECCION_SECUENCIAS_SALIDA = 'radicadosSalidaSecuencias';
 const COLECCION_SECUENCIAS_ANULACION = 'radicadosAnulacionSecuencias';
+const PREFIJO_RADICADOS_SALIDA = 'E';
 const STORAGE_SOLICITUDES_PENDIENTES = 'radicadosSalida:solicitudesPendientes';
 const RUTA_PLANTILLA_SALIDA = new URL(
   '../../../assets/plantillas/Registro de Radicación de Comunicaciones Oficiales Salientes.xlsx',
@@ -46,6 +47,16 @@ let radicadoGestionadoSalida = '';
 let solicitudGeneracionEnCurso = false;
 let cargaExcelJsSalida;
 const solicitudesGeneracionCompletadas = new Set();
+
+function formatearRadicadoSalida(anio, numero) {
+  return `${PREFIJO_RADICADOS_SALIDA}-${anio}-${String(numero).padStart(5, '0')}`;
+}
+
+function coincideRadicadoSalida(registro, numero) {
+  const radicadoActual = formatearRadicadoSalida(registro.anio, numero);
+  const radicadoAnterior = `R-${registro.anio}-${String(numero).padStart(5, '0')}`;
+  return registro.radicado === radicadoActual || registro.radicado === radicadoAnterior;
+}
 
 function obtenerUrlVistaDrive(url) {
   const texto = String(url || '').trim();
@@ -724,7 +735,7 @@ async function asignarNumeroYGuardar(datos, claveIdempotencia) {
       throw new Error(`La secuencia de radicados de ${anio} no es válida.`);
     }
     const numero = ultimoNumero + 1;
-    const radicado = `R-${anio}-${String(numero).padStart(5, '0')}`;
+    const radicado = formatearRadicadoSalida(anio, numero);
     const registro = {
       ...datos,
       claveIdempotencia,
@@ -775,8 +786,8 @@ async function asignarRadicadosMasivosYGuardar(datos, claveIdempotencia, cantida
         && registroInicioExistente.anio === registroFinExistente.anio
         && Number.isSafeInteger(registroInicioExistente.numeroSecuencia)
         && registroFinExistente.numeroSecuencia === registroInicioExistente.numeroSecuencia + cantidad - 1
-        && registroInicioExistente.radicado === `R-${registroInicioExistente.anio}-${String(registroInicioExistente.numeroSecuencia).padStart(5, '0')}`
-        && registroFinExistente.radicado === `R-${registroFinExistente.anio}-${String(registroFinExistente.numeroSecuencia).padStart(5, '0')}`;
+        && coincideRadicadoSalida(registroInicioExistente, registroInicioExistente.numeroSecuencia)
+        && coincideRadicadoSalida(registroFinExistente, registroFinExistente.numeroSecuencia);
       if (!loteCompleto) {
         throw new Error('El lote masivo ya existe de forma incompleta o con datos diferentes. Verifica los radicados antes de reintentar.');
       }
@@ -803,7 +814,7 @@ async function asignarRadicadosMasivosYGuardar(datos, claveIdempotencia, cantida
       cantidadLote: cantidad,
       tipoLoteRadicados: 'extremos',
       extremoLote: extremo,
-      radicado: `R-${anio}-${String(numero).padStart(5, '0')}`,
+      radicado: formatearRadicadoSalida(anio, numero),
       numeroSecuencia: numero,
       anio,
       mes: obtenerMes(fechaGeneracion),
@@ -999,7 +1010,7 @@ async function guardarRadicadoSalida(event) {
     const primerRadicadoLote = esGeneracionMasiva ? registrosGuardados[0].radicado : '';
     const ultimoRadicadoLote = esGeneracionMasiva ? registrosGuardados[1].radicado : '';
     const siguienteNumeroLote = esGeneracionMasiva
-      ? `R-${registrosGuardados[1].anio}-${String(registrosGuardados[1].numeroSecuencia + 1).padStart(5, '0')}`
+      ? formatearRadicadoSalida(registrosGuardados[1].anio, registrosGuardados[1].numeroSecuencia + 1)
       : '';
     mostrarResultadoGeneracion(
       errorAlCerrarProteccion ? 'warning' : 'success',

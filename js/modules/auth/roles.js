@@ -89,6 +89,10 @@ export function esInvitado() {
   return perfilSesion?.rol === 'invitado';
 }
 
+export function esCiudadano() {
+  return perfilSesion?.rol === 'ciudadano';
+}
+
 export function puedeGestionarIAS() {
   return esAdministrador() || esJuridica();
 }

@@ -33,9 +33,42 @@ service cloud.firestore {
       return hasProfile() && profile().rol == 'funcionario';
     }
 
-    function isInvitado() {
+    function isAnonymous() {
       return signedIn()
         && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function isInvitado() {
+      return isAnonymous() && hasProfile() && profile().rol == 'invitado';
+    }
+
+    function isCiudadano() {
+      return isAnonymous() && hasProfile() && profile().rol == 'ciudadano';
+    }
+
+    function tieneRadicadoCiudadanoDespues(anio, numero, radicado) {
+      let radicadoPath = /databases/$(database)/documents/radicados/$(radicado);
+      return existsAfter(radicadoPath)
+        && getAfter(radicadoPath).data.origenSolicitud == 'ciudadano'
+        && getAfter(radicadoPath).data.ciudadanoUid == request.auth.uid
+        && getAfter(radicadoPath).data.anio == anio
+        && getAfter(radicadoPath).data.numeroSecuencia == numero
+        && getAfter(radicadoPath).data.radicado == radicado
+        && getAfter(radicadoPath).data.estado == 'PENDIENTE_GESTION'
+        && getAfter(radicadoPath).data.dependencia == 'Ventanilla Única';
+    }
+
+    function tieneSecuenciaCiudadanaDespues(anio, numero, radicado) {
+      let secuenciaPath = /databases/$(database)/documents/radicadosEntradaSecuencias/$(string(anio));
+      return existsAfter(secuenciaPath)
+        && getAfter(secuenciaPath).data.anio == anio
+        && getAfter(secuenciaPath).data.ultimo == numero
+        && getAfter(secuenciaPath).data.ultimoRadicado == radicado
+        && (
+          exists(secuenciaPath)
+            ? getAfter(secuenciaPath).data.ultimo == get(secuenciaPath).data.ultimo + 1
+            : getAfter(secuenciaPath).data.ultimo == 1
+        );
     }
 
     function isEmployeeOf(dependencia) {
@@ -60,7 +93,17 @@ service cloud.firestore {
 
     match /usuarios/{userId} {
       allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow list, create, update, delete: if isAdmin();
+      allow list, update, delete: if isAdmin();
+      allow create: if isAdmin()
+        || (
+          isAnonymous()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['rol', 'nombre'])
+          && request.resource.data.keys().hasOnly(['rol', 'nombre'])
+          && request.resource.data.rol in ['invitado', 'ciudadano']
+          && request.resource.data.nombre
+            == (request.resource.data.rol == 'ciudadano' ? 'Ciudadano' : 'Invitado')
+        );
     }
 
     match /radicados/{radicadoId} {
@@ -70,6 +113,11 @@ service cloud.firestore {
           isFuncionario()
           && resource.data.dependenciasDestino is list
           && resource.data.dependenciasDestino.hasAny([profile().dependencia])
+        )
+        || (
+          isCiudadano()
+          && resource.data.origenSolicitud == 'ciudadano'
+          && resource.data.ciudadanoUid == request.auth.uid
         );
       allow list: if isAdmin() || isEmployeeOf(resource.data.dependencia);
       allow create: if isAdmin()
@@ -229,6 +277,92 @@ service cloud.firestore {
           && request.resource.data.fechaEntregaManual == ''
           && request.resource.data.fechaRecepcionCompetencia == ''
           && request.resource.data.remisionOrigenRadicado == request.resource.data.radicado
+        )
+        || (
+          isCiudadano()
+          && request.resource.data.origenSolicitud == 'ciudadano'
+          && request.resource.data.keys().hasAll([
+            'radicado',
+            'origenSolicitud',
+            'estado',
+            'tipoCanal',
+            'fechaRadicacion',
+            'fechaHoraRadicacion',
+            'fechaRecepcion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'pdfUrl',
+            'pdfCiudadanoUrl',
+            'pdfCiudadanoNombre',
+            'dependencia',
+            'ciudadanoUid',
+            'anio',
+            'numeroSecuencia'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'radicado',
+            'origenSolicitud',
+            'estado',
+            'tipoCanal',
+            'fechaRadicacion',
+            'fechaHoraRadicacion',
+            'fechaRecepcion',
+            'fechaEntregaManual',
+            'diasHabiles',
+            'fechaVencimiento',
+            'remitente',
+            'asunto',
+            'pdfUrl',
+            'pdfCiudadanoUrl',
+            'pdfCiudadanoNombre',
+            'dependencia',
+            'ciudadanoUid',
+            'anio',
+            'numeroSecuencia'
+          ])
+          && request.resource.data.ciudadanoUid == request.auth.uid
+          && request.resource.data.anio is int
+          && request.resource.data.numeroSecuencia is int
+          && request.resource.data.numeroSecuencia > 0
+          && request.resource.data.numeroSecuencia <= 99999
+          && request.resource.data.radicado is string
+          && request.resource.data.radicado.matches('^R-[0-9]{4}-[0-9]{5}$')
+          && request.resource.data.radicado.size() > 0
+          && request.resource.data.radicado.size() <= 100
+          && request.resource.data.estado == 'PENDIENTE_GESTION'
+          && request.resource.data.tipoCanal in ['Virtual', 'Presencial']
+          && request.resource.data.fechaRadicacion is string
+          && request.resource.data.fechaHoraRadicacion is string
+          && request.resource.data.fechaRecepcion is string
+          && request.resource.data.fechaEntregaManual is string
+          && request.resource.data.diasHabiles is string
+          && request.resource.data.fechaVencimiento is string
+          && request.resource.data.remitente is string
+          && request.resource.data.remitente.size() > 0
+          && request.resource.data.remitente.size() <= 500
+          && request.resource.data.asunto is string
+          && request.resource.data.asunto.size() > 0
+          && request.resource.data.asunto.size() <= 10000
+          && request.resource.data.pdfUrl is string
+          && request.resource.data.pdfUrl.size() <= 2000
+          && request.resource.data.pdfCiudadanoUrl is string
+          && request.resource.data.pdfCiudadanoUrl.size() <= 2000
+          && request.resource.data.pdfCiudadanoNombre is string
+          && request.resource.data.pdfCiudadanoNombre.size() <= 255
+          && request.resource.data.dependencia == 'Ventanilla Única'
+          && tieneSecuenciaCiudadanaDespues(
+            request.resource.data.anio,
+            request.resource.data.numeroSecuencia,
+            request.resource.data.radicado
+          )
+          && tieneRadicadoCiudadanoDespues(
+            request.resource.data.anio,
+            request.resource.data.numeroSecuencia,
+            request.resource.data.radicado
+          )
         );
       allow update: if isAdmin()
         || (
@@ -695,6 +829,77 @@ service cloud.firestore {
           && request.resource.data.ultimo <= resource.data.ultimo + 400
         );
       allow delete: if isAdmin();
+    }
+
+    match /radicadosEntradaSecuencias/{anioId} {
+      allow get: if isAdmin() || isCiudadano();
+      allow list: if isAdmin();
+      allow create: if (
+        isAdmin()
+        && request.resource.data.keys().hasAll(['anio', 'ultimo'])
+        && request.resource.data.keys().hasOnly(['anio', 'ultimo', 'ultimoRadicado'])
+        && request.resource.data.anio is int
+        && string(request.resource.data.anio) == anioId
+        && request.resource.data.ultimo is int
+        && request.resource.data.ultimo > 0
+        && request.resource.data.ultimo <= 99999
+        && (
+          !request.resource.data.keys().hasAny(['ultimoRadicado'])
+          || (
+            request.resource.data.ultimoRadicado is string
+            && request.resource.data.ultimoRadicado.matches('^R-[0-9]{4}-[0-9]{5}$')
+          )
+        )
+      )
+        || (
+          isCiudadano()
+          && request.resource.data.keys().hasAll(['anio', 'ultimo', 'ultimoRadicado'])
+          && request.resource.data.keys().hasOnly(['anio', 'ultimo', 'ultimoRadicado'])
+          && request.resource.data.anio is int
+          && string(request.resource.data.anio) == anioId
+          && request.resource.data.ultimo == 1
+          && request.resource.data.ultimoRadicado is string
+          && request.resource.data.ultimoRadicado.matches('^R-[0-9]{4}-[0-9]{5}$')
+          && tieneRadicadoCiudadanoDespues(
+            request.resource.data.anio,
+            request.resource.data.ultimo,
+            request.resource.data.ultimoRadicado
+          )
+        );
+      allow update: if (
+        isAdmin()
+        && request.resource.data.keys().hasAll(['anio', 'ultimo'])
+        && request.resource.data.keys().hasOnly(['anio', 'ultimo', 'ultimoRadicado'])
+        && request.resource.data.anio == resource.data.anio
+        && request.resource.data.ultimo is int
+        && request.resource.data.ultimo == resource.data.ultimo + 1
+        && request.resource.data.ultimo <= 99999
+        && (
+          !request.resource.data.keys().hasAny(['ultimoRadicado'])
+          || (
+            request.resource.data.ultimoRadicado is string
+            && request.resource.data.ultimoRadicado.matches('^R-[0-9]{4}-[0-9]{5}$')
+          )
+        )
+      )
+        || (
+          isCiudadano()
+          && request.resource.data.keys().hasAll(['anio', 'ultimo', 'ultimoRadicado'])
+          && request.resource.data.keys().hasOnly(['anio', 'ultimo', 'ultimoRadicado'])
+          && request.resource.data.anio == resource.data.anio
+          && string(request.resource.data.anio) == anioId
+          && request.resource.data.ultimo is int
+          && request.resource.data.ultimo == resource.data.ultimo + 1
+          && request.resource.data.ultimo <= 99999
+          && request.resource.data.ultimoRadicado is string
+          && request.resource.data.ultimoRadicado.matches('^R-[0-9]{4}-[0-9]{5}$')
+          && tieneRadicadoCiudadanoDespues(
+            request.resource.data.anio,
+            request.resource.data.ultimo,
+            request.resource.data.ultimoRadicado
+          )
+        );
+      allow delete: if false;
     }
 
     match /{document=**} {

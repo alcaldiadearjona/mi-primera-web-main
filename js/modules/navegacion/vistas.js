@@ -1,5 +1,5 @@
 import { establecerDependenciaActual } from '../../data/radicados.js';
-import { esAdministrador, esFuncionario, esInvitado, obtenerDependenciaSesion, puedeConsultarIAS } from '../auth/roles.js';
+import { esAdministrador, esCiudadano, esFuncionario, esInvitado, obtenerDependenciaSesion, puedeConsultarIAS } from '../auth/roles.js';
 import {
   asegurarAniosInformes,
   actualizarInformes,
@@ -7,7 +7,7 @@ import {
   establecerCargaDependenciasInforme,
   establecerErrorDependenciasInforme
 } from '../informes/tablero.js';
-import { establecerFormularioVisible } from '../radicados/formulario.js';
+import { establecerFormularioVisible, prepararVistaPQRSF } from '../radicados/formulario.js';
 import { cargarResumenRadicadosSalida } from '../radicados/generacion-salida.js';
 import { asegurarDatosIAS } from '../ias/tablero.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
@@ -32,21 +32,45 @@ function redirigirInvitadoAGeneracion() {
   return true;
 }
 
+function redirigirCiudadanoAtencion() {
+  if (!esCiudadano()) return false;
+  window.mostrarAtencionCiudadano();
+  return true;
+}
+
 window.mostrarPantallaInicio = function() {
+  if (redirigirCiudadanoAtencion()) return;
   if (redirigirInvitadoAGeneracion()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaInicio');
-  establecerFormularioVisible(false);
+  prepararVistaPQRSF(false);
   document.getElementById('tituloPantallaPrincipal').textContent = 'Ventanilla Única';
   document.getElementById('iconoPantallaPrincipal').className = 'bi bi-folder2-open';
   document.getElementById('subtituloPantallaPrincipal').textContent = 'Sistema Institucional de Radicación de Correspondencia y PQRS';
-  document.getElementById('textoAccionFormulario').textContent = 'Ingresar nueva PQRS';
-  document.getElementById('ayudaFormulario').textContent = 'Registra y asigna una solicitud a su dependencia destino.';
+  document.getElementById('textoAccionFormulario').textContent = 'Gestionar PQRSF';
+  document.getElementById('ayudaFormulario').textContent = 'Selecciona una PQRS pendiente a la derecha para cargarla en este formulario.';
   document.getElementById('tituloFormularioRadicado').textContent = 'Formulario de Radicación de Solicitud / PQRS';
   activarMenu('pqrs');
 };
 
+window.mostrarAtencionCiudadano = function() {
+  if (!esCiudadano()) return;
+  establecerDependenciaActual("");
+  mostrarVista('pantallaInicio');
+  prepararVistaPQRSF(true);
+  document.getElementById('tituloPantallaPrincipal').textContent = 'ATENCIÓN AL CIUDADANO';
+  document.getElementById('iconoPantallaPrincipal').className = 'bi bi-person-lines-fill';
+  document.getElementById('subtituloPantallaPrincipal').textContent = 'Sistema Institucional de Radicación de Correspondencia y PQRS';
+  document.getElementById('textoAccionFormulario').textContent = 'Ingresar PQRSF Ciudadano';
+  document.getElementById('ayudaFormulario').textContent = 'Registra tu solicitud para que sea atendida por la dependencia correspondiente.';
+  document.getElementById('tituloFormularioRadicado').textContent = 'Formulario de Radicación de Solicitud / PQRSF Ciudadano';
+  document.querySelector('.dashboard-summary')?.setAttribute('hidden', '');
+  document.getElementById('notificacionesPqrsFuncionario')?.setAttribute('hidden', '');
+  activarMenu('ciudadano');
+};
+
 window.mostrarGeneracionRadicados = function() {
+  if (redirigirCiudadanoAtencion()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaGeneracion');
   activarMenu('generacion');
@@ -54,6 +78,7 @@ window.mostrarGeneracionRadicados = function() {
 };
 
 window.mostrarIAS = function() {
+  if (redirigirCiudadanoAtencion()) return;
   if (redirigirInvitadoAGeneracion()) return;
   if (!puedeConsultarIAS()) return;
   establecerDependenciaActual("");
@@ -64,6 +89,7 @@ window.mostrarIAS = function() {
 };
 
 window.mostrarInformes = function() {
+  if (redirigirCiudadanoAtencion()) return;
   if (redirigirInvitadoAGeneracion()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaInformes');
@@ -88,6 +114,7 @@ window.mostrarInformes = function() {
 };
 
 window.mostrarDependenciasMenu = function() {
+  if (redirigirCiudadanoAtencion()) return;
   if (redirigirInvitadoAGeneracion()) return;
   establecerDependenciaActual("");
   mostrarVista('vista-dependencias');

@@ -43,7 +43,8 @@ function procesarCola() {
   const mensaje = document.getElementById('mensajeAvisoApp');
   titulo.textContent = avisoActual.titulo;
   titulo.hidden = Boolean(avisoActual.radicadoSalida);
-  mensaje.classList.toggle('app-notice-radicado', Boolean(avisoActual.radicadoSalida));
+  const numeroRadicado = avisoActual.radicadoSalida || avisoActual.radicado;
+  mensaje.classList.toggle('app-notice-radicado', Boolean(numeroRadicado));
   if (avisoActual.radicadoSalida) {
     const numero = document.createElement('strong');
     numero.className = 'app-notice-radicado-number';
@@ -51,6 +52,15 @@ function procesarCola() {
     mensaje.replaceChildren(
       document.createTextNode('Su número de radicado de salida es'),
       numero
+    );
+  } else if (avisoActual.radicado) {
+    const numero = document.createElement('strong');
+    numero.className = 'app-notice-radicado-number';
+    numero.textContent = avisoActual.radicado;
+    mensaje.replaceChildren(
+      document.createTextNode(avisoActual.etiquetaRadicado || 'Número de radicado:'),
+      numero,
+      document.createTextNode(avisoActual.mensaje)
     );
   } else {
     mensaje.textContent = avisoActual.mensaje;
@@ -98,7 +108,9 @@ export function mostrarAviso(mensaje, opciones = {}) {
     }[tipo] || 'Aviso'),
     mensaje: texto,
     aceptarTexto: opciones.aceptarTexto,
-    radicadoSalida: opciones.radicadoSalida
+    radicadoSalida: opciones.radicadoSalida,
+    radicado: opciones.radicado,
+    etiquetaRadicado: opciones.etiquetaRadicado
   });
 }
 

@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   establecerSesionUsuario,
   esAdministrador,
+  esCiudadano,
   esFuncionario,
   esInvitado,
   limpiarSesionUsuario,
@@ -54,6 +55,17 @@ test('Invitado solo obtiene el rol configurado para generación de radicados', (
   assert.equal(esFuncionario(), false);
   assert.equal(puedeConsultarIAS(), false);
   assert.equal(puedeGestionarIAS(), false);
+  limpiarSesionUsuario();
+});
+
+test('Ciudadano es un rol anónimo separado de Invitado y de los funcionarios', () => {
+  establecerSesionUsuario({}, { rol: 'ciudadano', nombre: 'Ciudadano' });
+
+  assert.equal(esCiudadano(), true);
+  assert.equal(esInvitado(), false);
+  assert.equal(esAdministrador(), false);
+  assert.equal(esFuncionario(), false);
+  assert.equal(puedeConsultarIAS(), false);
   limpiarSesionUsuario();
 });
 

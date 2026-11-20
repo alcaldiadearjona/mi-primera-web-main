@@ -18,26 +18,111 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
       <div class="dashboard-layout">
         <section class="dashboard-form-column" aria-labelledby="accionesPrincipales">
           <h2 id="accionesPrincipales" class="section-title"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i> Acciones Principales</h2>
-          <button class="dashboard-form-toggle is-collapsed" type="button" aria-expanded="false" aria-controls="contenedorFormulario" onclick="toggleFormulario()">
-            <span><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> <span id="textoAccionFormulario">Ingresar nueva PQRS</span></span>
+          <button id="toggleRecepcionPQRSF" class="dashboard-form-toggle is-collapsed" type="button" aria-expanded="false" aria-controls="contenedorFormularioRecepcion" onclick="abrirRecepcionPQRSF()" hidden>
+            <span><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> <span>Recepción de PQRSF</span></span>
             <i class="bi bi-chevron-up" aria-hidden="true"></i>
           </button>
-          <span id="ayudaFormulario" class="dashboard-form-hint">Registra y asigna una solicitud a su dependencia destino.</span>
-
-          <div id="contenedorFormulario" class="form-card" style="display: none;">
+          <div id="contenedorFormularioRecepcion" class="form-card" style="display: none;">
             <div class="form-header-bar">
-              <i class="bi bi-pencil-square" aria-hidden="true"></i> <span id="tituloFormularioRadicado">Formulario de Radicación de Solicitud / PQRS</span>
+              <i class="bi bi-inbox" aria-hidden="true"></i> <span>Recepción de PQRSF</span>
             </div>
-
-            <form id="pqrsForm">
+            <span class="dashboard-form-hint">Registra lo que tengas disponible. La dependencia responsable puede quedar vacía y asignarse en Gestionar PQRSF.</span>
+            <form id="formRecepcionPQRSF">
               <div class="form-grid">
+                <div class="form-group">
+                  <label for="radicadoRecepcion">Número de Radicado</label>
+                  <input type="text" id="radicadoRecepcion" readonly placeholder="Se asignará automáticamente al guardar">
+                </div>
+                <div class="form-group">
+                  <label for="fechaRadicacionRecepcion">Fecha de Radicación</label>
+                  <input type="text" id="fechaRadicacionRecepcion" readonly>
+                </div>
+                <div class="form-group">
+                  <label for="horaRadicacionRecepcion">Hora de Radicación</label>
+                  <input type="text" id="horaRadicacionRecepcion" readonly>
+                </div>
+                <div class="form-group">
+                  <label for="tipoCanalRecepcion">Tipo de Canal</label>
+                  <select id="tipoCanalRecepcion">
+                    <option value="">-- Seleccionar tipo de canal --</option>
+                    <option value="Virtual">Virtual</option>
+                    <option value="Presencial">Presencial</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label for="remitenteRecepcion">Nombre y Datos del Remitente</label>
+                  <input type="text" id="remitenteRecepcion">
+                </div>
+                <div class="form-group full-width">
+                  <label for="asuntoRecepcion">Asunto de la Comunicación</label>
+                  <textarea id="asuntoRecepcion"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="foliosRecepcion">Folios</label>
+                  <input type="number" id="foliosRecepcion" min="1" step="1">
+                </div>
+                <div class="form-group">
+                  <label for="anexosRecepcion">Anexos</label>
+                  <input type="number" id="anexosRecepcion" min="0" step="1">
+                </div>
+                <div class="form-group full-width">
+                  <label for="dependenciaResponsableRecepcion">Dependencia Responsable del Trámite (opcional)</label>
+                  <select id="dependenciaResponsableRecepcion">
+                    <option value="">-- Seleccionar dependencia --</option>
+                    <option value="Secretaría de Gobierno">Secretaría de Gobierno</option>
+                    <option value="Secretaría de Planeación">Secretaría de Planeación</option>
+                    <option value="Oficina de Gestion del Riesgo y Desastres">Oficina de Gestion del Riesgo y Desastres</option>
+                    <option value="Oficina de Desarrollo Social">Oficina de Desarrollo Social</option>
+                    <option value="Secretaría de Salud">Secretaría de Salud</option>
+                    <option value="Control Interno">Control Interno</option>
+                    <option value="Oficina Juridica">Oficina Juridica</option>
+                    <option value="Despacho del Alcalde">Despacho del Alcalde</option>
+                    <option value="Secretaría de Umata">Secretaría de Umata</option>
+                    <option value="Secretaría de Educación">Secretaría de Educación</option>
+                    <option value="Secretaría de Hacienda">Secretaría de Hacienda</option>
+                    <option value="Sisben">Sisben</option>
+                    <option value="Talento Humano">Talento Humano</option>
+                    <option value="Secretaría de Transito y Transporte">Secretaría de Transito y Transporte</option>
+                    <option value="Gestion Social">Gestion Social</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="tiempoRespuestaRecepcion">Tiempo de Respuesta (días hábiles)</label>
+                  <input type="number" id="tiempoRespuestaRecepcion" min="1" step="1">
+                </div>
+                <div class="form-group full-width">
+                  <label for="observacionesRecepcion">Observaciones</label>
+                  <textarea id="observacionesRecepcion"></textarea>
+                </div>
+              </div>
+              <button type="submit" id="btnGuardarRecepcion" class="btn-guardar">
+                <svg id="spinnerGuardarRecepcion" style="display: none; width: 18px; height: 18px; animation: girar 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+                <span id="textoBtnGuardarRecepcion">Guardar Recepción</span>
+              </button>
+            </form>
+          </div>
+          <button id="toggleGestionPQRSF" class="dashboard-form-toggle is-collapsed" type="button" aria-expanded="false" aria-controls="contenedorFormulario pqrsPendientesGestion" onclick="toggleFormulario()">
+            <span><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> <span id="textoAccionFormulario">Gestionar PQRSF</span></span>
+            <i class="bi bi-chevron-up" aria-hidden="true"></i>
+          </button>
+
+          <div id="contenidoGestionPQRSF">
+            <div id="contenedorFormulario" class="form-card" style="display: none;">
+              <div class="form-header-bar">
+                <i class="bi bi-pencil-square" aria-hidden="true"></i> <span id="tituloFormularioRadicado">Formulario de Radicación de Solicitud / PQRS</span>
+              </div>
+              <span id="ayudaFormulario" class="dashboard-form-hint">Selecciona una PQRS pendiente a la derecha para cargarla en este formulario.</span>
             
+              <form id="pqrsForm">
+                <div class="form-grid">
             <div class="form-group">
               <label for="radicado">Número de Radicado</label>
               <input type="text" id="radicado" required>
             </div>
 
-            <div class="form-group">
+            <div id="grupoDependenciaDestino" class="form-group">
               <label id="etiquetaDependenciaDestino" for="alternarDependenciasPqrs">Dependencias Destino</label>
               <div id="selectorDependenciasPqrs" class="pqrs-dependency-selector">
                 <button id="alternarDependenciasPqrs" type="button" aria-expanded="false" aria-controls="opcionesDependenciasPqrs">
@@ -70,7 +155,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               </select>
             </div>
 
-            <div class="form-group">
+            <div id="grupoTipoCanal" class="form-group">
               <label for="tipoCanal">Tipo de Canal</label>
               <select id="tipoCanal" required>
                 <option value="">-- Seleccionar tipo de canal --</option>
@@ -79,57 +164,62 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               </select>
             </div>
 
-            <div class="form-group">
+            <div id="grupoEstadoSolicitud" class="form-group">
               <label for="estadoSolicitud">Estado Inicial</label>
               <select id="estadoSolicitud" required>
                 <option value="VIGENTE">VIGENTE</option>
               </select>
             </div>
 
-            <div class="form-group">
+            <div id="grupoFechaRadicacion" class="form-group">
               <label for="fechaRadicacion">F. Radicación (Manual)</label>
               <input type="date" id="fechaRadicacion" required>
             </div>
 
-            <div class="form-group">
+            <div id="grupoFechaEntregaManual" class="form-group">
               <label for="fechaEntregaManual">F. Entrega (Manual)</label>
               <input type="date" id="fechaEntregaManual" required>
             </div>
 
-            <div class="form-group">
+            <div id="grupoDiasHabiles" class="form-group">
               <label for="diasHabiles">Días Hábiles</label>
               <input type="number" id="diasHabiles" value="15" required>
             </div>
 
-            <div class="form-group">
+            <div id="grupoFechaEntrega" class="form-group">
               <label for="fechaEntrega">F. Vencimiento (Automática)</label>
               <input type="date" id="fechaEntrega" readonly style="background-color: #e2e8f0; cursor: not-allowed;" required>
             </div>
 
-            <div class="form-group full-width">
+            <div id="grupoRemitente" class="form-group full-width">
               <label for="remitente">Nombre y Datos del Remitente</label>
               <input type="text" id="remitente" required>
             </div>
 
-            <div class="form-group full-width">
+            <div id="grupoAsunto" class="form-group full-width">
               <label for="asunto">Asunto de la Comunicación</label>
               <textarea id="asunto" required></textarea>
             </div>
 
-            <div class="form-group full-width">
+            <div id="grupoSolicitudPdf" class="form-group full-width">
               <label for="solicitudPdf">Solicitud Escaneada (Archivo PDF)</label>
               <input type="file" id="solicitudPdf" accept=".pdf">
             </div>
+            <div id="grupoSolicitudOriginalCiudadano" class="form-group full-width" hidden>
+              <span>Documento aportado por el ciudadano</span>
+              <a id="enlaceSolicitudOriginalCiudadano" href="" target="_blank" rel="noopener noreferrer"></a>
+            </div>
 
-              </div>
+                </div>
 
-              <button type="submit" id="btnGuardarRadicado" class="btn-guardar">
-                <svg id="spinnerGuardarRadicado" style="display: none; width: 18px; height: 18px; animation: girar 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                </svg>
-                <span id="textoBtnGuardar">Guardar Radicado</span>
-              </button>
-            </form>
+                <button type="submit" id="btnGuardarRadicado" class="btn-guardar">
+                  <svg id="spinnerGuardarRadicado" style="display: none; width: 18px; height: 18px; animation: girar 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                  </svg>
+                  <span id="textoBtnGuardar">Guardar Radicado</span>
+                </button>
+              </form>
+            </div>
           </div>
 
           <section id="notificacionesPqrsFuncionario" class="pqrs-notifications" aria-labelledby="tituloNotificacionesPqrs" hidden>
@@ -193,6 +283,13 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               </div>
             </article>
           </div>
+
+          <section id="pqrsPendientesGestion" class="pqrs-pending-section" aria-labelledby="tituloPQRSFpendientes" hidden>
+            <h3 id="tituloPQRSFpendientes">PQRS Pendientes Por Gestionar</h3>
+            <div id="listaPQRSFpendientes" class="pqrs-pending-list" aria-live="polite">
+              <p class="pqrs-pending-empty">Cargando PQRS pendientes…</p>
+            </div>
+          </section>
 
           <section class="recent-card" aria-labelledby="tituloRecientes">
             <div class="recent-card-heading">

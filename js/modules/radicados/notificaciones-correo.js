@@ -1,4 +1,5 @@
 import { auth, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
+import { mostrarAviso } from '../ui/avisos.js';
 
 export async function enviarNotificacionCorreo(tipo, datos = {}) {
   const usuario = auth.currentUser;
@@ -43,16 +44,23 @@ export async function informarResultadoNotificacionCorreo(tipo, datos) {
       ? [...new Set(resultado.skipped)]
       : [];
     if (destinosSinCorreo.length) {
-      alert(
+      await mostrarAviso(
         resultado.sent
           ? `Se enviaron ${resultado.sent} correo(s). Falta configurar el correo de: ${destinosSinCorreo.join(', ')}.`
-          : `La acción se completó, pero falta configurar el correo de: ${destinosSinCorreo.join(', ')}.`
+          : `La acción se completó, pero falta configurar el correo de: ${destinosSinCorreo.join(', ')}.`,
+        { tipo: 'warning', titulo: 'Acción completada; notificación parcial' }
       );
     } else if (resultado.sent === 0 && !resultado.alreadySent) {
-      alert('La acción se completó, pero no se envió ningún correo.');
+      await mostrarAviso('La acción se completó, pero no se envió ningún correo.', {
+        tipo: 'warning',
+        titulo: 'Acción completada; correo no enviado'
+      });
     }
   } catch (error) {
     console.error('No fue posible enviar la notificación por correo:', error);
-    alert(`La acción se completó, pero no se pudo enviar el correo: ${error.message}`);
+    await mostrarAviso(
+      `La acción se completó correctamente, pero no se pudo enviar el correo: ${error.message}`,
+      { tipo: 'warning', titulo: 'Acción completada; correo no enviado' }
+    );
   }
 }

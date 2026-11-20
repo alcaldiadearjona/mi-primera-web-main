@@ -60,6 +60,10 @@
   container-type: inline-size;
 }
 
+.dashboard-summary .pqrs-pending-section {
+  margin: 16px 0 20px;
+}
+
 @container dashboard-summary (max-width: 500px) {
   .dashboard-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
