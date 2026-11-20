@@ -13,6 +13,10 @@ import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/fireba
 import { datosRadicados } from '../../data/radicados.js';
 import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import {
+  eliminarConsultaPublicaRadicado,
+  sincronizarConsultaPublicaRadicado
+} from '../../services/consulta-publica.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
 import {
   abreviarNombreDependencia,
@@ -38,6 +42,16 @@ function obtenerFechaActualBogota() {
     month: '2-digit',
     day: '2-digit'
   }).format(new Date());
+}
+
+async function actualizarConsultaPublicaSiAplica(id, coleccion = RADICADOS_COLLECTION) {
+  if (coleccion !== RADICADOS_COLLECTION) return;
+  try {
+    await sincronizarConsultaPublicaRadicado(id);
+  } catch (error) {
+    console.error('No se pudo actualizar la consulta pública del radicado:', error);
+    alert('La gestión se guardó, pero la consulta pública no se actualizó. Contacta al administrador.');
+  }
 }
 
 export function inicializarAccionesRadicados() {
@@ -326,17 +340,36 @@ async function guardarFuncionarioAsignado(event) {
     ? 'R. por C.'
     : funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE';
   const actualizacionFuncionario = { funcionarioAsignado, estado };
+  if (
+    funcionarioAsignado
+    && (
+      funcionarioAsignado !== String(radicado.funcionarioAsignado || '').trim()
+      || !radicado.fechaAsignacion
+    )
+  ) {
+    actualizacionFuncionario.fechaAsignacion = obtenerFechaActualBogota();
+  }
+  if (estado !== radicado.estado) {
+    actualizacionFuncionario.fechaCambioEstado = obtenerFechaActualBogota();
+  }
   if (obtenerColeccionRegistro(radicado) === 'radicadosIAS' && funcionarioAsignado) {
     actualizacionFuncionario.fechaEntregaManual = obtenerFechaActualBogota();
   }
 
   try {
     await updateDoc(doc(db, obtenerColeccionRegistro(radicado), id), actualizacionFuncionario);
+    await actualizarConsultaPublicaSiAplica(id, obtenerColeccionRegistro(radicado));
     const radicadoEnCache = datosRadicados[radicado.dependencia]
       ?.find(item => item.id === id);
     if (radicadoEnCache) {
       radicadoEnCache.funcionarioAsignado = funcionarioAsignado;
       radicadoEnCache.estado = estado;
+      if (actualizacionFuncionario.fechaAsignacion) {
+        radicadoEnCache.fechaAsignacion = actualizacionFuncionario.fechaAsignacion;
+      }
+      if (actualizacionFuncionario.fechaCambioEstado) {
+        radicadoEnCache.fechaCambioEstado = actualizacionFuncionario.fechaCambioEstado;
+      }
     }
     const fila = Array.from(
       document.querySelectorAll('#cuerpoTablaExclusiva tr[data-radicado-id], #cuerpoTablaIAS tr[data-radicado-id]')
@@ -428,10 +461,18 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
 
     if (!recibido) {
       alert('Este radicado ya fue recibido por la dependencia.');
+      await actualizarConsultaPublicaSiAplica(
+        radicado.remisionOrigenId,
+        radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
+      );
       await recargarDatosRegistro(radicado);
       return;
     }
 
+    await actualizarConsultaPublicaSiAplica(
+      radicado.remisionOrigenId,
+      radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
+    );
     await recargarDatosRegistro(radicado);
     await informarResultadoNotificacionCorreo('recibida', {
       id: radicado.remisionOrigenId,
@@ -582,6 +623,12 @@ window.eliminarRadicado = async function(id, elementoClick) {
     }
 
     await deleteDoc(doc(db, obtenerColeccionRegistro(radicadoAEliminar), id));
+    if (
+      coleccionActual === RADICADOS_COLLECTION
+      && radicadoAEliminar.radicado === id
+    ) {
+      await eliminarConsultaPublicaRadicado(id);
+    }
     await recargarDatosRegistro(radicadoAEliminar);
     alert("El radicado y sus archivos se eliminaron correctamente.");
 
@@ -719,6 +766,7 @@ async function guardarProrrogaRadicado(event) {
       },
       actualizadoEn: instante
     });
+    await actualizarConsultaPublicaSiAplica(id, obtenerColeccionRegistro(radicado));
     radicado.fechaVencimiento = nuevaFecha;
     radicado.fechaEntrega = nuevaFecha;
     radicado.prorroga = {
@@ -779,6 +827,7 @@ async function guardarEdicionRadicado(e) {
       remitente: normalizarTextoPQRSF(document.getElementById('editRemitente').value),
       asunto: normalizarTextoPQRSF(document.getElementById('editAsunto').value)
     });
+    await actualizarConsultaPublicaSiAplica(id, coleccion);
 
     alert("Radicado actualizado correctamente.");
     cerrarModalEditar();
@@ -976,6 +1025,7 @@ window.guardarOtrosEstados = async function() {
       await updateDoc(docRef, camposGestion);
     }
 
+    await actualizarConsultaPublicaSiAplica(id, obtenerColeccionRegistro(radicado));
     alert(destinosSeleccionados.length > 0
       ? 'La PQRS fue remitida a las dependencias seleccionadas.'
       : 'Gestión guardada correctamente.');

@@ -1,8 +1,9 @@
 import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { db, GOOGLE_SCRIPT_URL } from '../../config/firebase-config.js';
+import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
 import { convertirABase64 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import { sincronizarConsultaPublicaRadicado } from '../../services/consulta-publica.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
 import { confirmarAccion } from '../ui/avisos.js';
 import {
@@ -13,6 +14,16 @@ import {
 import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
 
 const guardadosTipoPeticionPendientes = new Map();
+
+async function sincronizarConsultaPublicaSiAplica(radicado) {
+  if (obtenerColeccionRegistro(radicado) !== RADICADOS_COLLECTION) return;
+  try {
+    await sincronizarConsultaPublicaRadicado(radicado.id);
+  } catch (error) {
+    console.error('No se pudo actualizar la consulta pública del radicado:', error);
+    alert('La gestión se guardó, pero la consulta pública no se actualizó. Contacta al administrador.');
+  }
+}
 
 function buscarRadicado(id, elemento) {
   const coleccion = elemento?.closest('tr')?.dataset.collection || '';
@@ -172,17 +183,20 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
 
       const respuestaUrl = resData.url;
       const radicadoRef = doc(db, obtenerColeccionRegistro(radicado), idRadicado);
+      const fechaCargaRespuesta = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
       await updateDoc(radicadoRef, {
         respuestaUrl,
-        fechaCargaRespuesta: new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'America/Bogota',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }).format(new Date()),
+        fechaCargaRespuesta,
+        fechaCambioEstado: fechaCargaRespuesta,
         estado: 'CERRADO'
       });
 
+      await sincronizarConsultaPublicaSiAplica(radicado);
       await recargarDatosRegistro(radicado);
 
     } catch (error) {
@@ -243,9 +257,16 @@ window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {
     await updateDoc(doc(db, obtenerColeccionRegistro(radicado), idRadicado), {
       respuestaUrl: "",
       fechaCargaRespuesta: "",
+      fechaCambioEstado: new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date()),
       estado: radicado.funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE'
     });
 
+    await sincronizarConsultaPublicaSiAplica(radicado);
     await recargarDatosRegistro(radicado);
     alert("El archivo de respuesta se eliminó de Google Drive.");
   } catch (error) {

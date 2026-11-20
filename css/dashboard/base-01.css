@@ -235,6 +235,72 @@ body {
   border-color: #2563eb;
 }
 
+.citizen-form-section {
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #dbe5ec;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.citizen-form-section legend {
+  padding: 0 8px;
+  color: #1e3a53;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.citizen-form-section .form-grid {
+  gap: 12px;
+}
+
+.citizen-form-section .form-group label {
+  font-size: 12px;
+}
+
+.citizen-form-section input[type="checkbox"] {
+  width: 16px;
+  min-height: 16px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.citizen-readonly-section {
+  margin-top: 4px;
+  padding: 14px 16px;
+  border: 1px solid #dbe5ec;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.citizen-readonly-section h3 {
+  margin: 0 0 10px;
+  color: #1e3a53;
+  font-size: 14px;
+}
+
+.citizen-readonly-section dl {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.34fr) minmax(0, 1fr);
+  gap: 7px 12px;
+  margin: 0;
+}
+
+.citizen-readonly-section dt {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.citizen-readonly-section dd {
+  margin: 0;
+  color: #1e293b;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .btn-save {
   background: #00a838;
   color: white;

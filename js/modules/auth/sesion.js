@@ -11,6 +11,7 @@ import {
   cargarDatosDesdeFirebase,
   obtenerAnoInicialRadicados
 } from '../../services/radicados.js';
+import { publicarConsultasPublicasCiudadanasFaltantes } from '../../services/consulta-publica.js';
 import {
   establecerSesionUsuario,
   esAdministrador,
@@ -227,6 +228,21 @@ async function configurarUsuario(usuario, rolElegido = '') {
       window.mostrarAtencionCiudadano();
       usuarioConfigurado = usuario.uid;
       return;
+    }
+
+    if (esAdministrador()) {
+      try {
+        const cantidadPublicada = await publicarConsultasPublicasCiudadanasFaltantes();
+        if (cantidadPublicada) {
+          console.info(`Se publicaron ${cantidadPublicada} consultas ciudadanas.`);
+        }
+      } catch (error) {
+        console.error('No fue posible preparar las consultas ciudadanas públicas:', error);
+        const detalle = error?.code === 'permission-denied'
+          ? 'Firestore denegó el acceso. Publica las reglas actualizadas de Firestore y vuelve a ingresar como administrador.'
+          : `Motivo: ${error?.message || 'error desconocido'}.`;
+        alert(`No fue posible preparar las consultas públicas existentes. ${detalle} Los radicados originales no se modificaron.`);
+      }
     }
 
     const anoActual = new Intl.DateTimeFormat('sv-SE', {

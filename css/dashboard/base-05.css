@@ -205,6 +205,44 @@
   resize: vertical;
 }
 
+#contenedorFormulario #pqrsForm #grupoAceptacionDatosCiudadano {
+  align-items: flex-start;
+  justify-self: start;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9e2ec;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+#contenedorFormulario #pqrsForm #grupoAceptacionDatosCiudadano .citizen-consent-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  color: #303943;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+#contenedorFormulario #pqrsForm #grupoAceptacionDatosCiudadano input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px !important;
+  min-width: 18px;
+  max-width: 18px;
+  height: 18px;
+  min-height: 18px !important;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #91a0ad;
+  border-radius: 4px;
+  box-shadow: none;
+  accent-color: #16804a;
+  cursor: pointer;
+}
+
 #contenedorFormulario #pqrsForm #fechaEntrega {
   background-color: #f1f4f6 !important;
 }

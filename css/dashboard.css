@@ -88,6 +88,129 @@
   font-size: 13px;
 }
 
+.citizen-status-search {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dfe7e2;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(24, 50, 76, 0.06);
+}
+
+.citizen-status-search h2 {
+  margin: 0;
+  color: #243b30;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.citizen-status-search > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.citizen-status-form {
+  display: grid;
+  gap: 8px;
+}
+
+.citizen-status-form label {
+  color: #303943;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.citizen-status-form input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.citizen-status-form button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #16804a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.citizen-status-result {
+  display: grid;
+  gap: 6px;
+  min-height: 1px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.citizen-status-result.is-found {
+  padding: 12px;
+  border: 1px solid #d8e7dc;
+  border-radius: 10px;
+  background: #f5faf7;
+}
+
+.citizen-status-result strong {
+  color: #166534;
+  font-size: 15px;
+}
+
+.citizen-status-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 4px;
+}
+
+.citizen-status-files a {
+  color: #166534;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.citizen-status-files a:focus-visible {
+  outline: 2px solid #166534;
+  outline-offset: 3px;
+}
+
+.citizen-status-extension {
+  padding-top: 4px;
+}
+
+.citizen-status-search .citizen-status-help {
+  padding-top: 10px;
+  border-top: 1px solid #edf1ef;
+  color: #475569;
+  font-weight: 600;
+}
+
+.pqrs-pending-show-more {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pqrs-pending-show-more:hover,
+.pqrs-pending-show-more:focus-visible {
+  border-color: #16804a;
+  background: #eef8f1;
+}
+
 .pqrs-notifications {
   margin-top: 16px;
   border: 1px solid #e1e9e3;

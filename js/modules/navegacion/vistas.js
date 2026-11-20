@@ -44,6 +44,11 @@ window.mostrarPantallaInicio = function() {
   establecerDependenciaActual("");
   mostrarVista('pantallaInicio');
   prepararVistaPQRSF(false);
+  const resumen = document.querySelector('.dashboard-summary');
+  if (resumen) resumen.removeAttribute('hidden');
+  document.querySelector('.dashboard-stats')?.removeAttribute('hidden');
+  document.querySelector('.recent-card')?.removeAttribute('hidden');
+  document.getElementById('consultaEstadoCiudadano')?.setAttribute('hidden', '');
   document.getElementById('tituloPantallaPrincipal').textContent = 'Ventanilla Única';
   document.getElementById('iconoPantallaPrincipal').className = 'bi bi-folder2-open';
   document.getElementById('subtituloPantallaPrincipal').textContent = 'Sistema Institucional de Radicación de Correspondencia y PQRS';
@@ -54,7 +59,7 @@ window.mostrarPantallaInicio = function() {
 };
 
 window.mostrarAtencionCiudadano = function() {
-  if (!esCiudadano()) return;
+  if (!esCiudadano() && !esAdministrador()) return;
   establecerDependenciaActual("");
   mostrarVista('pantallaInicio');
   prepararVistaPQRSF(true);
@@ -64,7 +69,12 @@ window.mostrarAtencionCiudadano = function() {
   document.getElementById('textoAccionFormulario').textContent = 'Ingresar PQRSF Ciudadano';
   document.getElementById('ayudaFormulario').textContent = 'Registra tu solicitud para que sea atendida por la dependencia correspondiente.';
   document.getElementById('tituloFormularioRadicado').textContent = 'Formulario de Radicación de Solicitud / PQRSF Ciudadano';
-  document.querySelector('.dashboard-summary')?.setAttribute('hidden', '');
+  const resumen = document.querySelector('.dashboard-summary');
+  if (resumen) resumen.removeAttribute('hidden');
+  document.querySelector('.dashboard-stats')?.setAttribute('hidden', '');
+  document.getElementById('pqrsPendientesGestion')?.setAttribute('hidden', '');
+  document.querySelector('.recent-card')?.setAttribute('hidden', '');
+  document.getElementById('consultaEstadoCiudadano')?.removeAttribute('hidden');
   document.getElementById('notificacionesPqrsFuncionario')?.setAttribute('hidden', '');
   activarMenu('ciudadano');
 };

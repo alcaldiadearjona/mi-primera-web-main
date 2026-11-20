@@ -25,6 +25,14 @@
   #contenedorFormulario #pqrsForm .form-group.full-width {
     grid-column: auto;
   }
+
+  .citizen-form-section {
+    padding: 12px;
+  }
+
+  .citizen-readonly-section dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 #pantallaInicio > .top-header,

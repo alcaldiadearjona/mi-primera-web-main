@@ -297,6 +297,7 @@ service cloud.firestore {
             'pdfUrl',
             'pdfCiudadanoUrl',
             'pdfCiudadanoNombre',
+            'aceptaTratamientoDatos',
             'dependencia',
             'ciudadanoUid',
             'anio',
@@ -318,6 +319,7 @@ service cloud.firestore {
             'pdfUrl',
             'pdfCiudadanoUrl',
             'pdfCiudadanoNombre',
+            'aceptaTratamientoDatos',
             'dependencia',
             'ciudadanoUid',
             'anio',
@@ -352,6 +354,7 @@ service cloud.firestore {
           && request.resource.data.pdfCiudadanoUrl.size() <= 2000
           && request.resource.data.pdfCiudadanoNombre is string
           && request.resource.data.pdfCiudadanoNombre.size() <= 255
+          && request.resource.data.aceptaTratamientoDatos == true
           && request.resource.data.dependencia == 'Ventanilla Única'
           && tieneSecuenciaCiudadanaDespues(
             request.resource.data.anio,
@@ -373,6 +376,8 @@ service cloud.firestore {
             'respuestaUrl',
             'fechaCargaRespuesta',
             'funcionarioAsignado',
+            'fechaAsignacion',
+            'fechaCambioEstado',
             'otrosEstados',
             'observaciones',
             'estado'
@@ -899,6 +904,123 @@ service cloud.firestore {
             request.resource.data.ultimoRadicado
           )
         );
+      allow delete: if false;
+    }
+
+    function puedeMantenerConsultaPublica(radicadoId) {
+      let radicadoPath = /databases/$(database)/documents/radicados/$(radicadoId);
+      return exists(radicadoPath)
+        && (
+          isAdmin()
+          || isEmployeeOf(get(radicadoPath).data.dependencia)
+          || (
+            isFuncionario()
+            && get(radicadoPath).data.get('dependenciasDestino', []) is list
+            && get(radicadoPath).data.get('dependenciasDestino', []).hasAny([profile().dependencia])
+          )
+          || (
+            isCiudadano()
+            && get(radicadoPath).data.ciudadanoUid == request.auth.uid
+          )
+        );
+    }
+
+    function consultaPublicaValida(radicadoId) {
+      return request.resource.data.keys().hasOnly([
+          'radicado',
+          'estado',
+          'fechaRadicacion',
+          'fechaHoraRadicacion',
+          'fechaRecepcion',
+          'fechaAsignacion',
+          'fechaCambioEstado',
+          'fechaVencimiento',
+          'fechaRemisionCompetencia',
+          'fechaRecepcionCompetencia',
+          'dependenciasDestino',
+          'enTramite',
+          'respuestaUrl',
+          'fechaCargaRespuesta',
+          'otrosEstados',
+          'prorroga'
+        ])
+        && request.resource.data.keys().hasAll([
+          'radicado',
+          'estado',
+          'fechaRadicacion',
+          'fechaHoraRadicacion',
+          'fechaRecepcion',
+          'fechaAsignacion',
+          'fechaCambioEstado',
+          'fechaVencimiento',
+          'fechaRemisionCompetencia',
+          'fechaRecepcionCompetencia',
+          'dependenciasDestino',
+          'enTramite',
+          'respuestaUrl',
+          'fechaCargaRespuesta',
+          'otrosEstados',
+          'prorroga'
+        ])
+        && request.resource.data.radicado == radicadoId
+        && request.resource.data.estado is string
+        && request.resource.data.fechaRadicacion is string
+        && request.resource.data.fechaHoraRadicacion is string
+        && request.resource.data.fechaRecepcion is string
+        && request.resource.data.fechaAsignacion is string
+        && request.resource.data.fechaCambioEstado is string
+        && request.resource.data.fechaVencimiento is string
+        && request.resource.data.fechaRemisionCompetencia is string
+        && request.resource.data.fechaRecepcionCompetencia is string
+        && request.resource.data.dependenciasDestino is list
+        && request.resource.data.enTramite is bool
+        && request.resource.data.respuestaUrl is string
+        && (
+          request.resource.data.respuestaUrl == ''
+          || request.resource.data.respuestaUrl.matches('^https://.*$')
+        )
+        && request.resource.data.fechaCargaRespuesta is string
+        && request.resource.data.otrosEstados in ['', 'Para conocimiento', 'No requiere respuesta']
+        && (
+          request.resource.data.prorroga == null
+          || (
+            request.resource.data.prorroga is map
+            && request.resource.data.prorroga.keys().hasOnly([
+              'fechaAnterior',
+              'nuevaFecha',
+              'diasHabilesAdicionales',
+              'archivoUrl',
+              'registradoEn'
+            ])
+            && request.resource.data.prorroga.fechaAnterior is string
+            && request.resource.data.prorroga.nuevaFecha is string
+            && request.resource.data.prorroga.diasHabilesAdicionales is int
+            && request.resource.data.prorroga.archivoUrl is string
+            && request.resource.data.prorroga.registradoEn is string
+            && (
+              request.resource.data.prorroga.archivoUrl == ''
+              || request.resource.data.prorroga.archivoUrl.matches('^https://.*$')
+            )
+          )
+        );
+    }
+
+    match /consultaPublicaRadicados/{radicadoId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, update: if puedeMantenerConsultaPublica(radicadoId)
+        && consultaPublicaValida(radicadoId);
+      allow delete: if isAdmin();
+    }
+
+    match /consultaPublicaMigraciones/{migracionId} {
+      allow get: if isAdmin() && migracionId == 'ciudadanos-v1';
+      allow list: if false;
+      allow create, update: if isAdmin()
+        && migracionId == 'ciudadanos-v1'
+        && request.resource.data.keys().hasOnly(['version', 'completadaEn'])
+        && request.resource.data.version == 1
+        && request.resource.data.completadaEn is string;
       allow delete: if false;
     }
 

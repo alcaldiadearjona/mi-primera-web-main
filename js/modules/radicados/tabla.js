@@ -245,7 +245,7 @@ export function renderizarTablaRadicados(
       urlPdf
         ? `<a class="pdf-badge" href="${urlPdf}" target="_blank" rel="noopener noreferrer">📄 Abrir PDF</a>`
         : '',
-      urlSolicitudCiudadano
+      urlSolicitudCiudadano && urlSolicitudCiudadano !== urlPdf
         ? `<a class="pdf-badge" href="${urlSolicitudCiudadano}" target="_blank" rel="noopener noreferrer">📄 Solicitud original</a>`
         : ''
     ].filter(Boolean);

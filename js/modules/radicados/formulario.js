@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   runTransaction,
@@ -14,9 +15,14 @@ import {
   formatearMayusculasIniciales,
   formatearRadicadoEntrada,
   obtenerUrlHttpsSegura,
+  evaluarEstadoAutomatico,
   sumarDiasHabilesColombia
 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
+import {
+  COLECCION_CONSULTA_PUBLICA,
+  sincronizarConsultaPublicaRadicado
+} from '../../services/consulta-publica.js';
 import { esAdministrador, esCiudadano, esFuncionario, obtenerDependenciaSesion, obtenerPerfilSesion } from '../auth/roles.js';
 import { mostrarAviso } from '../ui/avisos.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
@@ -25,10 +31,11 @@ const COLECCION_SECUENCIAS_ENTRADA = 'radicadosEntradaSecuencias';
 let modoFormularioPQRSF = 'directo';
 let radicadoPendienteGestion = '';
 let datosPendienteGestion = null;
+let cantidadVisiblePendientes = 6;
 
 function establecerModoFormularioPQRSF(modo) {
   modoFormularioPQRSF = modo;
-  const esRadicacionCiudadana = esCiudadano() && modo === 'directo';
+  const esRadicacionCiudadana = (esCiudadano() || esAdministrador()) && modo === 'directo';
   const radicado = document.getElementById('radicado');
   if (radicado) {
     const radicadoAutomaticoCiudadano = esRadicacionCiudadana;
@@ -39,15 +46,62 @@ function establecerModoFormularioPQRSF(modo) {
       : '';
     if (radicadoAutomaticoCiudadano) radicado.value = '';
   }
+  [
+    ['grupoRadicado', true],
+    ['grupoTipoCanal', true],
+    ['grupoEstadoSolicitud', esRadicacionCiudadana],
+    ['grupoRemitente', true],
+    ['grupoAsunto', true],
+    ['grupoSolicitudPdf', true],
+    ['grupoAceptacionDatosCiudadano', esRadicacionCiudadana]
+  ].forEach(([id, visible]) => {
+    const grupo = document.getElementById(id);
+    if (grupo) {
+      grupo.hidden = !visible;
+      grupo.style.display = visible ? '' : 'none';
+    }
+  });
+  const tipoCanal = document.getElementById('tipoCanal');
+  if (tipoCanal) {
+    tipoCanal.value = esRadicacionCiudadana ? 'Virtual' : tipoCanal.value;
+    tipoCanal.disabled = esRadicacionCiudadana;
+    tipoCanal.required = !esRadicacionCiudadana;
+  }
+  const estadoSolicitud = document.getElementById('estadoSolicitud');
+  if (estadoSolicitud) {
+    estadoSolicitud.value = 'VIGENTE';
+    estadoSolicitud.disabled = esRadicacionCiudadana;
+  }
+  const remitente = document.getElementById('remitente');
+  if (remitente) remitente.required = true;
+  const asunto = document.getElementById('asunto');
+  if (asunto) asunto.required = true;
+  const etiquetaRemitente = document.querySelector('label[for="remitente"]');
+  if (etiquetaRemitente) {
+    etiquetaRemitente.textContent = esRadicacionCiudadana
+      ? 'Nombre y Datos del Destinatario'
+      : 'Nombre y Datos del Remitente';
+  }
   const solicitudPdf = document.getElementById('solicitudPdf');
-  if (solicitudPdf) solicitudPdf.required = modo === 'gestion';
+  if (solicitudPdf) {
+    solicitudPdf.accept = '.pdf';
+    solicitudPdf.required = esRadicacionCiudadana;
+  }
+  const esGestionCiudadanoPendiente = modo === 'gestion'
+    && datosPendienteGestion?.origenSolicitud === 'ciudadano';
+  const grupoSolicitudPdf = document.getElementById('grupoSolicitudPdf');
+  if (grupoSolicitudPdf) {
+    grupoSolicitudPdf.hidden = esGestionCiudadanoPendiente;
+    grupoSolicitudPdf.style.display = esGestionCiudadanoPendiente ? 'none' : '';
+  }
+  const aceptacion = document.getElementById('aceptaTratamientoDatos');
+  if (aceptacion) aceptacion.required = esRadicacionCiudadana;
   const grupoDependencia = document.getElementById('grupoDependenciaDestino');
   if (grupoDependencia) {
     grupoDependencia.hidden = esRadicacionCiudadana;
     grupoDependencia.style.display = grupoDependencia.hidden ? 'none' : '';
   }
   [
-    ['grupoEstadoSolicitud', 'estadoSolicitud'],
     ['grupoFechaRadicacion', 'fechaRadicacion'],
     ['grupoFechaEntregaManual', 'fechaEntregaManual'],
     ['grupoDiasHabiles', 'diasHabiles'],
@@ -85,16 +139,27 @@ function establecerModoFormularioPQRSF(modo) {
   }
   const etiquetaSolicitudPdf = document.querySelector('label[for="solicitudPdf"]');
   if (etiquetaSolicitudPdf) {
-    etiquetaSolicitudPdf.textContent = modo === 'gestion'
-      ? 'Oficio de gestión (PDF obligatorio)'
-      : 'Solicitud Escaneada (Archivo PDF)';
+    etiquetaSolicitudPdf.textContent = esGestionCiudadanoPendiente
+      ? 'Documento ciudadano adjunto'
+      : modo === 'gestion'
+      ? 'Oficio de gestión (PDF opcional)'
+      : esRadicacionCiudadana
+        ? 'Adjuntar Oficio (Archivo PDF obligatorio)'
+        : 'Solicitud Escaneada (Archivo PDF)';
+  }
+  const ayudaSolicitudArchivo = document.getElementById('ayudaSolicitudArchivo');
+  if (ayudaSolicitudArchivo) {
+    ayudaSolicitudArchivo.hidden = !esRadicacionCiudadana;
+    ayudaSolicitudArchivo.textContent = esRadicacionCiudadana ? 'Solo se admite PDF.' : '';
   }
   const titulo = document.getElementById('tituloFormularioRadicado');
   if (titulo) {
-    titulo.textContent = 'Formulario de Radicación de Solicitud / PQRS';
+    titulo.textContent = esRadicacionCiudadana
+      ? 'Formulario de Atención al Ciudadano'
+      : 'Formulario de Radicación de Solicitud / PQRS';
   }
   const textoGuardar = document.getElementById('textoBtnGuardar');
-  if (textoGuardar) textoGuardar.textContent = esCiudadano() ? 'Guardar' : 'Guardar Radicado';
+  if (textoGuardar) textoGuardar.textContent = esRadicacionCiudadana ? 'Guardar' : 'Guardar Radicado';
   const ayuda = document.getElementById('ayudaFormulario');
   if (ayuda) {
     ayuda.textContent = modo === 'gestion'
@@ -201,6 +266,240 @@ function seleccionarPQRSFPendiente(id, registro) {
   document.getElementById('contenedorFormulario')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function obtenerEstadoVisibleCiudadano(registro) {
+  const respuestaCargada = typeof registro.respuestaUrl === 'string'
+    && registro.respuestaUrl.trim().startsWith('http');
+  if (respuestaCargada) return 'Respondida';
+  if (
+    registro.estado === 'R. por C.'
+    || (Array.isArray(registro.dependenciasDestino) && registro.dependenciasDestino.length > 0)
+  ) {
+    return 'Remitida por competencia';
+  }
+  if (registro.estado === 'PENDIENTE_GESTION') return 'Pendiente por gestionar';
+
+  const estadoAutomatico = evaluarEstadoAutomatico(
+    registro.fechaVencimiento || '',
+    registro.respuestaUrl || '',
+    registro.otrosEstados || '',
+    registro.estado || 'VIGENTE'
+  );
+
+  if (estadoAutomatico.texto === 'CERRADO') return 'Respondida';
+  if (estadoAutomatico.texto === 'EN TRÁMITE') return 'En trámite';
+  if (estadoAutomatico.texto === 'EXTEMPORÁNEA') return 'Extemporánea';
+  if (estadoAutomatico.texto === 'PRÓXIMO A VENCER') return 'Próxima a vencer';
+  return 'Vigente';
+}
+
+function obtenerDetalleEstadoCiudadano(registro) {
+  const respuestaCargada = Boolean(
+    typeof registro.respuestaUrl === 'string'
+    && registro.respuestaUrl.trim().startsWith('http')
+  );
+  if (respuestaCargada) {
+    return 'Tu solicitud fue respondida y el documento de respuesta ya fue cargado. Se encuentra cerrada.';
+  }
+
+  if (
+    registro.estado === 'R. por C.'
+    || (Array.isArray(registro.dependenciasDestino) && registro.dependenciasDestino.length > 0)
+  ) {
+    const dependenciasDestino = Array.isArray(registro.dependenciasDestino)
+      ? registro.dependenciasDestino.filter(dependencia => typeof dependencia === 'string' && dependencia.trim())
+      : [];
+    return dependenciasDestino.length
+      ? `Tu solicitud fue remitida por competencia a: ${dependenciasDestino.join(', ')}.`
+      : 'Tu solicitud fue remitida por competencia a otra dependencia para su trámite.';
+  }
+  if (registro.estado === 'PENDIENTE_GESTION') {
+    return 'Tu solicitud fue recibida y está pendiente de revisión y asignación a la dependencia correspondiente.';
+  }
+
+  const otrosEstados = String(registro.otrosEstados || '').toLowerCase();
+  if (otrosEstados.includes('para conocimiento') || otrosEstados.includes('no requiere respuesta')) {
+    return 'Tu solicitud fue gestionada y se encuentra cerrada según la opción registrada por la dependencia.';
+  }
+
+  if (registro.enTramite || String(registro.funcionarioAsignado || '').trim()) {
+    return 'Tu solicitud fue asignada y se encuentra en trámite.';
+  }
+
+  const estadoAutomatico = evaluarEstadoAutomatico(
+    registro.fechaVencimiento || '',
+    registro.respuestaUrl || '',
+    registro.otrosEstados || '',
+    registro.estado || 'VIGENTE'
+  );
+  if (estadoAutomatico.texto === 'EXTEMPORÁNEA') {
+    return 'El plazo de respuesta ya venció y tu solicitud continúa pendiente de atención.';
+  }
+  if (estadoAutomatico.texto === 'PRÓXIMO A VENCER') {
+    return 'Tu solicitud está próxima a vencer y continúa en trámite.';
+  }
+  return 'Tu solicitud fue asignada a una dependencia y se encuentra vigente mientras continúa su gestión.';
+}
+
+function formatearFechaEstadoCiudadano(fecha) {
+  const coincidencia = typeof fecha === 'string'
+    && fecha.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  return coincidencia ? `${coincidencia[3]}/${coincidencia[2]}/${coincidencia[1]}` : '';
+}
+
+function obtenerFechaEstadoCiudadano(registro) {
+  const respuestaCargada = typeof registro.respuestaUrl === 'string'
+    && registro.respuestaUrl.trim().startsWith('http');
+  if (respuestaCargada) {
+    return { etiqueta: 'Fecha de respuesta', fecha: registro.fechaCargaRespuesta };
+  }
+  if (
+    registro.estado === 'R. por C.'
+    || (Array.isArray(registro.dependenciasDestino) && registro.dependenciasDestino.length > 0)
+  ) {
+    return {
+      etiqueta: 'Fecha de remisión',
+      fecha: registro.fechaRemisionCompetencia || registro.fechaRecepcionCompetencia
+    };
+  }
+  if (registro.estado === 'PENDIENTE_GESTION') {
+    return {
+      etiqueta: 'Fecha de recepción',
+      fecha: registro.fechaRecepcion || registro.fechaHoraRadicacion || registro.fechaRadicacion
+    };
+  }
+  const otrosEstados = String(registro.otrosEstados || '').toLowerCase();
+  if (otrosEstados.includes('para conocimiento') || otrosEstados.includes('no requiere respuesta')) {
+    return { etiqueta: 'Fecha de gestión', fecha: registro.fechaCargaRespuesta };
+  }
+  if (registro.enTramite || String(registro.funcionarioAsignado || '').trim()) {
+    return {
+      etiqueta: 'Fecha de asignación',
+      fecha: registro.fechaCambioEstado || registro.fechaAsignacion
+    };
+  }
+  const estadoAutomatico = evaluarEstadoAutomatico(
+    registro.fechaVencimiento || '',
+    registro.respuestaUrl || '',
+    registro.otrosEstados || '',
+    registro.estado || 'VIGENTE'
+  );
+  if (estadoAutomatico.texto === 'EXTEMPORÁNEA' || estadoAutomatico.texto === 'PRÓXIMO A VENCER') {
+    return { etiqueta: 'Fecha de vencimiento', fecha: registro.fechaVencimiento };
+  }
+  return {
+    etiqueta: registro.fechaCambioEstado ? 'Fecha de actualización del estado' : 'Fecha de radicación',
+    fecha: registro.fechaCambioEstado || registro.fechaRadicacion
+  };
+}
+
+function obtenerUrlDescargaPdfCiudadano(url) {
+  const urlSegura = obtenerUrlHttpsSegura(url);
+  if (!urlSegura) return '';
+  const idDrive = urlSegura.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+    || urlSegura.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!idDrive) return urlSegura;
+  return `https://drive.google.com/uc?export=download&id=${encodeURIComponent(idDrive[1])}`;
+}
+
+function crearEnlaceDescargaPdfCiudadano(etiqueta, url) {
+  const href = obtenerUrlDescargaPdfCiudadano(url);
+  if (!href) return null;
+  const enlace = document.createElement('a');
+  enlace.href = href;
+  enlace.textContent = etiqueta;
+  enlace.target = '_blank';
+  enlace.rel = 'noopener noreferrer';
+  enlace.download = '';
+  return enlace;
+}
+
+async function consultarEstadoCiudadano(event) {
+  event.preventDefault();
+  const input = document.getElementById('radicadoConsultaCiudadano');
+  const resultado = document.getElementById('resultadoConsultaCiudadano');
+  if (!input || !resultado) return;
+
+  const radicado = input.value.trim().toUpperCase();
+  resultado.className = 'citizen-status-result';
+  if (!radicado) {
+    resultado.textContent = 'Ingresa el número de radicado.';
+    input.focus();
+    return;
+  }
+
+  resultado.textContent = 'Consultando...';
+  try {
+    const referencia = doc(db, COLECCION_CONSULTA_PUBLICA, radicado);
+    const snapshot = await getDoc(referencia);
+    if (!snapshot.exists()) {
+      resultado.textContent = 'No encontramos una solicitud con ese número de radicado.';
+      return;
+    }
+
+    const registro = snapshot.data();
+
+    const estado = obtenerEstadoVisibleCiudadano(registro);
+    resultado.classList.add('is-found');
+    resultado.replaceChildren();
+    const numero = document.createElement('strong');
+    numero.textContent = radicado;
+    const estadoTexto = document.createElement('span');
+    estadoTexto.textContent = `Estado actual: ${estado}`;
+    const detalle = document.createElement('span');
+    detalle.textContent = obtenerDetalleEstadoCiudadano(registro);
+    resultado.append(numero, estadoTexto, detalle);
+
+    const fechaEstado = obtenerFechaEstadoCiudadano(registro);
+    const fechaVisible = formatearFechaEstadoCiudadano(fechaEstado.fecha);
+    if (fechaVisible) {
+      const fechaTexto = document.createElement('span');
+      fechaTexto.textContent = `${fechaEstado.etiqueta}: ${fechaVisible}`;
+      resultado.append(fechaTexto);
+    }
+
+    const respuestaCargada = Boolean(
+      typeof registro.respuestaUrl === 'string'
+      && registro.respuestaUrl.trim().startsWith('http')
+    );
+    const enlacesPdf = document.createElement('div');
+    enlacesPdf.className = 'citizen-status-files';
+    const descargaRespuesta = respuestaCargada
+      ? crearEnlaceDescargaPdfCiudadano('Descargar PDF de respuesta', registro.respuestaUrl)
+      : null;
+    if (descargaRespuesta) enlacesPdf.append(descargaRespuesta);
+
+    const prorroga = !respuestaCargada && registro.prorroga && typeof registro.prorroga === 'object'
+      ? registro.prorroga
+      : null;
+    if (prorroga) {
+      const informacionProrroga = document.createElement('span');
+      informacionProrroga.className = 'citizen-status-extension';
+      const fechaAnterior = formatearFechaEstadoCiudadano(prorroga.fechaAnterior);
+      const nuevaFecha = formatearFechaEstadoCiudadano(prorroga.nuevaFecha);
+      const fechaRegistroProrroga = formatearFechaEstadoCiudadano(prorroga.registradoEn);
+      const diasAdicionales = Number(prorroga.diasHabilesAdicionales);
+      const datosProrroga = [];
+      if (Number.isFinite(diasAdicionales) && diasAdicionales > 0) {
+        datosProrroga.push(`${diasAdicionales} días hábiles adicionales`);
+      }
+      if (fechaAnterior) datosProrroga.push(`fecha anterior: ${fechaAnterior}`);
+      if (nuevaFecha) datosProrroga.push(`nueva fecha de vencimiento: ${nuevaFecha}`);
+      if (fechaRegistroProrroga) datosProrroga.push(`registrada el: ${fechaRegistroProrroga}`);
+      informacionProrroga.textContent = datosProrroga.length
+        ? `Se otorgó una prórroga (${datosProrroga.join('; ')}).`
+        : 'Se otorgó una prórroga a tu solicitud.';
+      resultado.append(informacionProrroga);
+      const descargaProrroga = crearEnlaceDescargaPdfCiudadano('Descargar oficio de prórroga', prorroga.archivoUrl);
+      if (descargaProrroga) enlacesPdf.append(descargaProrroga);
+    }
+
+    if (enlacesPdf.childElementCount) resultado.append(enlacesPdf);
+  } catch (error) {
+    console.error('No fue posible consultar el estado del radicado:', error);
+    resultado.textContent = 'No fue posible realizar la consulta. Dirígete a la Ventanilla Única de la Alcaldía Municipal.';
+  }
+}
+
 async function cargarPQRSFPendientes() {
   mostrarMensajePendientes('Cargando PQRS pendientes…');
   try {
@@ -218,24 +517,41 @@ async function cargarPQRSFPendientes() {
       return;
     }
 
+    cantidadVisiblePendientes = 6;
     lista.replaceChildren();
-    registros.forEach(registro => {
-      const boton = document.createElement('button');
-      boton.type = 'button';
-      boton.className = 'pqrs-pending-item';
-      const numero = document.createElement('span');
-      numero.className = 'pqrs-pending-number';
-      numero.textContent = registro.radicado || 'Sin radicado';
-      const detalle = document.createElement('span');
-      detalle.className = 'pqrs-pending-details';
-      detalle.textContent = [
-        registro.remitente || 'Remitente por completar',
-        registro.asunto || 'Asunto por completar'
-      ].join(' · ');
-      boton.append(numero, detalle);
-      boton.addEventListener('click', () => seleccionarPQRSFPendiente(registro.id, registro));
-      lista.append(boton);
-    });
+    const renderizarPendientes = () => {
+      lista.replaceChildren();
+      registros.slice(0, cantidadVisiblePendientes).forEach(registro => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'pqrs-pending-item';
+        const numero = document.createElement('span');
+        numero.className = 'pqrs-pending-number';
+        numero.textContent = registro.radicado || 'Sin radicado';
+        const detalle = document.createElement('span');
+        detalle.className = 'pqrs-pending-details';
+        detalle.textContent = [
+          registro.remitente || 'Remitente por completar',
+          registro.asunto || 'Asunto por completar'
+        ].join(' · ');
+        boton.append(numero, detalle);
+        boton.addEventListener('click', () => seleccionarPQRSFPendiente(registro.id, registro));
+        lista.append(boton);
+      });
+
+      if (cantidadVisiblePendientes < registros.length) {
+        const verMas = document.createElement('button');
+        verMas.type = 'button';
+        verMas.className = 'pqrs-pending-show-more';
+        verMas.textContent = 'Ver más...';
+        verMas.addEventListener('click', () => {
+          cantidadVisiblePendientes += 6;
+          renderizarPendientes();
+        });
+        lista.append(verMas);
+      }
+    };
+    renderizarPendientes();
   } catch (error) {
     console.error('No fue posible consultar las PQRS pendientes:', error);
     mostrarMensajePendientes(`No fue posible cargar las PQRS pendientes: ${error.message}`, true);
@@ -332,8 +648,9 @@ async function procesarFormularioRecepcionPQRSF(event) {
     });
     document.getElementById('formRecepcionPQRSF')?.reset();
     const formulario = document.getElementById('contenedorFormularioRecepcion');
-    if (formulario) formulario.style.display = 'none';
-    actualizarEstadoBotonRecepcion(false);
+    if (formulario) formulario.style.display = 'block';
+    actualizarEstadoBotonRecepcion(true);
+    actualizarFechaHoraRecepcion(new Date());
     await cargarPQRSFPendientes();
   } catch (error) {
     console.error('Error al guardar la recepción de PQRSF:', error);
@@ -489,7 +806,7 @@ function inicializarSelectorDependenciasPqrs() {
 
 async function guardarRadicado(e) {
   e.preventDefault();
-  const esRadicacionCiudadana = esCiudadano() && modoFormularioPQRSF === 'directo';
+  const esRadicacionCiudadana = (esCiudadano() || esAdministrador()) && modoFormularioPQRSF === 'directo';
   const dependenciasSeleccionadas = esRadicacionCiudadana
     ? []
     : actualizarResumenDependenciasPqrs();
@@ -510,6 +827,26 @@ async function guardarRadicado(e) {
     return;
   }
 
+  const fileInput = document.getElementById('solicitudPdf');
+  const archivoPdf = fileInput?.files[0];
+  if (esRadicacionCiudadana) {
+    if (!document.getElementById('aceptaTratamientoDatos')?.checked) {
+      alert('Debes aceptar el tratamiento de datos personales.');
+      document.getElementById('aceptaTratamientoDatos')?.focus();
+      return;
+    }
+    if (!archivoPdf) {
+      alert('Adjunta el oficio en formato PDF.');
+      fileInput?.focus();
+      return;
+    }
+    if (archivoPdf.type !== 'application/pdf' && !archivoPdf.name.toLowerCase().endsWith('.pdf')) {
+      alert('El oficio debe adjuntarse en formato PDF.');
+      fileInput?.focus();
+      return;
+    }
+  }
+
   // Captura flexible de los elementos del botón y el spinner
   const btn = document.getElementById('btnGuardarRadicado') || document.getElementById('btnGuardar');
   const spinner = document.getElementById('spinnerGuardarRadicado');
@@ -521,9 +858,9 @@ async function guardarRadicado(e) {
   if (icono) icono.style.display = 'none';
   if (btn) btn.disabled = true;
 
-  const fileInput = document.getElementById('solicitudPdf');
-  const archivoPdf = fileInput?.files[0];
-  if (texto) texto.textContent = archivoPdf ? 'Subiendo PDF...' : 'Guardando...';
+  if (texto) texto.textContent = archivoPdf
+    ? esRadicacionCiudadana ? 'Subiendo documento...' : 'Subiendo PDF...'
+    : 'Guardando...';
   let driveUrl = "";
 
   try {
@@ -534,6 +871,7 @@ async function guardarRadicado(e) {
 
       const payload = {
         archivoBase64: rawBase64,
+        mimeType: archivoPdf.type || 'application/octet-stream',
         nombreArchivo: `Radicado_${document.getElementById('radicado').value.trim() || 'Ciudadano'}_${archivoPdf.name}`
       };
 
@@ -551,16 +889,16 @@ async function guardarRadicado(e) {
     }
 
     // Actualizar texto del botón al guardar en la BD
-    if (texto) texto.textContent = esCiudadano() ? 'Guardando...' : 'Guardando datos...';
+    if (texto) texto.textContent = esRadicacionCiudadana ? 'Guardando...' : 'Guardando datos...';
 
     // 2. Estructuración de los datos del nuevo radicado
     const esGestionPendiente = modoFormularioPQRSF === 'gestion';
     const ahora = new Date();
     const nuevoRadicado = {
-      radicado: esCiudadano() ? '' : document.getElementById('radicado').value.trim(),
-      origenSolicitud: esCiudadano() ? 'ciudadano' : 'ventanilla',
+      radicado: esRadicacionCiudadana ? '' : document.getElementById('radicado').value.trim(),
+      origenSolicitud: esRadicacionCiudadana ? 'ciudadano' : 'ventanilla',
       estado: esRadicacionCiudadana ? 'PENDIENTE_GESTION' : 'VIGENTE',
-      tipoCanal: document.getElementById('tipoCanal').value,
+      tipoCanal: esRadicacionCiudadana ? 'Virtual' : document.getElementById('tipoCanal').value,
       fechaRadicacion: document.getElementById('fechaRadicacion').value,
       fechaHoraRadicacion: esGestionPendiente && datosPendienteGestion?.fechaHoraRadicacion
         ? datosPendienteGestion.fechaHoraRadicacion
@@ -571,10 +909,15 @@ async function guardarRadicado(e) {
       fechaVencimiento: document.getElementById('fechaEntrega').value,
       remitente: formatearMayusculasIniciales(document.getElementById('remitente').value.trim()),
       asunto: formatearMayusculasIniciales(document.getElementById('asunto').value.trim()),
-      pdfUrl: esRadicacionCiudadana ? '' : driveUrl || '',
+      pdfUrl: esGestionPendiente
+        ? driveUrl || ''
+        : esRadicacionCiudadana
+          ? ''
+          : driveUrl || '',
       ...(esRadicacionCiudadana ? {
         pdfCiudadanoUrl: driveUrl || '',
-        pdfCiudadanoNombre: archivoPdf?.name || ''
+        pdfCiudadanoNombre: archivoPdf?.name || '',
+        aceptaTratamientoDatos: true
       } : {}),
       ...(esGestionPendiente ? {
         horaRadicacion: datosPendienteGestion?.horaRadicacion || '',
@@ -586,7 +929,12 @@ async function guardarRadicado(e) {
         numeroSecuencia: datosPendienteGestion?.numeroSecuencia ?? 0,
         anio: datosPendienteGestion?.anio ?? 0
       } : {}),
-      ...(esCiudadano() ? { ciudadanoUid: auth.currentUser.uid } : {})
+      ...(esGestionPendiente && datosPendienteGestion?.origenSolicitud === 'ciudadano' ? {
+        pdfCiudadanoUrl: datosPendienteGestion?.pdfCiudadanoUrl || datosPendienteGestion?.pdfUrl || '',
+        pdfCiudadanoNombre: datosPendienteGestion?.pdfCiudadanoNombre || 'Solicitud original del ciudadano',
+        aceptaTratamientoDatos: datosPendienteGestion?.aceptaTratamientoDatos === true
+      } : {}),
+      ...(esRadicacionCiudadana ? { ciudadanoUid: auth.currentUser.uid } : {})
     };
 
     let registrosDestino;
@@ -641,20 +989,40 @@ async function guardarRadicado(e) {
       await lote.commit();
     }
 
-    await informarResultadoNotificacionCorreo(
-      'nueva-solicitud',
-      { ids: registrosDestino.map(({ referencia }) => referencia.id) }
-    );
+    if (!esRadicacionCiudadana) {
+      await informarResultadoNotificacionCorreo(
+        'nueva-solicitud',
+        { ids: registrosDestino.map(({ referencia }) => referencia.id) }
+      );
+    }
+    if (esRadicacionCiudadana) {
+      try {
+        await sincronizarConsultaPublicaRadicado(nuevoRadicado.radicado);
+      } catch (error) {
+        console.error('La solicitud se guardó, pero no se publicó su consulta:', error);
+        alert('La solicitud se guardó, pero su consulta pública aún no está disponible. Contacta a la Ventanilla Única.');
+      }
+    } else if (
+      esGestionPendiente
+      && datosPendienteGestion?.origenSolicitud === 'ciudadano'
+    ) {
+      try {
+        await sincronizarConsultaPublicaRadicado(radicadoPendienteGestion);
+      } catch (error) {
+        console.error('La gestión se guardó, pero no se actualizó la consulta pública:', error);
+        alert('La gestión se guardó, pero la consulta pública no se actualizó. Contacta al administrador.');
+      }
+    }
 
     await mostrarAviso(
       esRadicacionCiudadana
-        ? 'Tu solicitud quedó pendiente de revisión y asignación a la dependencia competente.'
+        ? 'Para conocer su respuesta, diríjase a la Ventanilla Única de la Alcaldía dentro de los siguientes 15 días hábiles.'
         : `Se envió a las siguientes dependencias:\n${dependenciasSeleccionadas.map(dependencia => `• ${dependencia}`).join('\n')}`,
       {
         tipo: 'success',
         titulo: esRadicacionCiudadana ? 'PQRSF recibida' : 'Radicado guardado',
         radicado: nuevoRadicado.radicado,
-        etiquetaRadicado: esCiudadano()
+        etiquetaRadicado: esRadicacionCiudadana
           ? 'Tu número de radicado asignado es:'
           : 'Número de radicado:'
       }
@@ -666,11 +1034,15 @@ async function guardarRadicado(e) {
     });
     actualizarResumenDependenciasPqrs();
     cerrarDesplegableDependenciasPqrs();
+    if (esRadicacionCiudadana) {
+      establecerModoFormularioPQRSF('directo');
+      establecerFormularioVisible(true);
+    }
     if (esGestionPendiente) {
       radicadoPendienteGestion = '';
       datosPendienteGestion = null;
       establecerModoFormularioPQRSF('gestion');
-      establecerFormularioVisible(false);
+      establecerFormularioVisible(true);
       const pendientes = document.getElementById('pqrsPendientesGestion');
       if (pendientes) pendientes.hidden = false;
       actualizarEstadoBotonGestion(false);
@@ -690,13 +1062,14 @@ async function guardarRadicado(e) {
 
   } catch (error) {
     console.error("Error al guardar:", error);
-    const mensajeError = error?.code === 'permission-denied' && esCiudadano()
+    const mensajeError = error?.code === 'permission-denied'
+      && ((esCiudadano() || esAdministrador()) && modoFormularioPQRSF === 'directo')
       ? 'Firestore no permitió generar el radicado ciudadano. Publica las reglas actualizadas e inténtalo de nuevo.'
       : `Ocurrió un error al procesar el registro: ${error.message}`;
     alert(mensajeError);
   } finally {
     if (spinner) spinner.style.display = 'none';
-    if (texto) texto.textContent = esCiudadano() ? 'Guardar' : 'Guardar Radicado';
+    if (texto) texto.textContent = esRadicacionCiudadana ? 'Guardar' : 'Guardar Radicado';
     if (btn) btn.disabled = modoFormularioPQRSF === 'gestion' && !radicadoPendienteGestion;
   }
 }
@@ -704,7 +1077,7 @@ async function guardarRadicado(e) {
 window.toggleFormulario = async function() {
   const pendientes = document.getElementById('pqrsPendientesGestion');
   if (!pendientes) return;
-  if (esCiudadano()) {
+  if (modoFormularioPQRSF === 'directo' && (esCiudadano() || esAdministrador())) {
     const formCard = document.getElementById('contenedorFormulario');
     const visible = formCard?.style.display === 'none' || formCard?.style.display === '';
     if (visible) establecerModoFormularioPQRSF('directo');
@@ -796,5 +1169,9 @@ export function inicializarFormulario() {
   document.getElementById('editDiasHabiles')?.addEventListener('input', calcularFechaVencimientoEdicion);
   form?.addEventListener('submit', guardarRadicado);
   formularioRecepcion?.addEventListener('submit', procesarFormularioRecepcionPQRSF);
+  document.getElementById('formConsultaEstadoCiudadano')?.addEventListener('submit', consultarEstadoCiudadano);
+  document.getElementById('radicadoConsultaCiudadano')?.addEventListener('input', event => {
+    event.target.value = event.target.value.toUpperCase();
+  });
   establecerModoFormularioPQRSF(esCiudadano() ? 'directo' : 'gestion');
 }

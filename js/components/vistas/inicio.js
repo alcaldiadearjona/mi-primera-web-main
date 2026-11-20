@@ -117,7 +117,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             
               <form id="pqrsForm">
                 <div class="form-grid">
-            <div class="form-group">
+            <div id="grupoRadicado" class="form-group">
               <label for="radicado">Número de Radicado</label>
               <input type="text" id="radicado" required>
             </div>
@@ -202,14 +202,20 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             </div>
 
             <div id="grupoSolicitudPdf" class="form-group full-width">
-              <label for="solicitudPdf">Solicitud Escaneada (Archivo PDF)</label>
+              <label for="solicitudPdf">Adjuntar Oficio (Archivo PDF)</label>
               <input type="file" id="solicitudPdf" accept=".pdf">
+              <small id="ayudaSolicitudArchivo" hidden></small>
+            </div>
+            <div id="grupoAceptacionDatosCiudadano" class="form-group full-width" hidden>
+              <label class="citizen-consent-label" for="aceptaTratamientoDatos">
+                <input type="checkbox" id="aceptaTratamientoDatos" required>
+                <span>Acepto el tratamiento de mis datos personales</span>
+              </label>
             </div>
             <div id="grupoSolicitudOriginalCiudadano" class="form-group full-width" hidden>
               <span>Documento aportado por el ciudadano</span>
               <a id="enlaceSolicitudOriginalCiudadano" href="" target="_blank" rel="noopener noreferrer"></a>
             </div>
-
                 </div>
 
                 <button type="submit" id="btnGuardarRadicado" class="btn-guardar">
@@ -239,6 +245,19 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
         </section>
 
         <aside class="dashboard-summary" aria-label="Resumen de PQRS">
+          <section id="consultaEstadoCiudadano" class="citizen-status-search" hidden>
+            <h2>Consulta el estado de tu petición</h2>
+            <p>Ingresa el número de radicado recibido al realizar tu solicitud.</p>
+            <form id="formConsultaEstadoCiudadano" class="citizen-status-form">
+              <label for="radicadoConsultaCiudadano">Número de radicado</label>
+              <input id="radicadoConsultaCiudadano" type="text" placeholder="Ej: R-2026-00001" autocomplete="off" maxlength="100">
+              <button type="submit">Consultar</button>
+            </form>
+            <div id="resultadoConsultaCiudadano" class="citizen-status-result" role="status" aria-live="polite"></div>
+            <p class="citizen-status-help">
+              Para conocer cualquier otra información sobre su solicitud, diríjase a la Ventanilla Única de la Alcaldía Municipal.
+            </p>
+          </section>
           <div class="dashboard-stats" aria-live="polite">
             <article class="summary-card summary-card-received">
               <div class="summary-card-top">
