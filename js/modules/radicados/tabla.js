@@ -380,10 +380,6 @@ if (soloLecturaIAS) {
         </div>
       `;
 
-    // Texto completo para el tooltip del asunto
-// Texto completo para el tooltip del asunto
-    const textoAsuntoTooltip = `${reg.asunto || ''}${reg.otrosEstados ? ' | Estado: ' + reg.otrosEstados : ''}${reg.observaciones ? ' | Obs: ' + reg.observaciones : ''}`;
-
     const tr = document.createElement('tr');
     tr.className = 'month-record-row';
     tr.dataset.monthGroup = mesKey;
@@ -424,27 +420,10 @@ if (soloLecturaIAS) {
         </div>
       </td>
       
-      <!-- Asunto con indicadores compactos (alfiler y ojito verde) y vista expandida limpia -->
-      <td title="${reg.asunto || ''}${reg.otrosEstados ? ' - ' + reg.otrosEstados : ''}${reg.observaciones ? ' - ' + reg.observaciones : ''}" 
-          style="cursor: pointer; user-select: none; -webkit-user-select: none;" 
-          onmousedown="event.preventDefault();"
-          onclick="const c = this.querySelector('.vista-compacta'); const e = this.querySelector('.vista-expandida'); const isExp = e.style.display === 'block'; e.style.display = isExp ? 'none' : 'block'; c.style.display = isExp ? 'flex' : 'none';">
-          <div style="max-width: 220px;">
-            <!-- Vista Compacta: Texto con puntos suspensivos + Íconos indicadores -->
-            <div class="vista-compacta" style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${aTitulo(reg.asunto) || ''}</span>
-              <span style="flex-shrink: 0; font-size: 12px; display: flex; align-items: center; gap: 3px;">
-                ${reg.otrosEstados ? '<span title="Tiene Estado adicional">📌</span>' : ''}
-                ${reg.observaciones ? '<span title="Tiene Observación" style="display: inline-flex; align-items: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16804a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>' : ''}
-              </span>
-            </div>
-            <!-- Vista Expandida: Muestra todo limpio -->
-            <div class="vista-expandida" style="display: none; white-space: normal; word-break: break-word;">
-              <div>${aTitulo(reg.asunto) || ''}</div>
-              ${reg.otrosEstados ? `<div style="font-size: 11px; font-weight: 600; color: #0284c7; margin-top: 2px;">📌 ${reg.otrosEstados}</div>` : ''}
-              ${reg.observaciones ? `<div style="font-size: 11px; font-style: italic; color: #16804a; margin-top: 2px; font-weight: 600;">Obs: ${reg.observaciones}</div>` : ''}
-            </div>
-          </div>
+      <td title="${aTitulo(reg.asunto) || ''}">
+        <div style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          ${aTitulo(reg.asunto) || ''}
+        </div>
       </td>
       
       <td>

@@ -20,6 +20,10 @@
   margin-left: 0;
 }
 
+#vista-dependencias #abrirExportarPlanillaRecepcion[hidden] + #abrirExportarPlanilla {
+  margin-left: auto;
+}
+
 #vista-dependencias .received-register-button,
 .received-register-submit,
 .received-register-cancel,
@@ -347,6 +351,10 @@
 
   #vista-dependencias #abrirExportarPlanilla,
   #vista-dependencias #abrirExportarPlanillaRecepcion {
+    margin-left: 0;
+  }
+
+  #vista-dependencias #abrirExportarPlanillaRecepcion[hidden] + #abrirExportarPlanilla {
     margin-left: 0;
   }
 
