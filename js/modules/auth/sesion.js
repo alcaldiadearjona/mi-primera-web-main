@@ -1,7 +1,10 @@
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import {
   onAuthStateChanged,
+  browserLocalPersistence,
+  browserSessionPersistence,
   sendPasswordResetEmail,
+  setPersistence,
   signInAnonymously,
   signInWithEmailAndPassword,
   signOut
@@ -23,6 +26,7 @@ import {
   obtenerCredencialLogin,
   obtenerCredencialPorCorreo,
   obtenerDependenciaSesion,
+  obtenerPerfilSesion,
   puedeConsultarIAS,
   puedeGestionarIAS
 } from './roles.js';
@@ -43,6 +47,86 @@ let configuracionEnCurso = null;
 let modulosInicializados = false;
 let modulosGeneracionInicializados = false;
 let ordenOriginalTarjetasDependencias = null;
+let temporizadorExpiracion = null;
+
+const CLAVE_SESION_ADMINISTRADOR = 'ventanilla:sesion:administrador';
+const CLAVE_SESION_INVITADO = 'ventanilla:sesion:invitado';
+const CLAVE_SESION_CIUDADANO = 'ventanilla:sesion:ciudadano';
+
+function obtenerDuracionSesion(perfil) {
+  if (perfil?.rol === 'administrador') return 24 * 60 * 60 * 1000;
+  if (perfil?.rol === 'invitado') return 60 * 60 * 1000;
+  if (perfil?.rol === 'ciudadano') return 30 * 60 * 1000;
+  return null;
+}
+
+function obtenerClaveSesion(perfil) {
+  if (perfil?.rol === 'administrador') return CLAVE_SESION_ADMINISTRADOR;
+  if (perfil?.rol === 'invitado') return CLAVE_SESION_INVITADO;
+  if (perfil?.rol === 'ciudadano') return CLAVE_SESION_CIUDADANO;
+  return null;
+}
+
+function obtenerAlmacenSesion(perfil) {
+  return perfil?.rol === 'ciudadano' ? sessionStorage : localStorage;
+}
+
+function limpiarTemporizadorSesion() {
+  if (temporizadorExpiracion !== null) {
+    window.clearTimeout(temporizadorExpiracion);
+    temporizadorExpiracion = null;
+  }
+}
+
+function limpiarDatosExpiracionSesion(perfil) {
+  const clave = obtenerClaveSesion(perfil);
+  if (!clave) return;
+  obtenerAlmacenSesion(perfil).removeItem(clave);
+}
+
+function limpiarSesionExpiradaActual() {
+  limpiarTemporizadorSesion();
+  limpiarDatosExpiracionSesion(obtenerPerfilSesion());
+}
+
+function iniciarControlExpiracionSesion(usuario, perfil) {
+  const clave = obtenerClaveSesion(perfil);
+  const duracion = obtenerDuracionSesion(perfil);
+  if (!clave || !duracion) return true;
+
+  limpiarTemporizadorSesion();
+  const almacen = obtenerAlmacenSesion(perfil);
+  let datosSesion = null;
+
+  try {
+    datosSesion = JSON.parse(almacen.getItem(clave) || 'null');
+  } catch (error) {
+    almacen.removeItem(clave);
+  }
+
+  if (!datosSesion || datosSesion.uid !== usuario.uid) {
+    datosSesion = { uid: usuario.uid, iniciadaEn: Date.now() };
+    almacen.setItem(clave, JSON.stringify(datosSesion));
+  }
+
+  const restante = datosSesion.iniciadaEn + duracion - Date.now();
+  if (restante <= 0) {
+    limpiarDatosExpiracionSesion(perfil);
+    return false;
+  }
+
+  temporizadorExpiracion = window.setTimeout(async () => {
+    limpiarDatosExpiracionSesion(perfil);
+    limpiarTemporizadorSesion();
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('No fue posible cerrar la sesión al alcanzar su tiempo de expiración:', error);
+    }
+  }, Math.min(restante, 2147483647));
+
+  return true;
+}
 
 function mostrarErrorLogin(mensaje) {
   const error = document.getElementById('errorLogin');
@@ -229,6 +313,10 @@ async function configurarUsuario(usuario, rolElegido = '') {
     }
 
     establecerSesionUsuario(usuario, perfil);
+    if (!iniciarControlExpiracionSesion(usuario, perfil)) {
+      await signOut(auth);
+      return;
+    }
     mostrarPantallaDespuesDeLogin();
     inicializarModulosAutorizados();
     if (esInvitado()) {
@@ -285,6 +373,7 @@ async function configurarUsuario(usuario, rolElegido = '') {
 async function procesarCambioAutenticacion(usuario) {
   if (!usuario) {
     usuarioConfigurado = '';
+    limpiarTemporizadorSesion();
     limpiarSesionUsuario();
     suscribirNotificacionesRemisionesFuncionario();
     const login = document.getElementById('pantalla-login');
@@ -330,6 +419,10 @@ window.iniciarSesion = async function(event) {
   rolSolicitado = rol;
 
   try {
+    await setPersistence(
+      auth,
+      rolAnonimo ? browserSessionPersistence : browserLocalPersistence
+    );
     const resultado = rolAnonimo
       ? await signInAnonymously(auth)
       : await signInWithEmailAndPassword(auth, credencial.email, clave);
@@ -439,6 +532,7 @@ window.cerrarSesion = async function(event) {
 
   try {
     await new Promise(resolve => window.setTimeout(resolve, 500));
+    limpiarSesionExpiradaActual();
     await signOut(auth);
     location.reload();
   } catch (error) {
