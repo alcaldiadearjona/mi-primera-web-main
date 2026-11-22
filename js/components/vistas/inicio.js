@@ -49,6 +49,19 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                     <option value="Presencial">Presencial</option>
                   </select>
                 </div>
+                <div class="form-group">
+                  <label for="tipoNotificacionRecepcion">Notificación de Respuesta</label>
+                  <select id="tipoNotificacionRecepcion" required>
+                    <option value="">-- Seleccionar medio --</option>
+                    <option value="Correo">Correo</option>
+                    <option value="Celular">Celular</option>
+                    <option value="Presencial">Presencial</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label id="etiquetaContactoNotificacionRecepcion" for="contactoNotificacionRecepcion">Dato de Notificación</label>
+                  <input type="text" id="contactoNotificacionRecepcion" disabled>
+                </div>
                 <div class="form-group full-width">
                   <label for="remitenteRecepcion">Nombre y Datos del Remitente</label>
                   <input type="text" id="remitenteRecepcion">
@@ -162,6 +175,20 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                 <option value="Virtual">Virtual</option>
                 <option value="Presencial">Presencial</option>
               </select>
+            </div>
+
+            <div id="grupoTipoNotificacionCiudadano" class="form-group">
+              <label for="tipoNotificacionCiudadano">Notificación de Respuesta</label>
+              <select id="tipoNotificacionCiudadano" required>
+                <option value="">-- Seleccionar medio --</option>
+                <option value="Correo">Correo</option>
+                <option value="Celular">Celular</option>
+                <option value="Presencial">Presencial</option>
+              </select>
+            </div>
+            <div id="grupoContactoNotificacionCiudadano" class="form-group">
+              <label id="etiquetaContactoNotificacionCiudadano" for="contactoNotificacionCiudadano">Dato de Notificación</label>
+              <input type="text" id="contactoNotificacionCiudadano" disabled>
             </div>
 
             <div id="grupoEstadoSolicitud" class="form-group">

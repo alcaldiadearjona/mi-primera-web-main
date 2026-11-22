@@ -319,6 +319,8 @@ service cloud.firestore {
             'pdfCiudadanoUrl',
             'pdfCiudadanoNombre',
             'aceptaTratamientoDatos',
+            'notificacionRespuestaTipo',
+            'notificacionRespuestaContacto',
             'dependencia',
             'ciudadanoUid',
             'anio',
@@ -343,6 +345,8 @@ service cloud.firestore {
             'pdfCiudadanoUrl',
             'pdfCiudadanoNombre',
             'aceptaTratamientoDatos',
+            'notificacionRespuestaTipo',
+            'notificacionRespuestaContacto',
             'dependencia',
             'ciudadanoUid',
             'anio',
@@ -382,6 +386,13 @@ service cloud.firestore {
           && request.resource.data.pdfCiudadanoNombre is string
           && request.resource.data.pdfCiudadanoNombre.size() <= 255
           && request.resource.data.aceptaTratamientoDatos == true
+          && request.resource.data.notificacionRespuestaTipo in ['Correo', 'Celular', 'Presencial']
+          && request.resource.data.notificacionRespuestaContacto is string
+          && (
+            request.resource.data.notificacionRespuestaTipo == 'Presencial'
+              ? request.resource.data.notificacionRespuestaContacto == ''
+              : request.resource.data.notificacionRespuestaContacto.size() > 0
+          )
           && request.resource.data.dependencia == 'Ventanilla Única'
           && tieneSecuenciaCiudadanaDespues(
             request.resource.data.anio,
@@ -982,6 +993,9 @@ service cloud.firestore {
           'respuestaUrl',
           'fechaCargaRespuesta',
           'otrosEstados',
+          'observaciones',
+          'notificacionRespuestaTipo',
+          'notificacionRespuestaContacto',
           'prorroga'
         ])
         && request.resource.data.keys().hasAll([
@@ -1002,6 +1016,9 @@ service cloud.firestore {
           'respuestaUrl',
           'fechaCargaRespuesta',
           'otrosEstados',
+          'observaciones',
+          'notificacionRespuestaTipo',
+          'notificacionRespuestaContacto',
           'prorroga'
         ])
         && request.resource.data.radicado == radicadoId
@@ -1025,6 +1042,9 @@ service cloud.firestore {
         )
         && request.resource.data.fechaCargaRespuesta is string
         && request.resource.data.otrosEstados in ['', 'Para conocimiento', 'No requiere respuesta']
+        && request.resource.data.observaciones is string
+        && request.resource.data.notificacionRespuestaTipo in ['', 'Correo', 'Celular', 'Presencial']
+        && request.resource.data.notificacionRespuestaContacto is string
         && (
           request.resource.data.prorroga == null
           || (

@@ -152,4 +152,31 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
 </div>
 </div>
 
+  <!-- MODAL INFORMACIÓN GENERAL DEL REMITENTE -->
+  <div id="modalInfoRemitente" class="modal remitente-info-modal" role="dialog" aria-modal="true" aria-labelledby="tituloInfoRemitente">
+    <div class="remitente-info-dialog">
+      <header class="remitente-info-header">
+        <div class="remitente-info-heading">
+          <div class="remitente-info-header-icon" aria-hidden="true">
+            <i class="bi bi-file-earmark-text"></i>
+          </div>
+          <div>
+            <span class="remitente-info-kicker">Información del remitente</span>
+            <h3 id="tituloInfoRemitente"></h3>
+          </div>
+        </div>
+        <button type="button" class="remitente-info-close" onclick="cerrarInfoRemitente()" aria-label="Cerrar">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div id="contenidoInfoRemitente" class="remitente-info-content"></div>
+      <footer class="remitente-info-footer">
+        <button type="button" class="remitente-info-close-button" onclick="cerrarInfoRemitente()">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+          <span>Cerrar</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
 `;

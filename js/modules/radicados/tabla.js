@@ -11,6 +11,7 @@ import {
   puedeGestionarIAS,
   puedeGestionarRadicado
 } from '../auth/roles.js';
+import { buscarRegistroRadicado } from '../../data/registros.js';
 
 export const TIPOS_PETICION = [
   'Consulta',
@@ -62,6 +63,86 @@ function aTitulo(texto) {
   if (!texto) return '';
   return texto.toLowerCase().replace(/(?:^|\s|-)\S/g, letra => letra.toUpperCase());
 }
+
+window.abrirInfoRemitente = function(id, coleccion = '') {
+  const registro = buscarRegistroRadicado(id, coleccion);
+  if (!registro) return;
+
+  const estadoObj = evaluarEstadoAutomatico(
+    registro.fechaVencimiento,
+    registro.respuestaUrl,
+    registro.otrosEstados,
+    registro.estado
+  );
+  const etiquetasEstado = {
+    'status-vigente': 'Vigente',
+    'status-cerrado': 'Cerrado',
+    'status-proximo': 'Próximo a vencer',
+    'status-extemporanea': 'Extemporánea',
+    'status-tramite': 'En Trámite'
+  };
+  const estado = etiquetasEstado[estadoObj.clase] || estadoObj.texto;
+  const titulo = document.getElementById('tituloInfoRemitente');
+  const contenido = document.getElementById('contenidoInfoRemitente');
+  const modal = document.getElementById('modalInfoRemitente');
+  if (!titulo || !contenido || !modal) return;
+
+  titulo.textContent = aTitulo(registro.remitente) || 'Remitente sin nombre';
+  contenido.replaceChildren();
+  const agregarDato = (etiqueta, valor, icono = 'bi-info-circle', esEstado = false) => {
+    if (valor === undefined || valor === null || valor === '') return;
+    const fila = document.createElement('div');
+    fila.className = 'remitente-info-row';
+    const iconoContenedor = document.createElement('span');
+    iconoContenedor.className = 'remitente-info-row-icon';
+    iconoContenedor.innerHTML = `<i class="bi ${icono}" aria-hidden="true"></i>`;
+    const nombre = document.createElement('strong');
+    nombre.textContent = `${etiqueta}:`;
+    const dato = document.createElement('span');
+    dato.textContent = String(valor);
+    dato.style.whiteSpace = 'pre-wrap';
+    if (esEstado) {
+      dato.className = 'remitente-info-status-badge';
+      dato.innerHTML = `<span aria-hidden="true"></span>${String(valor)}`;
+    }
+    fila.append(iconoContenedor, nombre, dato);
+    contenido.append(fila);
+  };
+
+  agregarDato('Estado general', estado, 'bi-building', true);
+  agregarDato('Tipo de canal', registro.tipoCanal || '-', 'bi-camera-video');
+  agregarDato('Folios', registro.folios, 'bi-folder2');
+  agregarDato('Anexos', registro.anexos, 'bi-paperclip');
+  agregarDato('Responsable', aTitulo(registro.funcionarioAsignado), 'bi-person');
+  agregarDato('Otros estados', registro.otrosEstados, 'bi-pin-angle');
+  agregarDato('Observaciones', registro.observaciones, 'bi-eye');
+  agregarDato(
+    'Notificación',
+    registro.notificacionRespuestaTipo
+      ? `${registro.notificacionRespuestaTipo}${registro.notificacionRespuestaContacto ? ` - ${registro.notificacionRespuestaContacto}` : ''}`
+      : ''
+  );
+
+  modal.style.display = 'flex';
+  modal.onclick = event => {
+    if (event.target === modal) window.cerrarInfoRemitente();
+  };
+};
+
+window.cerrarInfoRemitente = function() {
+  const modal = document.getElementById('modalInfoRemitente');
+  if (modal) modal.style.display = 'none';
+};
+
+document.getElementById('modalInfoRemitente')?.addEventListener('click', event => {
+  if (event.target.id === 'modalInfoRemitente') window.cerrarInfoRemitente();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    const modal = document.getElementById('modalInfoRemitente');
+    if (modal?.style.display === 'flex') window.cerrarInfoRemitente();
+  }
+});
 
 function formatearFechaTabla(fecha) {
   const coincidencia = String(fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
@@ -273,8 +354,9 @@ if (soloLecturaIAS) {
   `;
 } else {
   columnaRespuestaHtml = `
-    <button class="response-upload-trigger" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="${accionesHabilitadas ? 'Cargar respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'} style="cursor: pointer; background-color: #2563eb; color: white; border: none; padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; display: inline-block;">
-      Cargar Respuesta
+    <button class="response-upload-trigger" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="${accionesHabilitadas ? 'Cargar respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>
+      <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+      <span>Cargar Respuesta</span>
     </button>
     <input type="file" id="file-resp-${reg.id}" style="display: none;" onchange="subirRespuestaRadicado('${reg.id}', this)">
   `;
@@ -330,14 +412,18 @@ if (soloLecturaIAS) {
       <td>${estadoHtml}</td>
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
 
-      <!-- Remitente con formato Título -->
-      <td title="${aTitulo(reg.remitente) || ''}" 
-          style="cursor: pointer; user-select: none; -webkit-user-select: none;" 
-          onmousedown="event.preventDefault();"
-          onclick="const div = this.querySelector('div'); div.style.whiteSpace = div.style.whiteSpace === 'normal' ? 'nowrap' : 'normal'; div.style.overflow = div.style.overflow === 'visible' ? 'hidden' : 'visible';">
-          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
+      <!-- Remitente con información general -->
+      <td>
+        <div style="max-width: 220px;">
+          <strong style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${aTitulo(reg.remitente) || ''}">
             ${aTitulo(reg.remitente) || ''}
-          </div>
+          </strong>
+          <button type="button" class="remitente-info-toggle" aria-expanded="false"
+            style="border:0; background:#f1f5f4; color:#16804a; font-size:10px; font-style:italic; font-weight:700; padding:3px 7px; margin-top:3px; border-radius:999px; cursor:pointer; transition:background .15s ease, color .15s ease, transform .15s ease;"
+            onclick="abrirInfoRemitente('${reg.id}', '${coleccion}')">
+            +Info
+          </button>
+        </div>
       </td>
       
       <!-- Asunto con indicadores compactos (alfiler y ojito verde) y vista expandida limpia -->

@@ -146,6 +146,8 @@ function mapearRadicado(documento) {
     tipoPeticion: item.tipoPeticion || '',
     otrosEstados: item.otrosEstados || '',
     observaciones: item.observaciones || '',
+    notificacionRespuestaTipo: item.notificacionRespuestaTipo || '',
+    notificacionRespuestaContacto: item.notificacionRespuestaContacto || '',
     dependenciasRecibidas: Array.isArray(item.dependenciasRecibidas) ? item.dependenciasRecibidas : [],
     dependenciasRechazadas: Array.isArray(item.dependenciasRechazadas) ? item.dependenciasRechazadas : [],
     rechazosCompetencia: Array.isArray(item.rechazosCompetencia) ? item.rechazosCompetencia : [],

@@ -36,9 +36,51 @@ let primerRadicadoPendienteId = '';
 let gestionPendienteEnConflicto = false;
 let cantidadVisiblePendientes = 6;
 
+function actualizarCampoNotificacionRespuesta(tipoSelectId, campoId, etiquetaId) {
+  const select = document.getElementById(tipoSelectId);
+  const campo = document.getElementById(campoId);
+  const etiqueta = document.getElementById(etiquetaId);
+  if (!select || !campo) return;
+  const tipo = select.value;
+  const requiereDato = tipo === 'Correo' || tipo === 'Celular';
+  campo.disabled = !requiereDato;
+  campo.required = tipo === 'Correo' || tipo === 'Celular';
+  campo.setAttribute('aria-disabled', String(campo.disabled));
+  const grupoContacto = campo.closest('.form-group');
+  if (grupoContacto) {
+    grupoContacto.hidden = tipo === 'Presencial';
+    grupoContacto.style.display = tipo === 'Presencial' ? 'none' : '';
+    grupoContacto.classList.toggle('notification-contact-disabled', campo.disabled);
+    grupoContacto.setAttribute('aria-hidden', String(tipo === 'Presencial'));
+  }
+  if (!tipo || tipo === 'Presencial') campo.value = '';
+  if (tipo === 'Correo') {
+    campo.type = 'email';
+    campo.placeholder = 'correo@ejemplo.com';
+    if (etiqueta) etiqueta.textContent = 'Correo electrónico';
+  } else if (tipo === 'Celular') {
+    campo.type = 'tel';
+    campo.inputMode = 'tel';
+    campo.placeholder = 'Número de celular';
+    if (etiqueta) etiqueta.textContent = 'Número de celular';
+  } else if (tipo === 'Presencial') {
+    campo.type = 'text';
+    campo.placeholder = 'No requiere dato';
+    if (etiqueta) etiqueta.textContent = 'Dato de Notificación';
+  } else {
+    campo.type = 'text';
+    campo.placeholder = '';
+    if (etiqueta) etiqueta.textContent = 'Dato de Notificación';
+  }
+}
+
 function establecerModoFormularioPQRSF(modo) {
   modoFormularioPQRSF = modo;
   const esRadicacionCiudadana = (esCiudadano() || esAdministrador()) && modo === 'directo';
+  const formulario = document.getElementById('pqrsForm');
+  if (formulario) {
+    formulario.classList.toggle('citizen-direct-form', esRadicacionCiudadana);
+  }
   const radicado = document.getElementById('radicado');
   if (radicado) {
     const radicadoAutomaticoCiudadano = esRadicacionCiudadana;
@@ -50,7 +92,7 @@ function establecerModoFormularioPQRSF(modo) {
     if (radicadoAutomaticoCiudadano) radicado.value = '';
   }
   [
-    ['grupoRadicado', true],
+    ['grupoRadicado', !esRadicacionCiudadana],
     ['grupoTipoCanal', true],
     ['grupoEstadoSolicitud', esRadicacionCiudadana],
     ['grupoRemitente', true],
@@ -66,15 +108,43 @@ function establecerModoFormularioPQRSF(modo) {
   });
   const tipoCanal = document.getElementById('tipoCanal');
   if (tipoCanal) {
-    tipoCanal.value = esRadicacionCiudadana ? 'Virtual' : tipoCanal.value;
-    tipoCanal.disabled = esRadicacionCiudadana;
-    tipoCanal.required = !esRadicacionCiudadana;
+    const valorTipoCanal = tipoCanal.value;
+    if (esRadicacionCiudadana) {
+      tipoCanal.innerHTML = [
+        '<option value="Virtual">Virtual</option>',
+      ].join('');
+    } else {
+      tipoCanal.innerHTML = [
+        '<option value="">-- Seleccionar tipo de canal --</option>',
+        '<option value="Virtual">Virtual</option>',
+        '<option value="Presencial">Presencial</option>'
+      ].join('');
+    }
+    tipoCanal.value = esRadicacionCiudadana ? 'Virtual' : valorTipoCanal;
+    tipoCanal.disabled = false;
+    tipoCanal.required = true;
   }
   const estadoSolicitud = document.getElementById('estadoSolicitud');
   if (estadoSolicitud) {
     estadoSolicitud.value = 'VIGENTE';
     estadoSolicitud.disabled = esRadicacionCiudadana;
   }
+  const tipoNotificacionCiudadano = document.getElementById('tipoNotificacionCiudadano');
+  if (tipoNotificacionCiudadano) {
+    tipoNotificacionCiudadano.required = esRadicacionCiudadana;
+  }
+  const grupoTipoNotificacionCiudadano = document.getElementById('grupoTipoNotificacionCiudadano');
+  const grupoContactoNotificacionCiudadano = document.getElementById('grupoContactoNotificacionCiudadano');
+  [grupoTipoNotificacionCiudadano, grupoContactoNotificacionCiudadano].forEach(grupo => {
+    if (!grupo) return;
+    if (modo === 'gestion') {
+      grupo.hidden = false;
+      grupo.style.display = '';
+    } else {
+      grupo.hidden = !esRadicacionCiudadana;
+      grupo.style.display = esRadicacionCiudadana ? '' : 'none';
+    }
+  });
   const remitente = document.getElementById('remitente');
   if (remitente) remitente.required = true;
   const asunto = document.getElementById('asunto');
@@ -264,6 +334,13 @@ function seleccionarPQRSFPendiente(id, registro) {
   document.getElementById('asunto').value = registro.asunto || '';
   document.getElementById('folios').value = registro.folios ?? '';
   document.getElementById('anexos').value = registro.anexos ?? '';
+  document.getElementById('tipoNotificacionCiudadano').value = registro.notificacionRespuestaTipo || '';
+  document.getElementById('contactoNotificacionCiudadano').value = registro.notificacionRespuestaContacto || '';
+  actualizarCampoNotificacionRespuesta(
+    'tipoNotificacionCiudadano',
+    'contactoNotificacionCiudadano',
+    'etiquetaContactoNotificacionCiudadano'
+  );
   const grupoSolicitudOriginal = document.getElementById('grupoSolicitudOriginalCiudadano');
   const enlaceSolicitudOriginal = document.getElementById('enlaceSolicitudOriginalCiudadano');
   const urlSolicitudOriginal = obtenerUrlHttpsSegura(registro.pdfCiudadanoUrl
@@ -619,6 +696,8 @@ async function guardarRecepcionPQRSF(ahora) {
   const observaciones = formatearMayusculasIniciales(
     document.getElementById('observacionesRecepcion').value.trim()
   );
+  const notificacionRespuestaTipo = document.getElementById('tipoNotificacionRecepcion').value;
+  const notificacionRespuestaContacto = document.getElementById('contactoNotificacionRecepcion')?.value.trim() || '';
 
   const numeroRadicado = await runTransaction(db, async transaccion => {
     const secuencia = await transaccion.get(secuenciaRef);
@@ -652,6 +731,8 @@ async function guardarRecepcionPQRSF(ahora) {
       folios: foliosValue === '' ? '' : Number(foliosValue),
       anexos: anexosValue === '' ? '' : Number(anexosValue),
       observaciones,
+      notificacionRespuestaTipo,
+      notificacionRespuestaContacto,
       dependenciaResponsable: dependencia,
       pdfUrl: '',
       dependencia: dependencia || 'Ventanilla Única'
@@ -664,6 +745,21 @@ async function guardarRecepcionPQRSF(ahora) {
 
 async function procesarFormularioRecepcionPQRSF(event) {
   event.preventDefault();
+  const tipoNotificacion = document.getElementById('tipoNotificacionRecepcion')?.value || '';
+  const contactoNotificacion = document.getElementById('contactoNotificacionRecepcion');
+  if (!tipoNotificacion) {
+    alert('Selecciona el medio de Notificación de Respuesta.');
+    document.getElementById('tipoNotificacionRecepcion')?.focus();
+    return;
+  }
+  if (tipoNotificacion !== 'Presencial' && !contactoNotificacion?.value.trim()) {
+    alert('Ingresa el dato correspondiente al medio de notificación.');
+    contactoNotificacion?.focus();
+    return;
+  }
+  if (tipoNotificacion === 'Presencial' && contactoNotificacion) {
+    contactoNotificacion.value = '';
+  }
   const boton = document.getElementById('btnGuardarRecepcion');
   const spinner = document.getElementById('spinnerGuardarRecepcion');
   const texto = document.getElementById('textoBtnGuardarRecepcion');
@@ -682,6 +778,11 @@ async function procesarFormularioRecepcionPQRSF(event) {
       etiquetaRadicado: 'Número de radicado de entrada:'
     });
     document.getElementById('formRecepcionPQRSF')?.reset();
+    actualizarCampoNotificacionRespuesta(
+      'tipoNotificacionRecepcion',
+      'contactoNotificacionRecepcion',
+      'etiquetaContactoNotificacionRecepcion'
+    );
     const formulario = document.getElementById('contenedorFormularioRecepcion');
     if (formulario) formulario.style.display = 'block';
     actualizarEstadoBotonRecepcion(true);
@@ -842,6 +943,23 @@ function inicializarSelectorDependenciasPqrs() {
 async function guardarRadicado(e) {
   e.preventDefault();
   const esRadicacionCiudadana = (esCiudadano() || esAdministrador()) && modoFormularioPQRSF === 'directo';
+  if (esRadicacionCiudadana) {
+    const tipoNotificacion = document.getElementById('tipoNotificacionCiudadano')?.value || '';
+    const contactoNotificacion = document.getElementById('contactoNotificacionCiudadano');
+    if (!tipoNotificacion) {
+      alert('Selecciona el medio de Notificación de Respuesta.');
+      document.getElementById('tipoNotificacionCiudadano')?.focus();
+      return;
+    }
+    if (tipoNotificacion !== 'Presencial' && !contactoNotificacion?.value.trim()) {
+      alert('Ingresa el dato correspondiente al medio de notificación.');
+      contactoNotificacion?.focus();
+      return;
+    }
+    if (tipoNotificacion === 'Presencial' && contactoNotificacion) {
+      contactoNotificacion.value = '';
+    }
+  }
   const dependenciasSeleccionadas = esRadicacionCiudadana
     ? []
     : actualizarResumenDependenciasPqrs();
@@ -929,11 +1047,13 @@ async function guardarRadicado(e) {
     // 2. Estructuración de los datos del nuevo radicado
     const esGestionPendiente = modoFormularioPQRSF === 'gestion';
     const ahora = new Date();
+    const notificacionRespuestaTipo = document.getElementById('tipoNotificacionCiudadano')?.value || '';
+    const notificacionRespuestaContacto = document.getElementById('contactoNotificacionCiudadano')?.value.trim() || '';
     const nuevoRadicado = {
       radicado: esRadicacionCiudadana ? '' : document.getElementById('radicado').value.trim(),
       origenSolicitud: esRadicacionCiudadana ? 'ciudadano' : 'ventanilla',
       estado: esRadicacionCiudadana ? 'PENDIENTE_GESTION' : 'VIGENTE',
-      tipoCanal: esRadicacionCiudadana ? 'Virtual' : document.getElementById('tipoCanal').value,
+      tipoCanal: document.getElementById('tipoCanal').value,
       fechaRadicacion: document.getElementById('fechaRadicacion').value,
       fechaHoraRadicacion: esGestionPendiente && datosPendienteGestion?.fechaHoraRadicacion
         ? datosPendienteGestion.fechaHoraRadicacion
@@ -946,6 +1066,8 @@ async function guardarRadicado(e) {
       asunto: formatearMayusculasIniciales(document.getElementById('asunto').value.trim()),
       folios: Number(document.getElementById('folios').value),
       anexos: Number(document.getElementById('anexos').value),
+      notificacionRespuestaTipo,
+      notificacionRespuestaContacto,
       pdfUrl: esGestionPendiente
         ? driveUrl || ''
         : esRadicacionCiudadana
@@ -1079,7 +1201,7 @@ async function guardarRadicado(e) {
 
     await mostrarAviso(
       esRadicacionCiudadana
-        ? 'Para conocer su respuesta, diríjase a la Ventanilla Única de la Alcaldía dentro de los siguientes 15 días hábiles.'
+        ? 'Para consultar el estado de su solicitud, ingrese su número de radicado en este mismo apartado. Si tiene más dudas, diríjase a la Ventanilla Única de la Alcaldía.'
         : `Se envió a las siguientes dependencias:\n${dependenciasSeleccionadas.map(dependencia => `• ${dependencia}`).join('\n')}`,
       {
         tipo: 'success',
@@ -1091,6 +1213,11 @@ async function guardarRadicado(e) {
       }
     );
     document.getElementById('pqrsForm')?.reset();
+    actualizarCampoNotificacionRespuesta(
+      'tipoNotificacionCiudadano',
+      'contactoNotificacionCiudadano',
+      'etiquetaContactoNotificacionCiudadano'
+    );
     document.querySelectorAll('input[name="dependenciasDestinoPqrs"]').forEach(casilla => {
       casilla.checked = esFuncionario()
         && casilla.value === obtenerDependenciaSesion();
@@ -1197,6 +1324,11 @@ export function prepararVistaPQRSF(esVistaCiudadano = false) {
   datosPendienteGestion = null;
   gestionPendienteEnConflicto = false;
   document.getElementById('pqrsForm')?.reset();
+  actualizarCampoNotificacionRespuesta(
+    'tipoNotificacionCiudadano',
+    'contactoNotificacionCiudadano',
+    'etiquetaContactoNotificacionCiudadano'
+  );
   actualizarResumenDependenciasPqrs();
   const enlaceSolicitudOriginal = document.getElementById('enlaceSolicitudOriginalCiudadano');
   if (enlaceSolicitudOriginal) {
@@ -1246,6 +1378,30 @@ export function inicializarFormulario() {
   document.getElementById('diasHabiles')?.addEventListener('input', calcularFechaVencimiento);
   document.getElementById('editFechaRadicacion')?.addEventListener('input', calcularFechaVencimientoEdicion);
   document.getElementById('editDiasHabiles')?.addEventListener('input', calcularFechaVencimientoEdicion);
+  document.getElementById('tipoNotificacionRecepcion')?.addEventListener('change', () => {
+    actualizarCampoNotificacionRespuesta(
+      'tipoNotificacionRecepcion',
+      'contactoNotificacionRecepcion',
+      'etiquetaContactoNotificacionRecepcion'
+    );
+  });
+  document.getElementById('tipoNotificacionCiudadano')?.addEventListener('change', () => {
+    actualizarCampoNotificacionRespuesta(
+      'tipoNotificacionCiudadano',
+      'contactoNotificacionCiudadano',
+      'etiquetaContactoNotificacionCiudadano'
+    );
+  });
+  actualizarCampoNotificacionRespuesta(
+    'tipoNotificacionRecepcion',
+    'contactoNotificacionRecepcion',
+    'etiquetaContactoNotificacionRecepcion'
+  );
+  actualizarCampoNotificacionRespuesta(
+    'tipoNotificacionCiudadano',
+    'contactoNotificacionCiudadano',
+    'etiquetaContactoNotificacionCiudadano'
+  );
   form?.addEventListener('submit', guardarRadicado);
   formularioRecepcion?.addEventListener('submit', procesarFormularioRecepcionPQRSF);
   document.getElementById('formConsultaEstadoCiudadano')?.addEventListener('submit', consultarEstadoCiudadano);

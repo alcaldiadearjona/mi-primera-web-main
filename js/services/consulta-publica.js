@@ -48,6 +48,9 @@ function crearVistaPublica(radicado, registro) {
     respuestaUrl: obtenerUrlHttpsSegura(registro.respuestaUrl),
     fechaCargaRespuesta: String(registro.fechaCargaRespuesta || ''),
     otrosEstados: estadoGestion,
+    observaciones: String(registro.observaciones || '').trim(),
+    notificacionRespuestaTipo: String(registro.notificacionRespuestaTipo || '').trim(),
+    notificacionRespuestaContacto: String(registro.notificacionRespuestaContacto || '').trim(),
     prorroga
   };
 }

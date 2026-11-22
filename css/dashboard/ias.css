@@ -1119,17 +1119,18 @@
   text-align: center;
 }
 
-#pantallaIAS .ias-table td:nth-child(12) > button {
+#pantallaIAS .ias-table td:nth-child(12) > button.response-upload-trigger {
   display: inline-flex !important;
   width: 100%;
   max-width: 122px;
-  min-height: 30px;
+  min-height: 28px !important;
+  height: 28px !important;
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  padding: 5px 6px !important;
+  padding: 3px 7px !important;
   border: 0 !important;
-  border-radius: 10px !important;
+  border-radius: 7px !important;
   background: linear-gradient(135deg, #3988f5, #1768dc) !important;
   box-shadow: 0 4px 11px rgba(40, 120, 237, 0.24);
   color: #ffffff !important;
@@ -1139,15 +1140,12 @@
   transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
 }
 
-#pantallaIAS .ias-table td:nth-child(12) > button::after {
-  content: "Cargar Respuesta";
-  color: #ffffff;
-  font-size: 11px;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
+#pantallaIAS .ias-table td:nth-child(12) > button.response-upload-trigger::after {
+  display: none;
+  content: none;
 }
 
-#pantallaIAS .ias-table td:nth-child(12) > button:hover {
+#pantallaIAS .ias-table td:nth-child(12) > button.response-upload-trigger:hover {
   transform: translateY(-1px);
   filter: brightness(1.04);
   box-shadow: 0 6px 14px rgba(40, 120, 237, 0.3);
