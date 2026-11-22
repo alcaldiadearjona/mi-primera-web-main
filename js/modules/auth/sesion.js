@@ -372,6 +372,7 @@ async function configurarUsuario(usuario, rolElegido = '') {
 
 async function procesarCambioAutenticacion(usuario) {
   if (!usuario) {
+    if (rolSolicitado || auth.currentUser) return;
     usuarioConfigurado = '';
     limpiarTemporizadorSesion();
     limpiarSesionUsuario();

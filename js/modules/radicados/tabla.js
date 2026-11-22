@@ -110,18 +110,16 @@ window.abrirInfoRemitente = function(id, coleccion = '') {
   };
 
   agregarDato('Estado general', estado, 'bi-building', true);
-  agregarDato('Tipo de canal', registro.tipoCanal || '-', 'bi-camera-video');
+  const canalRespuesta = [
+    registro.notificacionRespuestaTipo,
+    registro.notificacionRespuestaContacto
+  ].filter(Boolean).join(' - ') || '-';
+  agregarDato('Canal de Respuesta', canalRespuesta, 'bi-envelope');
   agregarDato('Folios', registro.folios, 'bi-folder2');
   agregarDato('Anexos', registro.anexos, 'bi-paperclip');
   agregarDato('Responsable', aTitulo(registro.funcionarioAsignado), 'bi-person');
   agregarDato('Otros estados', registro.otrosEstados, 'bi-pin-angle');
   agregarDato('Observaciones', registro.observaciones, 'bi-eye');
-  agregarDato(
-    'Notificación',
-    registro.notificacionRespuestaTipo
-      ? `${registro.notificacionRespuestaTipo}${registro.notificacionRespuestaContacto ? ` - ${registro.notificacionRespuestaContacto}` : ''}`
-      : ''
-  );
 
   modal.style.display = 'flex';
   modal.onclick = event => {
@@ -415,9 +413,9 @@ if (soloLecturaIAS) {
       <!-- Remitente con información general -->
       <td>
         <div style="max-width: 220px;">
-          <strong style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${aTitulo(reg.remitente) || ''}">
+          <span style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400;" title="${aTitulo(reg.remitente) || ''}">
             ${aTitulo(reg.remitente) || ''}
-          </strong>
+          </span>
           <button type="button" class="remitente-info-toggle" aria-expanded="false"
             style="border:0; background:#f1f5f4; color:#16804a; font-size:10px; font-style:italic; font-weight:700; padding:3px 7px; margin-top:3px; border-radius:999px; cursor:pointer; transition:background .15s ease, color .15s ease, transform .15s ease;"
             onclick="abrirInfoRemitente('${reg.id}', '${coleccion}')">
