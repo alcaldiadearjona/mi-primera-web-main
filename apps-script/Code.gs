@@ -9,6 +9,64 @@ function doGet() {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
+function responderEliminacionArchivo(status, message) {
+  return ContentService.createTextOutput(JSON.stringify({
+    status: status,
+    message: message
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function extraerIdArchivoDrive(url) {
+  var texto = typeof url === "string" ? url.trim() : "";
+  var coincidenciaUrl = texto.match(
+    /^https:\/\/drive\.google\.com(?::443)?(\/[^?#]*)(?:\?([^#]*))?(?:#.*)?$/i
+  );
+  if (!coincidenciaUrl) return "";
+
+  var ruta = coincidenciaUrl[1];
+  var coincidenciaArchivo = ruta.match(
+    /^\/file\/d\/([A-Za-z0-9_-]{25,})(?:\/(?:view|edit|preview))?\/?$/i
+  );
+  if (coincidenciaArchivo) return coincidenciaArchivo[1];
+  if (ruta.toLowerCase() !== "/uc" && ruta.toLowerCase() !== "/open") return "";
+
+  var parametros = (coincidenciaUrl[2] || "").split("&");
+  var ids = [];
+  for (var i = 0; i < parametros.length; i++) {
+    var partes = parametros[i].split("=");
+    var nombre;
+    var valor;
+    try {
+      nombre = decodeURIComponent(partes[0].replace(/\+/g, " ")).toLowerCase();
+      valor = decodeURIComponent((partes[1] || "").replace(/\+/g, " "));
+    } catch (error) {
+      return "";
+    }
+    if (nombre === "id") ids.push(valor);
+  }
+
+  return ids.length === 1 && /^[A-Za-z0-9_-]{25,}$/.test(ids[0]) ? ids[0] : "";
+}
+
+function eliminarArchivo(pdfUrl) {
+  if (!pdfUrl) {
+    return responderEliminacionArchivo("error", "No se proporcionó la URL del archivo");
+  }
+
+  var fileId = extraerIdArchivoDrive(pdfUrl);
+  if (!fileId) {
+    return responderEliminacionArchivo("error", "ID de archivo no válido");
+  }
+
+  var archivo = DriveApp.getFileById(fileId);
+  if (archivo.getMimeType() === "application/vnd.google-apps.folder") {
+    return responderEliminacionArchivo("error", "No se puede eliminar una carpeta");
+  }
+
+  archivo.setTrashed(true);
+  return responderEliminacionArchivo("success", "Archivo eliminado de Drive");
+}
+
 function doPost(e) {
   var etapaSolicitud = "recibiendo la solicitud";
   try {
@@ -22,28 +80,7 @@ function doPost(e) {
 
     // ACCIÓN 1: ELIMINAR ARCHIVO DE DRIVE
     if (data.action === "delete") {
-      var pdfUrl = data.pdfUrl;
-      if (!pdfUrl) {
-        return ContentService.createTextOutput(JSON.stringify({
-          "status": "error",
-          "message": "No se proporcionó la URL del archivo"
-        })).setMimeType(ContentService.MimeType.JSON);
-      }
-
-      var match = pdfUrl.match(/[-\w]{25,}/);
-      if (match) {
-        var fileId = match[0];
-        DriveApp.getFileById(fileId).setTrashed(true);
-        return ContentService.createTextOutput(JSON.stringify({
-          "status": "success",
-          "message": "Archivo eliminado de Drive"
-        })).setMimeType(ContentService.MimeType.JSON);
-      } else {
-        return ContentService.createTextOutput(JSON.stringify({
-          "status": "error",
-          "message": "ID de archivo no válido"
-        })).setMimeType(ContentService.MimeType.JSON);
-      }
+      return eliminarArchivo(data.pdfUrl);
     }
 
     function valorCampoFirestore(campo) {

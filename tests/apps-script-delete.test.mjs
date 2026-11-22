@@ -39,7 +39,12 @@ function eliminarArchivo(url) {
     }
   };
   vm.runInNewContext(script, contexto);
-  const respuesta = JSON.parse(contexto.eliminarArchivo(url).texto);
+  const salida = contexto.doPost({
+    postData: {
+      contents: JSON.stringify({ action: 'delete', pdfUrl: url })
+    }
+  });
+  const respuesta = JSON.parse(salida.texto);
   return { respuesta, archivosEnPapelera, idsConsultados };
 }
 

@@ -49,7 +49,11 @@ test('Los demás funcionarios no pueden gestionar ni editar IAS', () => {
 test('Invitado solo obtiene el rol configurado para generación de radicados', () => {
   establecerSesionUsuario({}, { rol: 'invitado', nombre: 'Invitado' });
 
-  assert.equal(obtenerCredencialLogin('Invitado'), null);
+  assert.deepEqual(obtenerCredencialLogin('Invitado'), {
+    email: 'invitado@pqrsalcaldiaarjona.firebaseapp.com',
+    rol: 'invitado',
+    dependencia: ''
+  });
   assert.equal(esInvitado(), true);
   assert.equal(esAdministrador(), false);
   assert.equal(esFuncionario(), false);

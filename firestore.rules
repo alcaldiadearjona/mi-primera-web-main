@@ -145,6 +145,8 @@ service cloud.firestore {
             'fechaVencimiento',
             'remitente',
             'asunto',
+            'folios',
+            'anexos',
             'pdfUrl',
             'dependencia'
           ])
@@ -160,6 +162,8 @@ service cloud.firestore {
             'fechaVencimiento',
             'remitente',
             'asunto',
+            'folios',
+            'anexos',
             'pdfUrl',
             'dependencia'
           ])
@@ -185,6 +189,8 @@ service cloud.firestore {
             'fechaVencimiento',
             'remitente',
             'asunto',
+            'folios',
+            'anexos',
             'pdfUrl',
             'dependencia',
             'funcionarioAsignado',
@@ -213,6 +219,8 @@ service cloud.firestore {
             'fechaVencimiento',
             'remitente',
             'asunto',
+            'folios',
+            'anexos',
             'pdfUrl',
             'dependencia',
             'tipoPeticion',
@@ -305,6 +313,8 @@ service cloud.firestore {
             'fechaVencimiento',
             'remitente',
             'asunto',
+            'folios',
+            'anexos',
             'pdfUrl',
             'pdfCiudadanoUrl',
             'pdfCiudadanoNombre',
@@ -327,6 +337,8 @@ service cloud.firestore {
             'fechaVencimiento',
             'remitente',
             'asunto',
+            'folios',
+            'anexos',
             'pdfUrl',
             'pdfCiudadanoUrl',
             'pdfCiudadanoNombre',
@@ -359,6 +371,10 @@ service cloud.firestore {
           && request.resource.data.asunto is string
           && request.resource.data.asunto.size() > 0
           && request.resource.data.asunto.size() <= 10000
+          && request.resource.data.folios is int
+          && request.resource.data.folios >= 1
+          && request.resource.data.anexos is int
+          && request.resource.data.anexos >= 0
           && request.resource.data.pdfUrl is string
           && request.resource.data.pdfUrl.size() <= 2000
           && request.resource.data.pdfCiudadanoUrl is string
@@ -826,15 +842,25 @@ service cloud.firestore {
     match /radicadosSalidaSecuencias/{secuenciaId} {
       allow get: if isAdmin() || isFuncionario() || isInvitado();
       allow list: if isAdmin();
-      allow create: if isAdmin()
+      allow create: if (
+        isAdmin()
+        && request.resource.data.ultimo is int
+        && request.resource.data.ultimo > 0
+        && request.resource.data.ultimo <= 99999
+      )
         || (
           (isFuncionario() || isInvitado())
           && request.resource.data.keys().hasOnly(['anio', 'ultimo'])
           && request.resource.data.anio is int
           && request.resource.data.ultimo is int
           && request.resource.data.ultimo > 0
+          && request.resource.data.ultimo <= 99999
         );
-      allow update: if isAdmin()
+      allow update: if (
+        isAdmin()
+        && request.resource.data.ultimo is int
+        && request.resource.data.ultimo <= 99999
+      )
         || (
           (isFuncionario() || isInvitado())
           && request.resource.data.keys().hasOnly(['anio', 'ultimo'])
@@ -843,6 +869,7 @@ service cloud.firestore {
           && resource.data.ultimo is int
           && request.resource.data.ultimo > resource.data.ultimo
           && request.resource.data.ultimo <= resource.data.ultimo + 400
+          && request.resource.data.ultimo <= 99999
         );
       allow delete: if isAdmin();
     }

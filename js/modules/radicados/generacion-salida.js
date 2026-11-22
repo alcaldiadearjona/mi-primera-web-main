@@ -20,6 +20,7 @@ import { esInvitado, obtenerPerfilSesion, obtenerUsuarioSesion } from '../auth/r
 const MAX_ARCHIVOS = 10;
 const MAX_TAMANO_ARCHIVO = 10 * 1024 * 1024;
 const MAX_RADICADOS_POR_LOTE = 400;
+const MAX_NUMERO_RADICADO = 99999;
 const COLECCION_SALIDA = 'radicadosSalida';
 const COLECCION_SECUENCIAS_SALIDA = 'radicadosSalidaSecuencias';
 const COLECCION_SECUENCIAS_ANULACION = 'radicadosAnulacionSecuencias';
@@ -56,6 +57,12 @@ function coincideRadicadoSalida(registro, numero) {
   const radicadoActual = formatearRadicadoSalida(registro.anio, numero);
   const radicadoAnterior = `R-${registro.anio}-${String(numero).padStart(5, '0')}`;
   return registro.radicado === radicadoActual || registro.radicado === radicadoAnterior;
+}
+
+function crearErrorSecuenciaSalida(mensaje) {
+  const error = new Error(mensaje);
+  error.code = 'RADICADO_SECUENCIA_INVALIDA';
+  return error;
 }
 
 function obtenerUrlVistaDrive(url) {
@@ -731,8 +738,8 @@ async function asignarNumeroYGuardar(datos, claveIdempotencia) {
     const secuenciaActual = await transaccion.get(secuenciaRef);
     const ultimoNumero = secuenciaActual.exists() ? Number(secuenciaActual.data().ultimo) : 0;
     if (!Number.isSafeInteger(ultimoNumero) || ultimoNumero < 0
-      || !Number.isSafeInteger(ultimoNumero + 1)) {
-      throw new Error(`La secuencia de radicados de ${anio} no es válida.`);
+      || ultimoNumero >= MAX_NUMERO_RADICADO) {
+      throw crearErrorSecuenciaSalida(`La secuencia de radicados de ${anio} no es válida o se agotó.`);
     }
     const numero = ultimoNumero + 1;
     const radicado = formatearRadicadoSalida(anio, numero);
@@ -802,8 +809,10 @@ async function asignarRadicadosMasivosYGuardar(datos, claveIdempotencia, cantida
       : 0;
     const numeroFinal = ultimoNumero + cantidad;
     if (!Number.isSafeInteger(ultimoNumero) || ultimoNumero < 0
-      || !Number.isSafeInteger(numeroFinal + 1)) {
-      throw new Error(`La secuencia de radicados de ${anio} no es válida para generar ${cantidad} consecutivos.`);
+      || !Number.isSafeInteger(numeroFinal) || numeroFinal > MAX_NUMERO_RADICADO) {
+      throw crearErrorSecuenciaSalida(
+        `La secuencia de radicados de ${anio} no es válida o se agotó para generar ${cantidad} consecutivos.`
+      );
     }
 
     const numeroInicial = ultimoNumero + 1;
@@ -1039,6 +1048,9 @@ async function guardarRadicadoSalida(event) {
         esGeneracionMasiva ? '' : registroGuardado.radicado
       );
       return;
+    }
+    if (error?.code === 'RADICADO_SECUENCIA_INVALIDA') {
+      intentoGuardarFirestore = false;
     }
     if (!intentoGuardarFirestore && archivosSubidos.length > 0) {
       const erroresLimpieza = await eliminarArchivosDrive(archivosSubidos);
