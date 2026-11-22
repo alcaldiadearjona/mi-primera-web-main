@@ -30,6 +30,7 @@ function crearVistaPublica(radicado, registro) {
 
   return {
     radicado,
+    dependencia: String(registro.dependencia || ''),
     estado: String(registro.estado || 'VIGENTE'),
     fechaRadicacion: String(registro.fechaRadicacion || ''),
     fechaHoraRadicacion: String(registro.fechaHoraRadicacion || ''),
@@ -39,6 +40,7 @@ function crearVistaPublica(radicado, registro) {
     fechaVencimiento: String(registro.fechaVencimiento || registro.fechaEntrega || ''),
     fechaRemisionCompetencia: String(registro.fechaRemisionCompetencia || ''),
     fechaRecepcionCompetencia: String(registro.fechaRecepcionCompetencia || ''),
+    remisionOrigenDependencia: String(registro.remisionOrigenDependencia || ''),
     dependenciasDestino: Array.isArray(registro.dependenciasDestino)
       ? registro.dependenciasDestino.filter(dependencia => typeof dependencia === 'string')
       : [],
@@ -81,17 +83,12 @@ export async function publicarConsultasPublicasCiudadanasFaltantes() {
     throw new Error('Solo el administrador puede preparar las consultas públicas existentes.');
   }
   const migracion = await getDoc(REFERENCIA_MIGRACION);
-  if (migracion.exists() && migracion.data().version === 1) return 0;
+  if (migracion.exists() && migracion.data().version === 2) return 0;
 
-  const [radicados, consultasPublicas] = await Promise.all([
-    getDocs(collection(db, RADICADOS_COLLECTION)),
-    getDocs(collection(db, COLECCION_CONSULTA_PUBLICA))
-  ]);
-  const consultasExistentes = new Set(consultasPublicas.docs.map(documento => documento.id));
+  const radicados = await getDocs(collection(db, RADICADOS_COLLECTION));
   const faltantes = radicados.docs.filter(documento => (
     typeof documento.data().radicado === 'string'
     && documento.data().radicado === documento.id
-    && !consultasExistentes.has(documento.id)
   ));
 
   for (let inicio = 0; inicio < faltantes.length; inicio += 10) {
@@ -102,7 +99,7 @@ export async function publicarConsultasPublicasCiudadanasFaltantes() {
     )));
   }
   await setDoc(REFERENCIA_MIGRACION, {
-    version: 1,
+    version: 2,
     completadaEn: new Date().toISOString()
   });
   return faltantes.length;

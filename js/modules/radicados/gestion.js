@@ -461,10 +461,6 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
 
     if (!recibido) {
       alert('Este radicado ya fue recibido por la dependencia.');
-      await actualizarConsultaPublicaSiAplica(
-        radicado.remisionOrigenId,
-        radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
-      );
       await recargarDatosRegistro(radicado);
       return;
     }
@@ -536,6 +532,10 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
     });
 
     await recargarDatosRegistro(radicado);
+    await actualizarConsultaPublicaSiAplica(
+      radicado.remisionOrigenId,
+      radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
+    );
     await informarResultadoNotificacionCorreo('rechazo', {
       id: radicado.remisionOrigenId,
       dependencia: radicado.dependencia

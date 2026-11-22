@@ -297,8 +297,12 @@ function obtenerDetalleEstadoCiudadano(registro) {
     typeof registro.respuestaUrl === 'string'
     && registro.respuestaUrl.trim().startsWith('http')
   );
+  const dependenciaAsignada = String(registro.dependencia || '').trim();
   if (respuestaCargada) {
-    return 'Tu solicitud fue respondida y el documento de respuesta ya fue cargado. Se encuentra cerrada.';
+    const asignacion = dependenciaAsignada
+      ? ` Fue gestionada por la dependencia ${dependenciaAsignada}.`
+      : '';
+    return `Tu solicitud fue respondida y el documento de respuesta ya fue cargado. Se encuentra cerrada.${asignacion}`;
   }
 
   if (
@@ -308,12 +312,19 @@ function obtenerDetalleEstadoCiudadano(registro) {
     const dependenciasDestino = Array.isArray(registro.dependenciasDestino)
       ? registro.dependenciasDestino.filter(dependencia => typeof dependencia === 'string' && dependencia.trim())
       : [];
-    return dependenciasDestino.length
+    const narrativas = [];
+    narrativas.push(dependenciasDestino.length
       ? `Tu solicitud fue remitida por competencia a: ${dependenciasDestino.join(', ')}.`
-      : 'Tu solicitud fue remitida por competencia a otra dependencia para su trámite.';
+      : 'Tu solicitud fue remitida por competencia a otra dependencia para su trámite.');
+    if (dependenciaAsignada) {
+      narrativas.push(`Dependencia asignada: ${dependenciaAsignada}.`);
+    }
+    return narrativas.join(' ');
   }
   if (registro.estado === 'PENDIENTE_GESTION') {
-    return 'Tu solicitud fue recibida y está pendiente de revisión y asignación a la dependencia correspondiente.';
+    return dependenciaAsignada
+      ? `Tu solicitud fue recibida y está pendiente de revisión. Dependencia asignada: ${dependenciaAsignada}.`
+      : 'Tu solicitud fue recibida y está pendiente de revisión y asignación a la dependencia correspondiente.';
   }
 
   const otrosEstados = String(registro.otrosEstados || '').toLowerCase();
@@ -337,7 +348,9 @@ function obtenerDetalleEstadoCiudadano(registro) {
   if (estadoAutomatico.texto === 'PRÓXIMO A VENCER') {
     return 'Tu solicitud está próxima a vencer y continúa en trámite.';
   }
-  return 'Tu solicitud fue asignada a una dependencia y se encuentra vigente mientras continúa su gestión.';
+  return dependenciaAsignada
+    ? `Tu solicitud fue asignada a la dependencia ${dependenciaAsignada} y se encuentra vigente mientras continúa su gestión.`
+    : 'Tu solicitud fue asignada a una dependencia y se encuentra vigente mientras continúa su gestión.';
 }
 
 function formatearFechaEstadoCiudadano(fecha) {
