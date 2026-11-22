@@ -279,6 +279,16 @@ if (soloLecturaIAS) {
     <input type="file" id="file-resp-${reg.id}" style="display: none;" onchange="subirRespuestaRadicado('${reg.id}', this)">
   `;
 }
+    const columnaProrrogaHtml = reg.prorroga?.archivoUrl
+      ? `<a class="prorroga-view-link" href="${reg.prorroga.archivoUrl}" target="_blank" rel="noopener noreferrer" title="Ver oficio de prórroga" aria-label="Ver oficio de prórroga">
+          <i class="bi bi-eye" aria-hidden="true"></i><span>Ver Prorroga</span>
+        </a>`
+      : !reg.respuestaUrl && obtenerPerfilSesion()?.rol === 'administrador'
+        ? `<button class="prorroga-action-button" onclick="abrirModalProrrogaRadicado('${reg.id}', '${coleccion}')" style="background:#2563eb; color:#ffffff; border:1px solid #2563eb; min-width:76px; height:24px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:3px; padding:0 5px; font-size:9px;" title="Agregar prórroga" aria-label="Prórroga">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path><path d="M18.5 6.5 20 5"></path></svg>
+            <span>Prórroga</span>
+          </button>`
+        : '';
     const tipoPeticionHtml = soloLecturaIAS
       ? `<span>${reg.tipoPeticion || '-'}</span>`
       : `
@@ -367,18 +377,13 @@ if (soloLecturaIAS) {
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
   </button>` : ''}
   </div>
-  <div class="radicado-actions-prorroga">
-  ${reg.prorroga?.archivoUrl ? `
-  <a class="prorroga-view-link" href="${reg.prorroga.archivoUrl}" target="_blank" rel="noopener noreferrer" title="Ver oficio de prórroga" aria-label="Ver oficio de prórroga">
-    <i class="bi bi-eye" aria-hidden="true"></i><span>Ver</span>
-  </a>` : obtenerPerfilSesion()?.rol === 'administrador' ? `
-  <button class="prorroga-action-button" onclick="abrirModalProrrogaRadicado('${reg.id}', '${coleccion}')" style="background:#2563eb; color:#ffffff; border:1px solid #2563eb; min-width:92px; height:30px; border-radius:5px; cursor:pointer; margin-right:3px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 8px;" title="Agregar prórroga" aria-label="Prórroga">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path><path d="M18.5 6.5 20 5"></path></svg>
-    <span>Prórroga</span>
-  </button>` : ''}
+</td>
+<td class="response-action-cell">
+  <div class="response-action-stack" style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+    ${columnaRespuestaHtml}
+    ${columnaProrrogaHtml ? `<div class="radicado-actions-prorroga">${columnaProrrogaHtml}</div>` : ''}
   </div>
 </td>
-<td>${columnaRespuestaHtml}</td>
 <td><span class="delivery-date-value">${fechaCargaRespuestaVisible}</span></td>
 <td>${tipoPeticionHtml}</td>
 <td>${reg.tipoCanal || '-'}</td>

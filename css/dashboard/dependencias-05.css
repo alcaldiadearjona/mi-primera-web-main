@@ -410,35 +410,36 @@
 }
 
 #pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga {
-  margin-top: 5px;
+  margin-top: 3px;
 }
 
 #pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-action-button {
-  width: 92px !important;
-  min-width: 92px !important;
-  max-width: 92px !important;
-  height: 26px !important;
-  min-height: 26px !important;
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+  height: 24px !important;
+  min-height: 24px !important;
   margin: 0 !important;
   font-size: 9px !important;
   gap: 3px;
-  padding: 0 5px !important;
+  padding: 0 4px !important;
 }
 
 #pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link {
-  width: 92px;
-  min-height: 26px;
-  height: 26px;
+  width: 112px;
+  min-width: 112px;
+  min-height: 24px;
+  height: 24px;
   box-sizing: border-box;
   margin: 0;
   border-radius: 5px;
   background: #fed7aa;
   border-color: #fdba74;
   color: #9a3d05;
-  font-size: 12px;
+  font-size: 10px;
   gap: 3px;
-  padding: 0 5px;
-  font-size: 11px !important;
+  padding: 0 4px;
+  font-size: 10px !important;
 }
 
 #pantallaDependencia .table-custom td:nth-child(11) .radicado-actions-prorroga .prorroga-view-link:hover,
