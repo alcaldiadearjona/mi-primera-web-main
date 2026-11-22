@@ -48,6 +48,9 @@ let modulosInicializados = false;
 let modulosGeneracionInicializados = false;
 let ordenOriginalTarjetasDependencias = null;
 let temporizadorExpiracion = null;
+let primeraVerificacionAutenticacion = true;
+let sesionTemporalRestauradaTrasRecarga = false;
+let cierrePorExpiracionEnCurso = false;
 
 const CLAVE_SESION_ADMINISTRADOR = 'ventanilla:sesion:administrador';
 const CLAVE_SESION_INVITADO = 'ventanilla:sesion:invitado';
@@ -78,6 +81,19 @@ function limpiarTemporizadorSesion() {
   }
 }
 
+async function cerrarSesionPorExpiracion(perfil) {
+  if (cierrePorExpiracionEnCurso) return;
+  cierrePorExpiracionEnCurso = true;
+  limpiarDatosExpiracionSesion(perfil);
+  limpiarTemporizadorSesion();
+  try {
+    await signOut(auth);
+  } catch (error) {
+    cierrePorExpiracionEnCurso = false;
+    console.error('No fue posible cerrar la sesión al alcanzar su tiempo de expiración:', error);
+  }
+}
+
 function limpiarDatosExpiracionSesion(perfil) {
   const clave = obtenerClaveSesion(perfil);
   if (!clave) return;
@@ -104,7 +120,9 @@ function iniciarControlExpiracionSesion(usuario, perfil) {
     almacen.removeItem(clave);
   }
 
-  if (!datosSesion || datosSesion.uid !== usuario.uid) {
+  if (!datosSesion
+    || datosSesion.uid !== usuario.uid
+    || !Number.isFinite(datosSesion.iniciadaEn)) {
     datosSesion = { uid: usuario.uid, iniciadaEn: Date.now() };
     almacen.setItem(clave, JSON.stringify(datosSesion));
   }
@@ -115,17 +133,41 @@ function iniciarControlExpiracionSesion(usuario, perfil) {
     return false;
   }
 
-  temporizadorExpiracion = window.setTimeout(async () => {
-    limpiarDatosExpiracionSesion(perfil);
-    limpiarTemporizadorSesion();
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('No fue posible cerrar la sesión al alcanzar su tiempo de expiración:', error);
+  temporizadorExpiracion = window.setTimeout(() => {
+    const tiempoRestante = datosSesion.iniciadaEn + duracion - Date.now();
+    if (tiempoRestante > 0) {
+      iniciarControlExpiracionSesion(usuario, perfil);
+      return;
     }
+    void cerrarSesionPorExpiracion(perfil);
   }, Math.min(restante, 2147483647));
 
   return true;
+}
+
+function verificarExpiracionSesionActual() {
+  const usuario = auth.currentUser;
+  if (!usuario) return;
+  const perfil = obtenerPerfilSesion();
+  const duracion = obtenerDuracionSesion(perfil);
+  const clave = obtenerClaveSesion(perfil);
+  if (!duracion || !clave) return;
+
+  let datosSesion;
+  try {
+    datosSesion = JSON.parse(obtenerAlmacenSesion(perfil).getItem(clave) || 'null');
+  } catch (error) {
+    console.error('No fue posible leer la fecha de expiración de la sesión:', error);
+    void cerrarSesionPorExpiracion(perfil);
+    return;
+  }
+
+  if (!datosSesion
+    || datosSesion.uid !== usuario.uid
+    || !Number.isFinite(datosSesion.iniciadaEn)
+    || Date.now() >= datosSesion.iniciadaEn + duracion) {
+    void cerrarSesionPorExpiracion(perfil);
+  }
 }
 
 function mostrarErrorLogin(mensaje) {
@@ -312,6 +354,18 @@ async function configurarUsuario(usuario, rolElegido = '') {
       }
     }
 
+    if (['ciudadano', 'invitado'].includes(perfil.rol)
+      && sesionTemporalRestauradaTrasRecarga) {
+      sesionTemporalRestauradaTrasRecarga = false;
+      limpiarDatosExpiracionSesion(perfil);
+      await signOut(auth);
+      return;
+    }
+
+    await setPersistence(
+      auth,
+      perfil.rol === 'ciudadano' ? browserSessionPersistence : browserLocalPersistence
+    );
     establecerSesionUsuario(usuario, perfil);
     if (!iniciarControlExpiracionSesion(usuario, perfil)) {
       await signOut(auth);
@@ -374,6 +428,7 @@ async function procesarCambioAutenticacion(usuario) {
   if (!usuario) {
     if (rolSolicitado || auth.currentUser) return;
     usuarioConfigurado = '';
+    cierrePorExpiracionEnCurso = false;
     limpiarTemporizadorSesion();
     limpiarSesionUsuario();
     suscribirNotificacionesRemisionesFuncionario();
@@ -585,12 +640,26 @@ export function inicializarSesion() {
     }
     const enlaceRecuperacion = document.getElementById('enlaceRecuperarContrasena');
     if (enlaceRecuperacion) enlaceRecuperacion.hidden = ocultarUsuario;
+    const enlaceRegistro = document.getElementById('enlaceRegistrarse');
+    if (enlaceRegistro) enlaceRegistro.hidden = ocultarUsuario;
   };
   selectorRol?.addEventListener('change', actualizarCamposLogin);
   actualizarCamposLogin();
   document.getElementById('enlaceRecuperarContrasena')
     ?.addEventListener('click', recuperarContrasena);
   onAuthStateChanged(auth, usuario => {
+    if (primeraVerificacionAutenticacion) {
+      primeraVerificacionAutenticacion = false;
+      sesionTemporalRestauradaTrasRecarga = Boolean(
+        usuario
+        && window.performance?.getEntriesByType('navigation')[0]?.type === 'reload'
+      );
+    }
     void procesarCambioAutenticacion(usuario);
+  });
+  window.addEventListener('focus', verificarExpiracionSesionActual);
+  window.addEventListener('pageshow', verificarExpiracionSesionActual);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') verificarExpiracionSesionActual();
   });
 }

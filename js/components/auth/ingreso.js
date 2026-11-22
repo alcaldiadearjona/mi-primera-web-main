@@ -57,7 +57,7 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
         <!-- Opciones secundarias -->
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-top: 5px; margin-bottom: 10px;">
           <a href="#" id="enlaceRecuperarContrasena" style="color: #64748b; text-decoration: none;">Olvidé mi Contraseña</a>
-          <a href="#" onclick="alert('El registro requiere autorización previa de la oficina de sistemas.')" style="color: #64748b; text-decoration: none;">Registrarse</a>
+          <a href="#" id="enlaceRegistrarse" onclick="alert('El registro requiere autorización previa de la oficina de sistemas.')" style="color: #64748b; text-decoration: none;">Registrarse</a>
         </div>
         <p id="estadoRecuperacionLogin" role="status" aria-live="polite" hidden style="margin:0; color:#166534; font-size:13px;"></p>
 
