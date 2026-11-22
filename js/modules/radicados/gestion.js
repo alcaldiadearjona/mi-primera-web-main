@@ -61,6 +61,9 @@ export function inicializarAccionesRadicados() {
   document.getElementById('formFuncionarioAsignado')?.addEventListener('submit', guardarFuncionarioAsignado);
   inicializarBuscadorFuncionarios();
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', event => {
+    if (event.currentTarget.value.trim() !== funcionarioAsignadoSeleccionado) {
+      funcionarioAsignadoSeleccionado = '';
+    }
     actualizarEstadoFuncionarioPreview(event);
     filtrarSugerenciasFuncionarios();
   });
@@ -216,6 +219,7 @@ function actualizarEstadoFuncionarioPreview(event) {
 }
 
 const NOMBRES_FUNCIONARIOS = ['Yoice Castro', 'Kelly Garcia', 'Maria Davila'];
+let funcionarioAsignadoSeleccionado = '';
 
 function normalizarTextoBusqueda(texto) {
   return String(texto || '')
@@ -253,6 +257,7 @@ function filtrarSugerenciasFuncionarios() {
     opcion.textContent = nombre;
     opcion.addEventListener('click', () => {
       input.value = nombre;
+      funcionarioAsignadoSeleccionado = nombre;
       input.dispatchEvent(new Event('input', { bubbles: true }));
       cerrarSugerenciasFuncionarios();
       input.focus();
@@ -323,6 +328,18 @@ async function guardarFuncionarioAsignado(event) {
     return;
   }
 
+  const inputFuncionario = document.getElementById('txtFuncionarioAsignado');
+  const funcionarioAsignado = inputFuncionario.value.trim();
+  if (
+    !NOMBRES_FUNCIONARIOS.includes(funcionarioAsignado)
+    || funcionarioAsignado !== funcionarioAsignadoSeleccionado
+  ) {
+    alert('Escribe y selecciona un funcionario de la lista antes de guardar.');
+    inputFuncionario.focus();
+    filtrarSugerenciasFuncionarios();
+    return;
+  }
+
   const boton = document.getElementById('btnGuardarFuncionarioAsignado');
   const spinner = document.getElementById('spinnerGuardarFuncionario');
   const texto = document.getElementById('textoGuardarFuncionario');
@@ -335,7 +352,6 @@ async function guardarFuncionarioAsignado(event) {
   if (spinner) spinner.style.display = 'inline-block';
   if (texto) texto.textContent = 'Guardando...';
 
-  const funcionarioAsignado = document.getElementById('txtFuncionarioAsignado').value.trim();
   const estado = radicado.estado === 'R. por C.'
     ? 'R. por C.'
     : funcionarioAsignado ? 'EN TRAMITE' : 'VIGENTE';
@@ -663,6 +679,24 @@ window.prepararEdicion = function(id, coleccion = '') {
     if (document.getElementById('editFechaEntrega')) document.getElementById('editFechaEntrega').value = item.fechaVencimiento;
     if (document.getElementById('editRemitente')) document.getElementById('editRemitente').value = item.remitente;
     if (document.getElementById('editAsunto')) document.getElementById('editAsunto').value = item.asunto;
+    const esRadicadoPqrs = obtenerColeccionRegistro(item) === RADICADOS_COLLECTION;
+    [
+      ['grupoEdicionFolios', 'editFolios', item.folios, 1],
+      ['grupoEdicionAnexos', 'editAnexos', item.anexos, 0]
+    ].forEach(([grupoId, campoId, valor, minimo]) => {
+      const grupo = document.getElementById(grupoId);
+      const campo = document.getElementById(campoId);
+      if (grupo) {
+        grupo.hidden = !esRadicadoPqrs;
+        grupo.style.display = esRadicadoPqrs ? '' : 'none';
+      }
+      if (campo) {
+        campo.value = valor ?? '';
+        campo.required = esRadicadoPqrs;
+        campo.min = String(minimo);
+        campo.step = '1';
+      }
+    });
 
     document.getElementById('modalEditar').style.display = 'flex';
   }
@@ -825,7 +859,11 @@ async function guardarEdicionRadicado(e) {
       [obtenerColeccionRegistro(radicado) === 'radicadosIAS' ? 'fechaVencimiento' : 'fechaEntrega']:
         document.getElementById('editFechaEntrega').value,
       remitente: normalizarTextoPQRSF(document.getElementById('editRemitente').value),
-      asunto: normalizarTextoPQRSF(document.getElementById('editAsunto').value)
+      asunto: normalizarTextoPQRSF(document.getElementById('editAsunto').value),
+      ...(obtenerColeccionRegistro(radicado) === RADICADOS_COLLECTION ? {
+        folios: Number(document.getElementById('editFolios').value),
+        anexos: Number(document.getElementById('editAnexos').value)
+      } : {})
     });
     await actualizarConsultaPublicaSiAplica(id, coleccion);
 
@@ -862,6 +900,7 @@ window.abrirModalFuncionarioAsignado = function(id, coleccion = '') {
   input.value = NOMBRES_FUNCIONARIOS.includes(item.funcionarioAsignado)
     ? item.funcionarioAsignado
     : '';
+  funcionarioAsignadoSeleccionado = input.value;
   cerrarSugerenciasFuncionarios();
   actualizarEstadoFuncionarioPreview({ currentTarget: input });
   document.getElementById('modalFuncionarioAsignado').style.display = 'flex';

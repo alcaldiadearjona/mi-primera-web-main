@@ -11,6 +11,7 @@ import {
 import { auth, db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import {
   abreviarNombreDependencia,
+  compararRadicadosPendientes,
   convertirABase64,
   formatearMayusculasIniciales,
   formatearRadicadoEntrada,
@@ -31,6 +32,8 @@ const COLECCION_SECUENCIAS_ENTRADA = 'radicadosEntradaSecuencias';
 let modoFormularioPQRSF = 'directo';
 let radicadoPendienteGestion = '';
 let datosPendienteGestion = null;
+let primerRadicadoPendienteId = '';
+let gestionPendienteEnConflicto = false;
 let cantidadVisiblePendientes = 6;
 
 function establecerModoFormularioPQRSF(modo) {
@@ -238,6 +241,15 @@ function establecerDependenciasGestion(registro) {
 }
 
 function seleccionarPQRSFPendiente(id, registro) {
+  if (id !== primerRadicadoPendienteId) {
+    alert('Debes gestionar primero el radicado pendiente más antiguo.');
+    return;
+  }
+  if (
+    gestionPendienteEnConflicto
+    && !window.confirm('Al seleccionar otro radicado, se reemplazará la información que está visible en el formulario. ¿Deseas continuar?')
+  ) return;
+  gestionPendienteEnConflicto = false;
   radicadoPendienteGestion = id;
   datosPendienteGestion = registro;
   document.getElementById('pqrsForm')?.reset();
@@ -250,6 +262,8 @@ function seleccionarPQRSFPendiente(id, registro) {
   document.getElementById('diasHabiles').value = registro.diasHabiles || '';
   document.getElementById('remitente').value = registro.remitente || '';
   document.getElementById('asunto').value = registro.asunto || '';
+  document.getElementById('folios').value = registro.folios ?? '';
+  document.getElementById('anexos').value = registro.anexos ?? '';
   const grupoSolicitudOriginal = document.getElementById('grupoSolicitudOriginalCiudadano');
   const enlaceSolicitudOriginal = document.getElementById('enlaceSolicitudOriginalCiudadano');
   const urlSolicitudOriginal = obtenerUrlHttpsSegura(registro.pdfCiudadanoUrl
@@ -514,6 +528,7 @@ async function consultarEstadoCiudadano(event) {
 }
 
 async function cargarPQRSFPendientes() {
+  primerRadicadoPendienteId = '';
   mostrarMensajePendientes('Cargando PQRS pendientes…');
   try {
     const pendientes = await getDocs(query(
@@ -522,7 +537,8 @@ async function cargarPQRSFPendientes() {
     ));
     const registros = pendientes.docs
       .map(documento => ({ id: documento.id, ...documento.data() }))
-      .sort((a, b) => String(a.fechaRecepcion || '').localeCompare(String(b.fechaRecepcion || '')));
+      .sort(compararRadicadosPendientes);
+    primerRadicadoPendienteId = registros[0]?.id || '';
     const lista = document.getElementById('listaPQRSFpendientes');
     if (!lista) return;
     if (!registros.length) {
@@ -534,10 +550,11 @@ async function cargarPQRSFPendientes() {
     lista.replaceChildren();
     const renderizarPendientes = () => {
       lista.replaceChildren();
-      registros.slice(0, cantidadVisiblePendientes).forEach(registro => {
+      registros.slice(0, cantidadVisiblePendientes).forEach((registro, indice) => {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'pqrs-pending-item';
+        boton.disabled = indice !== 0;
         const numero = document.createElement('span');
         numero.className = 'pqrs-pending-number';
         numero.textContent = registro.radicado || 'Sin radicado';
@@ -548,7 +565,11 @@ async function cargarPQRSFPendientes() {
           registro.asunto || 'Asunto por completar'
         ].join(' · ');
         boton.append(numero, detalle);
-        boton.addEventListener('click', () => seleccionarPQRSFPendiente(registro.id, registro));
+        if (indice === 0) {
+          boton.addEventListener('click', () => seleccionarPQRSFPendiente(registro.id, registro));
+        } else {
+          boton.title = `Gestiona primero el radicado ${registros[0].radicado || 'pendiente más antiguo'}.`;
+        }
         lista.append(boton);
       });
 
@@ -567,6 +588,7 @@ async function cargarPQRSFPendientes() {
     renderizarPendientes();
   } catch (error) {
     console.error('No fue posible consultar las PQRS pendientes:', error);
+    primerRadicadoPendienteId = '';
     mostrarMensajePendientes(`No fue posible cargar las PQRS pendientes: ${error.message}`, true);
   }
 }
@@ -922,6 +944,8 @@ async function guardarRadicado(e) {
       fechaVencimiento: document.getElementById('fechaEntrega').value,
       remitente: formatearMayusculasIniciales(document.getElementById('remitente').value.trim()),
       asunto: formatearMayusculasIniciales(document.getElementById('asunto').value.trim()),
+      folios: Number(document.getElementById('folios').value),
+      anexos: Number(document.getElementById('anexos').value),
       pdfUrl: esGestionPendiente
         ? driveUrl || ''
         : esRadicacionCiudadana
@@ -935,8 +959,6 @@ async function guardarRadicado(e) {
       ...(esGestionPendiente ? {
         horaRadicacion: datosPendienteGestion?.horaRadicacion || '',
         fechaRecepcion: datosPendienteGestion?.fechaRecepcion || '',
-        folios: datosPendienteGestion?.folios ?? '',
-        anexos: datosPendienteGestion?.anexos ?? '',
         observaciones: datosPendienteGestion?.observaciones || '',
         dependenciaResponsable: dependenciasSeleccionadas[0] || '',
         numeroSecuencia: datosPendienteGestion?.numeroSecuencia ?? 0,
@@ -990,16 +1012,44 @@ async function guardarRadicado(e) {
           : doc(collection(db, RADICADOS_COLLECTION)),
         actualizarPendiente: esGestionPendiente && indice === 0
       }));
-      const lote = writeBatch(db);
-      registrosDestino.forEach(({ dependencia, referencia, actualizarPendiente }) => {
-        const registro = { ...nuevoRadicado, dependencia };
-        if (actualizarPendiente) {
-          lote.update(referencia, registro);
-        } else {
-          lote.set(referencia, registro);
+      if (esGestionPendiente) {
+        const pendientes = await getDocs(query(
+          collection(db, RADICADOS_COLLECTION),
+          where('estado', '==', 'PENDIENTE_GESTION')
+        ));
+        const ordenados = pendientes.docs
+          .map(documento => ({ id: documento.id, ...documento.data() }))
+          .sort(compararRadicadosPendientes);
+        if (ordenados[0]?.id !== radicadoPendienteGestion) {
+          const error = new Error('El orden de gestión cambió. Se actualizará la lista; gestiona el primer radicado pendiente.');
+          error.name = 'OrdenRadicadosError';
+          throw error;
         }
-      });
-      await lote.commit();
+        await runTransaction(db, async transaccion => {
+          const pendiente = await transaccion.get(
+            doc(db, RADICADOS_COLLECTION, radicadoPendienteGestion)
+          );
+          if (!pendiente.exists() || pendiente.data().estado !== 'PENDIENTE_GESTION') {
+            const error = new Error('El orden de gestión cambió. Se actualizará la lista; gestiona el primer radicado pendiente.');
+            error.name = 'OrdenRadicadosError';
+            throw error;
+          }
+          registrosDestino.forEach(({ dependencia, referencia, actualizarPendiente }) => {
+            const registro = { ...nuevoRadicado, dependencia };
+            if (actualizarPendiente) {
+              transaccion.update(referencia, registro);
+            } else {
+              transaccion.set(referencia, registro);
+            }
+          });
+        });
+      } else {
+        const lote = writeBatch(db);
+        registrosDestino.forEach(({ dependencia, referencia }) => {
+          lote.set(referencia, { ...nuevoRadicado, dependencia });
+        });
+        await lote.commit();
+      }
     }
 
     if (!esRadicacionCiudadana) {
@@ -1075,6 +1125,14 @@ async function guardarRadicado(e) {
 
   } catch (error) {
     console.error("Error al guardar:", error);
+    if (error?.name === 'OrdenRadicadosError') {
+      radicadoPendienteGestion = '';
+      datosPendienteGestion = null;
+      gestionPendienteEnConflicto = true;
+      await cargarPQRSFPendientes();
+      alert(`${error.message}\nLa información escrita se conservó en el formulario.`);
+      return;
+    }
     const mensajeError = error?.code === 'permission-denied'
       && ((esCiudadano() || esAdministrador()) && modoFormularioPQRSF === 'directo')
       ? 'Firestore no permitió generar el radicado ciudadano. Publica las reglas actualizadas e inténtalo de nuevo.'
@@ -1137,6 +1195,14 @@ window.abrirRecepcionPQRSF = function() {
 export function prepararVistaPQRSF(esVistaCiudadano = false) {
   radicadoPendienteGestion = '';
   datosPendienteGestion = null;
+  gestionPendienteEnConflicto = false;
+  document.getElementById('pqrsForm')?.reset();
+  actualizarResumenDependenciasPqrs();
+  const enlaceSolicitudOriginal = document.getElementById('enlaceSolicitudOriginalCiudadano');
+  if (enlaceSolicitudOriginal) {
+    enlaceSolicitudOriginal.removeAttribute('href');
+    enlaceSolicitudOriginal.textContent = '';
+  }
   establecerModoFormularioPQRSF(esVistaCiudadano ? 'directo' : 'gestion');
   const pendientes = document.getElementById('pqrsPendientesGestion');
   const puedeConsultarPendientes = !esVistaCiudadano && esAdministrador();

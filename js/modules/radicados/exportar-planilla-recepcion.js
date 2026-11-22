@@ -6,7 +6,10 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
-import { formatearMayusculasIniciales } from '../../utils/helpers.js';
+import {
+  compararRadicadosPendientes,
+  formatearMayusculasIniciales
+} from '../../utils/helpers.js';
 import { cargarExcelJs } from './exportar-planilla.js';
 
 const RUTA_PLANTILLA_RECEPCION = new URL(
@@ -90,11 +93,7 @@ function calcularLineasAjustadas(valor, anchoColumna) {
 }
 
 function ordenarRecepciones(registros) {
-  return registros.sort((a, b) => (
-    String(a.fechaRadicacion || '').localeCompare(String(b.fechaRadicacion || ''))
-    || String(a.horaRadicacion || '').localeCompare(String(b.horaRadicacion || ''))
-    || String(a.radicado || '').localeCompare(String(b.radicado || ''), 'es')
-  ));
+  return registros.sort(compararRadicadosPendientes);
 }
 
 function filtrarRecepciones(registros, filtros) {
@@ -145,6 +144,30 @@ async function descargarPlanilla(registros) {
   if (!hoja) throw new Error('La planilla de Recepción no contiene una hoja de cálculo.');
 
   const filaModelo = hoja.getRow(8);
+  const ultimaFilaDisponible = Math.max(247, registros.length + 7);
+  for (let filaNumero = 8; filaNumero <= ultimaFilaDisponible; filaNumero += 1) {
+    hoja.getCell(`F${filaNumero}`).dataValidation = {
+      type: 'whole',
+      operator: 'greaterThanOrEqual',
+      formulae: [1],
+      allowBlank: true,
+      showErrorMessage: true,
+      errorStyle: 'stop',
+      errorTitle: 'Cantidad no válida',
+      error: 'Ingresa un número entero de folios (mínimo 1).'
+    };
+    hoja.getCell(`G${filaNumero}`).dataValidation = {
+      type: 'whole',
+      operator: 'greaterThanOrEqual',
+      formulae: [0],
+      allowBlank: true,
+      showErrorMessage: true,
+      errorStyle: 'stop',
+      errorTitle: 'Cantidad no válida',
+      error: 'Ingresa un número entero de anexos (mínimo 0).'
+    };
+  }
+
   registros.forEach((registro, indice) => {
     const filaNumero = indice + 8;
     const fila = hoja.getRow(filaNumero);
@@ -162,8 +185,12 @@ async function descargarPlanilla(registros) {
     fila.getCell('C').value = formatearHora(registro);
     fila.getCell('D').value = formatearMayusculasIniciales(registro.remitente);
     fila.getCell('E').value = formatearMayusculasIniciales(registro.asunto);
-    fila.getCell('F').value = formatearConteo(registro.folios);
-    fila.getCell('G').value = formatearConteo(registro.anexos);
+    const folios = fila.getCell('F');
+    folios.numFmt = '0';
+    folios.value = formatearConteo(registro.folios);
+    const anexos = fila.getCell('G');
+    anexos.numFmt = '0';
+    anexos.value = formatearConteo(registro.anexos);
     fila.getCell('H').value = formatearMayusculasIniciales(
       registro.dependenciaResponsable
         || (registro.dependencia === 'Ventanilla Única' ? '' : registro.dependencia || '')

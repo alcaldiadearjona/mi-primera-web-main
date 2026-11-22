@@ -33,7 +33,7 @@ Perfil de funcionario:
 }
 ```
 
-Al elegir el rol Invitado o Ciudadano y pulsar Ingresar, la aplicación inicia una sesión anónima y crea automáticamente un perfil limitado en `usuarios`. Invitado solo puede acceder a **Generación de Radicados** y sus funciones. Ciudadano solo puede radicar solicitudes desde **Atención al Cliente**; no puede consultar los registros internos ni usar las funciones de Invitado. Como estos roles no requieren credenciales, cualquier persona que abra la aplicación puede ingresar con ellos.
+Al elegir el rol Invitado o Ciudadano y pulsar Ingresar, la aplicación inicia una sesión anónima y crea automáticamente un perfil limitado en `usuarios`. Invitado solo puede acceder a **Generación de Radicados** y sus funciones. Ciudadano solo puede radicar solicitudes desde **Atención al Ciudadano**; no puede consultar los registros internos ni usar las funciones de Invitado. Como estos roles no requieren credenciales, cualquier persona que abra la aplicación puede ingresar con ellos.
 
 El nombre de usuario determina la dependencia y el correo de inicio de sesión. Usa las claves exactas:
 

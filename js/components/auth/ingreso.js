@@ -31,10 +31,10 @@ export const ingresoMarkup = String.raw`<!-- PANTALLA 0: LOGIN CENTRADO -->
         <div>
           <label for="loginRol" style="font-size: 15px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Rol</label>
           <select id="loginRol" required>
+            <option value="ciudadano" selected>Ciudadano</option>
             <option value="funcionario">Funcionario</option>
             <option value="administrador">Administrador</option>
             <option value="invitado">Invitado</option>
-            <option value="ciudadano">Ciudadano</option>
           </select>
         </div>
         <div id="grupoUsuarioLogin">

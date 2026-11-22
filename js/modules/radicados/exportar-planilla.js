@@ -61,6 +61,12 @@ function formatearFechaPlanilla(fecha) {
   return `${dia}-${mes}-${anio}`;
 }
 
+function formatearConteo(valor, minimo) {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const cantidad = Number(valor);
+  return Number.isInteger(cantidad) && cantidad >= minimo ? cantidad : '';
+}
+
 function formatearMayusculasIniciales(valor) {
   return String(valor || '')
     .toLocaleLowerCase('es-CO')
@@ -136,6 +142,14 @@ async function descargarPlanilla(registros) {
     fila.getCell('B').value = formatearFechaPlanilla(registro.fechaRadicacion);
     fila.getCell('C').value = formatearMayusculasIniciales(registro.remitente);
     fila.getCell('D').value = formatearMayusculasIniciales(registro.asunto);
+    const folios = fila.getCell('E');
+    folios.value = formatearConteo(registro.folios, 1);
+    folios.numFmt = '0';
+    folios.alignment = { ...folios.alignment, horizontal: 'center', vertical: 'middle' };
+    const anexos = fila.getCell('F');
+    anexos.value = formatearConteo(registro.anexos, 0);
+    anexos.numFmt = '0';
+    anexos.alignment = { ...anexos.alignment, horizontal: 'center', vertical: 'middle' };
     fila.getCell('G').value = formatearMayusculasIniciales(registro.dependencia);
     fila.getCell('H').value = formatearFechaPlanilla(registro.fechaEntregaManual);
 

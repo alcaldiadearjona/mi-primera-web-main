@@ -1770,6 +1770,22 @@ async function confirmarAnulacionRadicadoSalida(event) {
         decodificarXml(coincidencia[1])
       );
       let textoParrafo = textos.join('');
+      if (textoParrafo.trim() === '4. RESPONSABILIDAD') {
+        const propiedades = parrafo.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0];
+        if (propiedades) {
+          if (/<w:pageBreakBefore(?:\s[^>]*)?\s*\/>/.test(propiedades)) return parrafo;
+          const propiedadesConSalto = propiedades.replace(
+            /^(<w:pPr\b[^>]*>)/,
+            '$1<w:pageBreakBefore/>'
+          );
+          return parrafo.replace(propiedades, propiedadesConSalto);
+        }
+        const etiquetaInicio = parrafo.match(/^<w:p\b[^>]*>/)?.[0] || '<w:p>';
+        return parrafo.replace(
+          etiquetaInicio,
+          `${etiquetaInicio}<w:pPr><w:pageBreakBefore/></w:pPr>`
+        );
+      }
       if (textoParrafo.trim() === 'Justificación detallada:') {
         const etiquetaInicio = parrafo.match(/^<w:p\b[^>]*>/)?.[0] || '<w:p>';
         const propiedades = parrafo.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] || '';

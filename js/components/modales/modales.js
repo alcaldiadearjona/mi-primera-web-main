@@ -40,6 +40,14 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
             <label>Asunto</label>
             <textarea id="editAsunto" required></textarea>
           </div>
+          <div id="grupoEdicionFolios" class="form-group" hidden>
+            <label for="editFolios">Folios *</label>
+            <input id="editFolios" type="number" min="1" step="1">
+          </div>
+          <div id="grupoEdicionAnexos" class="form-group" hidden>
+            <label for="editAnexos">Anexos (si no tiene, ingrese 0) *</label>
+            <input id="editAnexos" type="number" min="0" step="1">
+          </div>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
           <button type="button" onclick="cerrarModalEditar()" style="background:#64748b; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer;">Cancelar</button>
@@ -88,7 +96,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
       <form id="formFuncionarioAsignado">
         <input type="hidden" id="funcionarioAsignadoDocId">
         <label for="txtFuncionarioAsignado" style="display:block; margin-bottom:7px; color:#475569; font-size:13px; font-weight:600;">Nombre del funcionario:</label>
-        <input id="txtFuncionarioAsignado" type="text" maxlength="120" autocomplete="off" placeholder="Escriba para buscar un funcionario..." role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="opcionesFuncionariosAsignados" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #cbd5e1; border-radius:9px; font-size:14px; outline-color:#6a9c78;">
+        <input id="txtFuncionarioAsignado" type="text" maxlength="120" autocomplete="off" placeholder="Escriba para buscar un funcionario..." role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="opcionesFuncionariosAsignados" required style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #cbd5e1; border-radius:9px; font-size:14px; outline-color:#6a9c78;">
         <div id="opcionesFuncionariosAsignados" class="custom-select-listbox" role="listbox" aria-label="Funcionarios disponibles" hidden></div>
         <p id="estadoFuncionarioPreview" style="margin:8px 0 0; color:#64748b; font-size:12px;">Al asignar un nombre, el estado cambiará a En Trámite al guardar.</p>
         <div style="display:flex; justify-content:flex-end; gap:9px; margin-top:22px;">

@@ -471,6 +471,7 @@ export function inicializarSesion() {
   const grupoClave = document.getElementById('grupoClaveLogin');
   const campoUsuario = document.getElementById('loginUsuario');
   const campoClave = document.getElementById('loginClave');
+  if (selectorRol) selectorRol.value = 'ciudadano';
   const actualizarCamposLogin = () => {
     const esInvitadoSeleccionado = selectorRol?.value === 'invitado';
     const esCiudadanoSeleccionado = selectorRol?.value === 'ciudadano';

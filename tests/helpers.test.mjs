@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   calcularPascua,
+  compararRadicadosPendientes,
   evaluarEstadoAutomatico,
   formatearMayusculasIniciales,
   formatearIso,
@@ -43,6 +44,19 @@ test('formatearMayusculasIniciales normaliza el texto y conserva correos y enlac
 test('formatearRadicadoEntrada completa el consecutivo anual con cinco cifras', () => {
   assert.equal(formatearRadicadoEntrada(2026, 1), 'R-2026-00001');
   assert.equal(formatearRadicadoEntrada(2026, 12345), 'R-2026-12345');
+});
+
+test('compararRadicadosPendientes ordena por año y consecutivo numérico', () => {
+  const registros = [
+    { id: 'diez', radicado: 'R-2025-00010' },
+    { id: 'dos', radicado: 'R-2025-00002' },
+    { id: 'siguiente-anio', radicado: 'R-2026-00001' }
+  ];
+
+  assert.deepEqual(
+    registros.sort(compararRadicadosPendientes).map(registro => registro.id),
+    ['dos', 'diez', 'siguiente-anio']
+  );
 });
 
 test('obtenerUrlHttpsSegura solo acepta enlaces HTTPS válidos', () => {

@@ -58,12 +58,12 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                   <textarea id="asuntoRecepcion"></textarea>
                 </div>
                 <div class="form-group">
-                  <label for="foliosRecepcion">Folios</label>
-                  <input type="number" id="foliosRecepcion" min="1" step="1">
+                  <label for="foliosRecepcion">Folios <span aria-hidden="true">*</span></label>
+                  <input type="number" id="foliosRecepcion" min="1" step="1" required>
                 </div>
                 <div class="form-group">
-                  <label for="anexosRecepcion">Anexos</label>
-                  <input type="number" id="anexosRecepcion" min="0" step="1">
+                  <label for="anexosRecepcion">Anexos <span aria-hidden="true">*</span></label>
+                  <input type="number" id="anexosRecepcion" min="0" step="1" required>
                 </div>
                 <div class="form-group full-width">
                   <label for="dependenciaResponsableRecepcion">Dependencia Responsable del Trámite (opcional)</label>
@@ -201,6 +201,15 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               <textarea id="asunto" required></textarea>
             </div>
 
+            <div class="form-group">
+              <label for="folios">Folios <span aria-hidden="true">*</span></label>
+              <input id="folios" type="number" min="1" step="1" required>
+            </div>
+            <div class="form-group">
+              <label for="anexos">Anexos (si no tiene, ingrese 0) <span aria-hidden="true">*</span></label>
+              <input id="anexos" type="number" min="0" step="1" required>
+            </div>
+
             <div id="grupoSolicitudPdf" class="form-group full-width">
               <label for="solicitudPdf">Adjuntar Oficio (Archivo PDF)</label>
               <input type="file" id="solicitudPdf" accept=".pdf">
@@ -305,6 +314,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
 
           <section id="pqrsPendientesGestion" class="pqrs-pending-section" aria-labelledby="tituloPQRSFpendientes" hidden>
             <h3 id="tituloPQRSFpendientes">PQRS Pendientes Por Gestionar</h3>
+            <p class="pqrs-pending-order-hint">Gestiona primero el radicado más antiguo; los demás se habilitarán en orden.</p>
             <div id="listaPQRSFpendientes" class="pqrs-pending-list" aria-live="polite">
               <p class="pqrs-pending-empty">Cargando PQRS pendientes…</p>
             </div>

@@ -51,6 +51,29 @@ export function formatearRadicadoEntrada(anio, numero) {
   return `R-${anio}-${String(numero).padStart(5, '0')}`;
 }
 
+export function compararRadicadosPendientes(a, b) {
+  const orden = registro => {
+    const coincidencia = String(registro.radicado || '').match(/^R-(\d{4})-(\d+)$/i);
+    const anioRegistro = Number(registro.anio);
+    const numeroRegistro = Number(registro.numeroSecuencia);
+    return {
+      anio: Number.isSafeInteger(anioRegistro) && anioRegistro > 0
+        ? anioRegistro
+        : Number(coincidencia?.[1]) || Number(String(registro.fechaRadicacion || '').slice(0, 4)) || Number.MAX_SAFE_INTEGER,
+      numero: Number.isSafeInteger(numeroRegistro) && numeroRegistro > 0
+        ? numeroRegistro
+        : Number(coincidencia?.[2]) || Number.MAX_SAFE_INTEGER,
+      radicado: String(registro.radicado || '')
+    };
+  };
+  const ordenA = orden(a);
+  const ordenB = orden(b);
+  return ordenA.anio - ordenB.anio
+    || ordenA.numero - ordenB.numero
+    || ordenA.radicado.localeCompare(ordenB.radicado, 'es')
+    || String(a.id || '').localeCompare(String(b.id || ''));
+}
+
 export function obtenerUrlHttpsSegura(valor) {
   if (typeof valor !== 'string' || !valor.trim()) return '';
   try {

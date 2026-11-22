@@ -462,6 +462,7 @@ function doPost(e) {
     }
 
     // ACCIÓN 2: GUARDAR NUEVO ARCHIVO EN DRIVE CON MIMETYPE DINÁMICO
+    etapaSolicitud = "decodificando el archivo";
     var decoded = Utilities.base64Decode(data.archivoBase64);
     
     // Recibe el mimeType desde el frontend; si no viene, usa "application/pdf" por defecto
@@ -473,20 +474,50 @@ function doPost(e) {
     // Convierte automáticamente los documentos Word a PDF antes de conservarlos.
     if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       || String(data.nombreArchivo || "").toLowerCase().endsWith(".docx")) {
-      var temporal = folder.createFile(blob);
+      etapaSolicitud = "convirtiendo el documento Word a PDF";
+      var documentoTemporal = null;
       try {
-        var pdfBlob = temporal.getAs("application/pdf");
+        documentoTemporal = Drive.Files.create({
+          name: String(data.nombreArchivo || "documento")
+            .replace(/\.docx$/i, ""),
+          mimeType: "application/vnd.google-apps.document",
+          parents: [folder.getId()]
+        }, blob, { fields: "id" });
+        var urlExportacionPdf = "https://www.googleapis.com/drive/v3/files/"
+          + encodeURIComponent(documentoTemporal.id)
+          + "/export?mimeType=application%2Fpdf&alt=media";
+        var respuestaPdf = UrlFetchApp.fetch(urlExportacionPdf, {
+          method: "get",
+          headers: {
+            Authorization: "Bearer " + ScriptApp.getOAuthToken()
+          },
+          muteHttpExceptions: true
+        });
+        var codigoExportacion = respuestaPdf.getResponseCode();
+        if (codigoExportacion !== 200) {
+          throw new Error(
+            "Google Drive respondió HTTP " + codigoExportacion
+              + " al exportar el documento a PDF: "
+              + respuestaPdf.getContentText().slice(0, 300)
+          );
+        }
+        var pdfBlob = respuestaPdf.getBlob();
         var nombrePdf = String(data.nombreArchivo || "documento")
           .replace(/\.docx$/i, "") + ".pdf";
+        pdfBlob.setContentType("application/pdf");
         pdfBlob.setName(nombrePdf);
         file = folder.createFile(pdfBlob);
       } finally {
-        temporal.setTrashed(true);
+        if (documentoTemporal && documentoTemporal.id) {
+          DriveApp.getFileById(documentoTemporal.id).setTrashed(true);
+        }
       }
     } else {
+      etapaSolicitud = "guardando el archivo en Google Drive";
       file = folder.createFile(blob);
     }
     
+    etapaSolicitud = "configurando el acceso al archivo";
     try {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     } catch (sharingError) {
