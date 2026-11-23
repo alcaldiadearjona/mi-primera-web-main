@@ -339,10 +339,14 @@ async function seleccionarPQRSFPendiente(id, registro) {
     obtenerPerfilSesion()?.nombre || usuario.email || 'Administrador'
   );
   try {
+    const reservasUsuario = await getDocs(consultaReservasUsuario);
+    const referenciasReservasUsuario = reservasUsuario.docs
+      .filter(reserva => reserva.id !== id)
+      .map(reserva => reserva.ref);
     await runTransaction(db, async transaccion => {
-      const [pendiente, reservasUsuario] = await Promise.all([
+      const [pendiente, ...reservas] = await Promise.all([
         transaccion.get(referencia),
-        transaccion.get(consultaReservasUsuario)
+        ...referenciasReservasUsuario.map(reservaRef => transaccion.get(reservaRef))
       ]);
       if (!pendiente.exists() || pendiente.data().estado !== 'PENDIENTE_GESTION') {
         throw new Error('Esta PQRS ya no está pendiente por gestionar.');
@@ -353,8 +357,12 @@ async function seleccionarPQRSFPendiente(id, registro) {
           `Esta PQRS ya está reservada por ${pendiente.data().gestionAsignadaNombre || 'otra persona'}.`
         );
       }
-      reservasUsuario.docs.forEach(reserva => {
-        if (reserva.id !== id && reserva.data().estado === 'PENDIENTE_GESTION') {
+      reservas.forEach(reserva => {
+        if (
+          reserva.exists()
+          && reserva.data().estado === 'PENDIENTE_GESTION'
+          && reserva.data().gestionAsignadaUid === usuario.uid
+        ) {
           transaccion.update(reserva.ref, {
             gestionAsignadaUid: '',
             gestionAsignadaNombre: '',
@@ -432,10 +440,18 @@ export async function liberarReservasPQRSFGestionUsuario() {
     collection(db, RADICADOS_COLLECTION),
     where('gestionAsignadaUid', '==', usuarioUid)
   );
+  const reservasUsuario = await getDocs(consultaReservasUsuario);
+  const referenciasReservasUsuario = reservasUsuario.docs.map(reserva => reserva.ref);
   await runTransaction(db, async transaccion => {
-    const reservasUsuario = await transaccion.get(consultaReservasUsuario);
-    reservasUsuario.docs.forEach(reserva => {
-      if (reserva.data().estado === 'PENDIENTE_GESTION') {
+    const reservas = await Promise.all(
+      referenciasReservasUsuario.map(referencia => transaccion.get(referencia))
+    );
+    reservas.forEach(reserva => {
+      if (
+        reserva.exists()
+        && reserva.data().estado === 'PENDIENTE_GESTION'
+        && reserva.data().gestionAsignadaUid === usuarioUid
+      ) {
         transaccion.update(reserva.ref, {
           gestionAsignadaUid: '',
           gestionAsignadaNombre: '',
