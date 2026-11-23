@@ -388,7 +388,8 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
           }
         }
       } else {
-        mensajeCorreo = 'La respuesta se cargó como evidencia. Los PDF están disponibles en la consulta pública; el ciudadano deberá acudir presencialmente si requiere atención.';
+        const nombresArchivos = archivos.map(archivo => archivo.name).join(', ');
+        mensajeCorreo = `La evidencia se cargó correctamente: "${nombresArchivos}".\n\nNo se envió correo al ciudadano. Si requiere atención, deberá acudir presencialmente.`;
       }
 
       await sincronizarConsultaPublicaSiAplica(radicado);
