@@ -68,8 +68,18 @@ export function compararRadicadosPendientes(a, b) {
   };
   const ordenA = orden(a);
   const ordenB = orden(b);
-  return ordenA.anio - ordenB.anio
-    || ordenA.numero - ordenB.numero
+  const ordenAnio = ordenA.anio - ordenB.anio;
+  if (ordenAnio) return ordenAnio;
+
+  if (a.sinNumeroRadicado || b.sinNumeroRadicado) {
+    const fechaA = Date.parse(a.fechaHoraRadicacion || a.fechaRecepcion || a.fechaRadicacion || '');
+    const fechaB = Date.parse(b.fechaHoraRadicacion || b.fechaRecepcion || b.fechaRadicacion || '');
+    if (Number.isFinite(fechaA) && Number.isFinite(fechaB) && fechaA !== fechaB) {
+      return fechaA - fechaB;
+    }
+  }
+
+  return ordenA.numero - ordenB.numero
     || ordenA.radicado.localeCompare(ordenB.radicado, 'es')
     || String(a.id || '').localeCompare(String(b.id || ''));
 }

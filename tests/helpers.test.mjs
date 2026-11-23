@@ -59,6 +59,25 @@ test('compararRadicadosPendientes ordena por año y consecutivo numérico', () =
   );
 });
 
+test('compararRadicadosPendientes ubica solicitudes sin número según su fecha de recepción', () => {
+  const registros = [
+    { id: 'dos', radicado: 'R-2026-00002', fechaRadicacion: '2026-11-23' },
+    {
+      id: 'sin-numero',
+      radicado: '',
+      sinNumeroRadicado: true,
+      fechaRadicacion: '2026-11-22',
+      fechaHoraRadicacion: '2026-11-22T14:00:00.000Z'
+    },
+    { id: 'uno', radicado: 'R-2026-00001', fechaRadicacion: '2026-11-21' }
+  ];
+
+  assert.deepEqual(
+    registros.sort(compararRadicadosPendientes).map(registro => registro.id),
+    ['uno', 'sin-numero', 'dos']
+  );
+});
+
 test('obtenerUrlHttpsSegura solo acepta enlaces HTTPS válidos', () => {
   assert.equal(obtenerUrlHttpsSegura('https://drive.google.com/file/d/123'), 'https://drive.google.com/file/d/123');
   assert.equal(obtenerUrlHttpsSegura('javascript:alert(1)'), '');

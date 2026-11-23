@@ -112,6 +112,13 @@
   cursor: pointer;
 }
 
+.pqrs-pending-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
 .pqrs-pending-item:not(:disabled):hover,
 .pqrs-pending-item:not(:disabled):focus-visible {
   border-color: #16804a;

@@ -9,6 +9,7 @@ import {
   limpiarSesionUsuario,
   obtenerCredencialLogin,
   obtenerCredencialPorCorreo,
+  perfilCoincideCredencial,
   puedeConsultarIAS,
   puedeEditarRadicado,
   puedeGestionarIAS
@@ -79,6 +80,11 @@ test('Las credenciales de acceso usan el correo real de cada dependencia', () =>
     rol: 'funcionario',
     dependencia: 'Secretaría de Gobierno'
   });
+  assert.deepEqual(obtenerCredencialLogin('gobierno@arjona-bolivar.gov.co'), {
+    email: 'gobierno@arjona-bolivar.gov.co',
+    rol: 'funcionario',
+    dependencia: 'Secretaría de Gobierno'
+  });
   assert.deepEqual(obtenerCredencialLogin('admin'), {
     email: 'majodabel19@gmail.com',
     rol: 'administrador',
@@ -89,4 +95,47 @@ test('Las credenciales de acceso usan el correo real de cada dependencia', () =>
     'Despacho del Alcalde'
   );
   assert.equal(obtenerCredencialPorCorreo('no-es-cuenta@example.com'), null);
+});
+
+test('Las cuentas administradoras adicionales ingresan con correo y perfil autorizado', () => {
+  const correo = 'funcionaria2@arjona-bolivar.gov.co';
+  const credencial = obtenerCredencialLogin(correo);
+
+  assert.deepEqual(credencial, {
+    email: correo,
+    rol: 'administrador',
+    dependencia: ''
+  });
+  assert.equal(perfilCoincideCredencial(
+    { rol: 'administrador', nombre: 'Funcionaria 2' },
+    obtenerCredencialPorCorreo(correo),
+    'administrador'
+  ), true);
+  assert.equal(perfilCoincideCredencial(
+    { rol: 'funcionario', dependencia: 'Secretaría de Salud' },
+    obtenerCredencialPorCorreo(correo),
+    'administrador'
+  ), false);
+  assert.equal(perfilCoincideCredencial(
+    { rol: 'administrador' },
+    null,
+    'funcionario'
+  ), false);
+});
+
+test('Bridis y Licth inician sesión con usuarios propios de administrador', () => {
+  assert.deepEqual(obtenerCredencialLogin('bridis'), {
+    email: 'bridis@usuarios.pqrsalcaldiaarjona.invalid',
+    rol: 'administrador',
+    dependencia: ''
+  });
+  assert.deepEqual(obtenerCredencialLogin('licth'), {
+    email: 'licth@usuarios.pqrsalcaldiaarjona.invalid',
+    rol: 'administrador',
+    dependencia: ''
+  });
+  assert.equal(
+    obtenerCredencialPorCorreo('licth@usuarios.pqrsalcaldiaarjona.invalid').rol,
+    'administrador'
+  );
 });

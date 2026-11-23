@@ -27,10 +27,14 @@ import {
   obtenerCredencialPorCorreo,
   obtenerDependenciaSesion,
   obtenerPerfilSesion,
+  perfilCoincideCredencial,
   puedeConsultarIAS,
   puedeGestionarIAS
 } from './roles.js';
-import { inicializarFormulario } from '../radicados/formulario.js';
+import {
+  inicializarFormulario,
+  liberarReservasPQRSFGestionUsuario
+} from '../radicados/formulario.js';
 import { inicializarFormularioGeneracionSalida } from '../radicados/generacion-salida.js';
 import { inicializarExportacionPlanilla } from '../radicados/exportar-planilla.js';
 import { inicializarExportacionPlanillaRecepcion } from '../radicados/exportar-planilla-recepcion.js';
@@ -87,6 +91,7 @@ async function cerrarSesionPorExpiracion(perfil) {
   limpiarDatosExpiracionSesion(perfil);
   limpiarTemporizadorSesion();
   try {
+    await liberarReservasPQRSFGestionUsuario();
     await signOut(auth);
   } catch (error) {
     cierrePorExpiracionEnCurso = false;
@@ -333,12 +338,8 @@ async function configurarUsuario(usuario, rolElegido = '') {
       const referenciaPerfil = doc(db, 'usuarios', usuario.uid);
       const snapshotPerfil = await getDoc(referenciaPerfil);
       const usuarioEsperado = obtenerCredencialPorCorreo(usuario.email);
-      if (!usuarioEsperado
-        || (rolElegido && usuarioEsperado.rol !== rolElegido)) {
-        throw new Error('El usuario no corresponde al rol seleccionado.');
-      }
       if (!snapshotPerfil.exists()) {
-        if (usuarioEsperado.rol !== 'invitado') {
+        if (usuarioEsperado?.rol !== 'invitado') {
           throw new Error('La cuenta no tiene un perfil de acceso configurado. Contacta al administrador.');
         }
         perfil = { rol: 'invitado', nombre: 'Invitado' };
@@ -347,9 +348,7 @@ async function configurarUsuario(usuario, rolElegido = '') {
         perfil = snapshotPerfil.data();
       }
 
-      if (perfil.rol !== usuarioEsperado.rol
-        || (usuarioEsperado.dependencia && perfil.dependencia !== usuarioEsperado.dependencia)
-        || (rolElegido && perfil.rol !== rolElegido)) {
+      if (!perfilCoincideCredencial(perfil, usuarioEsperado, rolElegido)) {
         throw new Error('El rol o la dependencia de la cuenta no coincide con su perfil.');
       }
     }
@@ -525,6 +524,10 @@ async function recuperarContrasena(event) {
     mostrarErrorLogin('Selecciona el rol e ingresa un usuario válido para recuperar la contraseña.');
     return;
   }
+  if (credencial.email.endsWith('.invalid')) {
+    mostrarErrorLogin('Esta cuenta no puede recibir correos de recuperación. Solicita el restablecimiento de la contraseña en Firebase Console.');
+    return;
+  }
 
   const boton = event.currentTarget;
   boton.setAttribute('aria-disabled', 'true');
@@ -588,6 +591,7 @@ window.cerrarSesion = async function(event) {
 
   try {
     await new Promise(resolve => window.setTimeout(resolve, 500));
+    await liberarReservasPQRSFGestionUsuario();
     limpiarSesionExpiradaActual();
     await signOut(auth);
     location.reload();

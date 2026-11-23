@@ -18,6 +18,10 @@ const CUENTAS_FUNCIONARIO = {
 
 const CORREO_ADMINISTRADOR = 'majodabel19@gmail.com';
 const CORREO_INVITADO = 'invitado@pqrsalcaldiaarjona.firebaseapp.com';
+const CUENTAS_ADMINISTRADOR_ADICIONALES = {
+  bridis: 'bridis@usuarios.pqrsalcaldiaarjona.invalid',
+  licth: 'licth@usuarios.pqrsalcaldiaarjona.invalid'
+};
 let perfilSesion = null;
 let usuarioSesion = null;
 
@@ -37,13 +41,32 @@ export function obtenerCredencialLogin(usuario) {
       dependencia: ''
     };
   }
-  if (!Object.prototype.hasOwnProperty.call(CUENTAS_FUNCIONARIO, nombreUsuario)) return null;
-  const cuenta = CUENTAS_FUNCIONARIO[nombreUsuario];
-  return {
-    email: cuenta.email,
-    rol: 'funcionario',
-    dependencia: cuenta.dependencia
-  };
+  if (Object.prototype.hasOwnProperty.call(CUENTAS_ADMINISTRADOR_ADICIONALES, nombreUsuario)) {
+    return {
+      email: CUENTAS_ADMINISTRADOR_ADICIONALES[nombreUsuario],
+      rol: 'administrador',
+      dependencia: ''
+    };
+  }
+  const usuarioFuncionario = Object.keys(CUENTAS_FUNCIONARIO).find(
+    nombre => nombre === nombreUsuario || CUENTAS_FUNCIONARIO[nombre].email === nombreUsuario
+  );
+  if (usuarioFuncionario) {
+    const cuenta = CUENTAS_FUNCIONARIO[usuarioFuncionario];
+    return {
+      email: cuenta.email,
+      rol: 'funcionario',
+      dependencia: cuenta.dependencia
+    };
+  }
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nombreUsuario)) {
+    return {
+      email: nombreUsuario,
+      rol: 'administrador',
+      dependencia: ''
+    };
+  }
+  return null;
 }
 
 export function obtenerCredencialPorCorreo(correo) {
@@ -54,10 +77,26 @@ export function obtenerCredencialPorCorreo(correo) {
   if (correoNormalizado === CORREO_INVITADO) {
     return { email: CORREO_INVITADO, rol: 'invitado', dependencia: '' };
   }
+  const usuarioAdministradorAdicional = Object.keys(CUENTAS_ADMINISTRADOR_ADICIONALES).find(
+    nombre => CUENTAS_ADMINISTRADOR_ADICIONALES[nombre] === correoNormalizado
+  );
+  if (usuarioAdministradorAdicional) {
+    return obtenerCredencialLogin(usuarioAdministradorAdicional);
+  }
   const usuario = Object.keys(CUENTAS_FUNCIONARIO).find(
     nombre => CUENTAS_FUNCIONARIO[nombre].email === correoNormalizado
   );
   return usuario ? obtenerCredencialLogin(usuario) : null;
+}
+
+export function perfilCoincideCredencial(perfil, credencial, rolElegido = '') {
+  if (credencial) {
+    return perfil?.rol === credencial.rol
+      && (!credencial.dependencia || perfil.dependencia === credencial.dependencia)
+      && (!rolElegido || perfil.rol === rolElegido);
+  }
+  return perfil?.rol === 'administrador'
+    && (!rolElegido || rolElegido === 'administrador');
 }
 
 export function establecerSesionUsuario(usuario, perfil) {

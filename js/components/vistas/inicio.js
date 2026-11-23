@@ -107,7 +107,16 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                   <label for="observacionesRecepcion">Observaciones</label>
                   <textarea id="observacionesRecepcion"></textarea>
                 </div>
+                <div class="form-group full-width">
+                  <label for="archivoPdfRecepcion">Documento de la solicitud (PDF opcional)</label>
+                  <input type="file" id="archivoPdfRecepcion" accept=".pdf,application/pdf" aria-describedby="ayudaArchivoPdfRecepcion">
+                  <small id="ayudaArchivoPdfRecepcion">Adjunta un archivo PDF válido de máximo 10 MB, si está disponible.</small>
+                </div>
               </div>
+              <label class="reception-no-number-option" for="sinNumeroRadicadoRecepcion">
+                <input type="checkbox" id="sinNumeroRadicadoRecepcion">
+                <span>La petición no requiere número de radicado</span>
+              </label>
               <button type="submit" id="btnGuardarRecepcion" class="btn-guardar">
                 <svg id="spinnerGuardarRecepcion" style="display: none; width: 18px; height: 18px; animation: girar 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
@@ -249,7 +258,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               </label>
             </div>
             <div id="grupoSolicitudOriginalCiudadano" class="form-group full-width" hidden>
-              <span>Documento aportado por el ciudadano</span>
+              <span>Documento adjunto a la solicitud</span>
               <a id="enlaceSolicitudOriginalCiudadano" href="" target="_blank" rel="noopener noreferrer"></a>
             </div>
                 </div>
@@ -341,7 +350,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
 
           <section id="pqrsPendientesGestion" class="pqrs-pending-section" aria-labelledby="tituloPQRSFpendientes" hidden>
             <h3 id="tituloPQRSFpendientes">PQRS Pendientes Por Gestionar</h3>
-            <p class="pqrs-pending-order-hint">Gestiona primero el radicado más antiguo; los demás se habilitarán en orden.</p>
+            <p class="pqrs-pending-order-hint">Cada solicitud puede ser gestionada por una persona a la vez. Puedes reservar un pendiente disponible.</p>
             <div id="listaPQRSFpendientes" class="pqrs-pending-list" aria-live="polite">
               <p class="pqrs-pending-empty">Cargando PQRS pendientes…</p>
             </div>

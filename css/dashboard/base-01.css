@@ -218,6 +218,24 @@ body {
   color: #334155;
 }
 
+.reception-no-number-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 20px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reception-no-number-option input {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+  accent-color: #2563eb;
+}
+
 .form-group input, 
 .form-group select, 
 .form-group textarea {

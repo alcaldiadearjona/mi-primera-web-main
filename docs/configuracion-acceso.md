@@ -6,7 +6,7 @@ El inicio de sesión usa Firebase Authentication. Las contraseñas no se almacen
 
 En Firebase Console del proyecto `pqrsalcaldiaarjona`, abre **Authentication > Sign-in method**, habilita los proveedores **Correo electrónico/Contraseña** y **Anónimo**, y guarda los cambios. El proveedor anónimo permite entrar como Invitado sin usuario ni contraseña.
 
-Cada usuario inicia sesión con la clave corta indicada en la tabla de abajo; la aplicación la asocia con el correo real de Firebase. El administrador usa el usuario `admin`. Si ya existen cuentas con correos `@usuarios.pqrsalcaldiaarjona.invalid`, cambia su correo en **Authentication > Users**, conservando cada UID; así los perfiles de Firestore y sus permisos siguen asociados.
+Cada usuario inicia sesión con la clave indicada en la tabla de abajo; la aplicación la asocia con su correo de Firebase. El administrador principal usa el usuario `admin`. Si hay cuentas antiguas con correos `@usuarios.pqrsalcaldiaarjona.invalid`, actualiza esos correos en **Authentication > Users** conservando sus UID. Las cuentas `bridis` y `licth` indicadas abajo son una excepción: usan ese dominio solo como identificador y requieren restablecer las contraseñas desde Firebase Console.
 
 Configura o restablece cada contraseña desde Firebase Console. No la agregues a este repositorio.
 
@@ -22,6 +22,15 @@ Perfil administrador:
   "nombre": "Administrador"
 }
 ```
+
+Para que Bridis Esalas y Licth Montero gestionen PQRS en paralelo, crea estas cuentas individuales en **Authentication > Users**:
+
+| Usuario de inicio | Correo de Firebase |
+|---|---|
+| `bridis` | `bridis@usuarios.pqrsalcaldiaarjona.invalid` |
+| `licth` | `licth@usuarios.pqrsalcaldiaarjona.invalid` |
+
+Para cada cuenta, crea también `usuarios/{uid}` con `"rol": "administrador"` y el nombre correspondiente. Iniciarán sesión eligiendo **Administrador** e ingresando `bridis` o `licth` en el campo **Usuario**. No compartas la misma cuenta: las reservas de pendientes se asignan al UID de cada cuenta. Como el dominio `.invalid` no recibe mensajes, restablece estas contraseñas desde **Authentication > Users** en Firebase Console, no desde el enlace de recuperación.
 
 Perfil de funcionario:
 
