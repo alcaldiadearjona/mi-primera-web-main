@@ -752,9 +752,7 @@
 }
 
 #pantallaDependencia .response-upload-trigger:disabled,
-#pantallaDependencia .response-replace-button:disabled,
-#pantallaIAS .response-upload-trigger:disabled,
-#pantallaIAS .response-replace-button:disabled {
+#pantallaIAS .response-upload-trigger:disabled {
   cursor: not-allowed !important;
   filter: grayscale(.6);
   opacity: .48;

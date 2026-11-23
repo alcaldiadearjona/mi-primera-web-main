@@ -43,15 +43,13 @@ export function actualizarDisponibilidadAccionesRadicado(fila) {
       ? 'Asigna primero un funcionario'
       : 'Guardando tipo de petición...';
 
-  fila.querySelectorAll('.other-states-button, .response-upload-trigger, .response-replace-button')
+  fila.querySelectorAll('.other-states-button, .response-upload-trigger')
     .forEach(boton => {
       boton.disabled = !disponible;
       if (!disponible) {
         boton.title = motivoDeshabilitado;
       } else if (boton.classList.contains('other-states-button')) {
         boton.title = 'Gestionar / Agregar Estado';
-      } else if (boton.classList.contains('response-replace-button')) {
-        boton.title = 'Reemplazar archivo de respuesta';
       } else {
         boton.title = 'Cargar respuesta';
       }
@@ -63,6 +61,32 @@ function aTitulo(texto) {
   if (!texto) return '';
   return texto.toLowerCase().replace(/(?:^|\s|-)\S/g, letra => letra.toUpperCase());
 }
+
+function abrirModalVisualizarRespuesta(radicado, archivos) {
+  const modal = document.getElementById('modalVisualizarRespuesta');
+  const listaArchivos = document.getElementById('listaVisualizarRespuesta');
+  const titulo = document.getElementById('tituloModalVisualizarRespuesta');
+  if (!modal || !listaArchivos || !titulo) return;
+
+  titulo.textContent = `Archivos de respuesta · ${radicado.radicado || ''}`;
+  listaArchivos.replaceChildren(...archivos.map((url, indice) => {
+    const enlace = document.createElement('a');
+    enlace.className = 'response-view-file-link';
+    enlace.href = url;
+    enlace.target = '_blank';
+    enlace.rel = 'noopener noreferrer';
+    const icono = document.createElement('i');
+    icono.className = 'bi bi-file-earmark-pdf';
+    icono.setAttribute('aria-hidden', 'true');
+    const etiqueta = document.createElement('span');
+    etiqueta.textContent = `Visualizar PDF ${indice + 1}`;
+    enlace.append(icono, etiqueta);
+    return enlace;
+  }));
+  modal.showModal();
+}
+
+window.abrirModalVisualizarRespuesta = abrirModalVisualizarRespuesta;
 
 window.abrirInfoRemitente = function(id, coleccion = '') {
   const registro = buscarRegistroRadicado(id, coleccion);
@@ -332,38 +356,36 @@ export function renderizarTablaRadicados(
       ? `<div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">${pdfLinks.join('')}</div>`
       : '<span style="color: #9ca3af; font-size: 11px;">Sin PDF</span>';
 
+    const archivosRespuesta = Array.isArray(reg.respuestaArchivos)
+      ? reg.respuestaArchivos
+        .map(url => obtenerUrlHttpsSegura(url))
+        .filter(Boolean)
+      : [];
+    if (!archivosRespuesta.length && reg.respuestaUrl) {
+      const urlRespuesta = obtenerUrlHttpsSegura(reg.respuestaUrl);
+      if (urlRespuesta) archivosRespuesta.push(urlRespuesta);
+    }
+    const tieneRespuesta = archivosRespuesta.length > 0;
     let columnaRespuestaHtml = "";
-if (soloLecturaIAS) {
-  columnaRespuestaHtml = reg.respuestaUrl
-    ? `<a class="response-file-link" href="${reg.respuestaUrl}" target="_blank" rel="noopener noreferrer">Visualizar</a>`
-    : '<span>-</span>';
-} else if (reg.respuestaUrl) {
-  columnaRespuestaHtml = `
-    <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-      <a class="response-file-link" href="${reg.respuestaUrl}" target="_blank" rel="noopener noreferrer">
-        Visualizar
-      </a>
-      <div class="response-file-actions">
-        <button class="response-replace-button" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="${accionesHabilitadas ? 'Reemplazar archivo de respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>Reemplazar</button>
-        <button class="response-delete-button" type="button" onclick="eliminarRespuestaRadicado('${reg.id}', this)" title="Eliminar archivo de respuesta">Eliminar</button>
-      </div>
-      <input type="file" id="file-resp-${reg.id}" style="display: none;" onchange="subirRespuestaRadicado('${reg.id}', this)">
-    </div>
-  `;
-} else {
-  columnaRespuestaHtml = `
-    <button class="response-upload-trigger" type="button" onclick="document.getElementById('file-resp-${reg.id}').click()" title="${accionesHabilitadas ? 'Cargar respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>
-      <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-      <span>Cargar Respuesta</span>
-    </button>
-    <input type="file" id="file-resp-${reg.id}" style="display: none;" onchange="subirRespuestaRadicado('${reg.id}', this)">
-  `;
-}
+    if (soloLecturaIAS) {
+      columnaRespuestaHtml = tieneRespuesta
+        ? '<button class="response-files-toggle" type="button"><i class="bi bi-eye" aria-hidden="true"></i> Visualizar</button>'
+        : '<span>-</span>';
+    } else if (tieneRespuesta) {
+      columnaRespuestaHtml = '<button class="response-files-toggle" type="button"><i class="bi bi-eye" aria-hidden="true"></i> Visualizar</button>';
+    } else {
+      columnaRespuestaHtml = `
+        <button class="response-upload-trigger" type="button" onclick="abrirModalRespuestaRadicado('${reg.id}', this)" title="${accionesHabilitadas ? 'Cargar respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>
+          <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+          <span>Cargar Respuesta</span>
+        </button>
+      `;
+    }
     const columnaProrrogaHtml = reg.prorroga?.archivoUrl
       ? `<a class="prorroga-view-link" href="${reg.prorroga.archivoUrl}" target="_blank" rel="noopener noreferrer" title="Ver oficio de prórroga" aria-label="Ver oficio de prórroga">
           <i class="bi bi-eye" aria-hidden="true"></i><span>Ver Prorroga</span>
         </a>`
-      : !reg.respuestaUrl && obtenerPerfilSesion()?.rol === 'administrador'
+      : !tieneRespuesta && obtenerPerfilSesion()?.rol === 'administrador'
         ? `<button class="prorroga-action-button" onclick="abrirModalProrrogaRadicado('${reg.id}', '${coleccion}')" style="background:#2563eb; color:#ffffff; border:1px solid #2563eb; min-width:76px; height:24px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:3px; padding:0 5px; font-size:9px;" title="Agregar prórroga" aria-label="Prórroga">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path><path d="M18.5 6.5 20 5"></path></svg>
             <span>Prórroga</span>
@@ -451,6 +473,10 @@ if (soloLecturaIAS) {
 <td>${tipoPeticionHtml}</td>
 <td>${reg.tipoCanal || '-'}</td>
     `;
+
+    tr.querySelector('.response-files-toggle')?.addEventListener('click', () => (
+      abrirModalVisualizarRespuesta(reg, archivosRespuesta)
+    ));
 
     const dependenciasDestino = Array.isArray(reg.dependenciasDestino) ? reg.dependenciasDestino : [];
     const dependenciasRecibidas = Array.isArray(reg.dependenciasRecibidas)

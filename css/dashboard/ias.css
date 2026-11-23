@@ -1186,27 +1186,37 @@
   box-shadow: 0 5px 12px rgba(40, 120, 237, 0.2);
 }
 
-#pantallaIAS .ias-table td:nth-child(12) .response-file-actions {
-  width: 100%;
-  flex-wrap: wrap;
+#pantallaIAS .ias-table td:nth-child(12) .response-files-toggle {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 5px 9px;
+  box-sizing: border-box;
+  align-items: center;
   justify-content: center;
-  white-space: normal;
+  gap: 6px;
+  border: 1px solid #b9d4ff;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #eff6ff, #dceaff);
+  color: #1d63c5;
+  box-shadow: 0 3px 9px rgba(40, 120, 237, 0.12);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-#pantallaIAS .ias-table td:nth-child(12) .response-replace-button,
-#pantallaIAS .ias-table td:nth-child(12) .response-delete-button {
-  min-height: 28px;
-  padding: 5px 8px !important;
-  border-radius: 7px;
+#pantallaIAS .ias-table td:nth-child(12) .response-files-toggle:hover {
+  background: linear-gradient(135deg, #e2efff, #cfe2ff);
+  box-shadow: 0 5px 12px rgba(40, 120, 237, 0.2);
+}
 
-  #pantallaIAS #formNuevaIA .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 10px;
-  }
+#pantallaIAS #formNuevaIA .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 10px;
+}
 
-  #pantallaIAS #formNuevaIA .form-group.full-width {
-    grid-column: 1 / -1;
-  }
+#pantallaIAS #formNuevaIA .form-group.full-width {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 420px) {

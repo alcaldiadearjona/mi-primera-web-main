@@ -1,4 +1,4 @@
-var EMAIL_NOTIFICATIONS_VERSION = "email-notifications-14";
+var EMAIL_NOTIFICATIONS_VERSION = "email-notifications-16";
 var PQRS_APP_URL = "https://alcaldia-municipal-de-arjona.vercel.app/";
 var ESCUDO_URL = "https://alcaldia-municipal-de-arjona.vercel.app/assets/images/escudo-alcaldia-sin-fondo.png";
 
@@ -377,6 +377,126 @@ function doPost(e) {
       }
     }
 
+    function enviarCorreoRespuesta(data, sesion, perfil, funcionario, administrador) {
+      var coleccion = String(data.coleccion || "radicados");
+      if (coleccion !== "radicados" && coleccion !== "radicadosIAS") {
+        throw new Error("La colección del radicado no está permitida.");
+      }
+
+      var idRegistro = String(data.id || "").trim();
+      if (!idRegistro || idRegistro.indexOf("/") !== -1) {
+        throw new Error("No se indicó un radicado válido para enviar la respuesta.");
+      }
+
+      var puedeGestionar = coleccion === "radicadosIAS"
+        ? administrador || (funcionario && perfil.dependencia === "Oficina Juridica")
+        : administrador;
+      var registro = obtenerDocumentoFirestore(
+        coleccion + "/" + encodeURIComponent(idRegistro),
+        sesion.token
+      );
+      if (coleccion === "radicados" && funcionario && registro.dependencia === perfil.dependencia) {
+        puedeGestionar = true;
+      }
+      if (!puedeGestionar) {
+        throw new Error("No tienes permiso para enviar la respuesta de este radicado.");
+      }
+      if (registro.notificacionRespuestaTipo !== "Correo") {
+        throw new Error("El ciudadano no seleccionó el correo como medio de notificación.");
+      }
+      if (registro.respuestaSoloEvidencia === true
+        || registro.respuestaEnviarAlCiudadano !== true) {
+        throw new Error("Esta respuesta fue marcada como evidencia y no se autorizó su envío.");
+      }
+
+      var destinatario = String(registro.notificacionRespuestaContacto || "").trim();
+      if (destinatario.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destinatario)) {
+        throw new Error("El correo de notificación del radicado no es válido.");
+      }
+
+      var archivosRespuesta = Array.isArray(registro.respuestaArchivos)
+        ? registro.respuestaArchivos
+        : [];
+      if (!archivosRespuesta.length && registro.respuestaUrl) {
+        archivosRespuesta = [{ url: registro.respuestaUrl }];
+      }
+      if (!archivosRespuesta.length || archivosRespuesta.length > 10) {
+        throw new Error("La respuesta debe tener entre 1 y 10 archivos PDF.");
+      }
+
+      var adjuntos = [];
+      var idsArchivos = [];
+      var tamanoTotalAdjuntos = 0;
+      archivosRespuesta.forEach(function(item, indice) {
+        var urlArchivo = typeof item === "string"
+          ? item
+          : item && typeof item === "object"
+            ? String(item.url || "")
+            : "";
+        var idArchivo = extraerIdArchivoDrive(urlArchivo);
+        if (!idArchivo || idsArchivos.indexOf(idArchivo) !== -1) {
+          throw new Error("Hay un archivo de respuesta con una URL no válida o duplicada.");
+        }
+
+        var archivo = DriveApp.getFileById(idArchivo);
+        if (archivo.isTrashed() || archivo.getMimeType() !== "application/pdf") {
+          throw new Error("Uno de los archivos de respuesta no está disponible como PDF.");
+        }
+        var carpetas = archivo.getParents();
+        var perteneceACarpetaAplicacion = false;
+        while (carpetas.hasNext()) {
+          if (carpetas.next().getId() === FOLDER_ID) {
+            perteneceACarpetaAplicacion = true;
+            break;
+          }
+        }
+        if (!perteneceACarpetaAplicacion) {
+          throw new Error("Un PDF de respuesta no pertenece a la carpeta de archivos de la aplicación.");
+        }
+
+        var adjunto = archivo.getBlob();
+        var bytesAdjunto = adjunto.getBytes();
+        var firmaPdf = String.fromCharCode.apply(null, bytesAdjunto.slice(0, 5));
+        if (firmaPdf !== "%PDF-") {
+          throw new Error("Uno de los archivos de respuesta no tiene un formato PDF válido.");
+        }
+        tamanoTotalAdjuntos += bytesAdjunto.length;
+        if (tamanoTotalAdjuntos > 25 * 1024 * 1024) {
+          throw new Error("El tamaño total de los archivos adjuntos supera el límite de 25 MB.");
+        }
+        adjunto.setName(
+          "Respuesta_" + String(registro.radicado || idRegistro) + "_" + (indice + 1) + ".pdf"
+        );
+        adjuntos.push(adjunto);
+        idsArchivos.push(idArchivo);
+      });
+
+      var clave = ["respuesta-pdf", coleccion, idRegistro]
+        .concat(idsArchivos.slice().sort())
+        .join(":");
+      var bloqueo = LockService.getScriptLock();
+      bloqueo.waitLock(10000);
+      try {
+        var propiedades = PropertiesService.getScriptProperties();
+        if (propiedades.getProperty(clave)) return "already-sent";
+
+        var radicado = String(registro.radicado || "Sin número");
+        MailApp.sendEmail({
+          to: destinatario,
+          subject: "Respuesta a su solicitud PQRS - " + radicado,
+          body: "Cordial saludo.\n\nAdjuntamos la respuesta a su solicitud "
+            + "con radicado " + radicado + ".\n\n"
+            + "Alcaldía Municipal de Arjona",
+          name: "Alcaldía Municipal de Arjona",
+          attachments: adjuntos
+        });
+        propiedades.setProperty(clave, new Date().toISOString());
+        return "sent";
+      } finally {
+        bloqueo.releaseLock();
+      }
+    }
+
     function enviarNotificacionCorreo(data) {
       var etapa = "validando la solicitud";
       try {
@@ -394,6 +514,23 @@ function doPost(e) {
         var tipo = String(data.tipo || "");
         if (ciudadano && tipo !== "nueva-solicitud") {
           throw new Error("El perfil ciudadano solo puede notificar sus solicitudes.");
+        }
+        if (tipo === "respuesta") {
+          etapa = "consultando y validando el radicado para enviar la respuesta";
+          var resultadoRespuesta = enviarCorreoRespuesta(
+            data,
+            sesion,
+            perfil,
+            funcionario,
+            administrador
+          );
+          return ContentService.createTextOutput(JSON.stringify({
+            version: EMAIL_NOTIFICATIONS_VERSION,
+            status: "success",
+            sent: resultadoRespuesta === "sent" ? 1 : 0,
+            alreadySent: resultadoRespuesta === "already-sent" ? 1 : 0,
+            skipped: []
+          })).setMimeType(ContentService.MimeType.JSON);
         }
         var registro;
         var enviados = 0;

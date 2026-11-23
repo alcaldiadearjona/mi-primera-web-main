@@ -561,16 +561,32 @@ async function consultarEstadoCiudadano(event) {
       resultado.append(fechaTexto);
     }
 
-    const respuestaCargada = Boolean(
-      typeof registro.respuestaUrl === 'string'
-      && registro.respuestaUrl.trim().startsWith('http')
-    );
+    const archivosRespuesta = Array.isArray(registro.respuestaArchivos)
+      ? registro.respuestaArchivos.filter(url => (
+        typeof url === 'string' && url.trim().startsWith('https://')
+      )).slice(0, 10)
+      : [];
+    if (!archivosRespuesta.length
+      && typeof registro.respuestaUrl === 'string'
+      && registro.respuestaUrl.trim().startsWith('https://')) {
+      archivosRespuesta.push(registro.respuestaUrl);
+    }
+    const respuestaCargada = archivosRespuesta.length > 0;
     const enlacesPdf = document.createElement('div');
     enlacesPdf.className = 'citizen-status-files';
-    const descargaRespuesta = respuestaCargada
-      ? crearEnlaceDescargaPdfCiudadano('Descargar PDF de respuesta', registro.respuestaUrl)
-      : null;
-    if (descargaRespuesta) enlacesPdf.append(descargaRespuesta);
+    archivosRespuesta.forEach((url, indice) => {
+      const descargaRespuesta = crearEnlaceDescargaPdfCiudadano(
+        `Descargar PDF de respuesta ${indice + 1}`,
+        url
+      );
+      if (descargaRespuesta) enlacesPdf.append(descargaRespuesta);
+    });
+    if (registro.respuestaSoloEvidencia === true) {
+      const indicacionEvidencia = document.createElement('span');
+      indicacionEvidencia.className = 'citizen-status-extension';
+      indicacionEvidencia.textContent = 'Los documentos se cargaron como evidencia y no se enviaron por correo. Están disponibles para consulta; para recibir atención presencial, acude a la dependencia responsable.';
+      resultado.append(indicacionEvidencia);
+    }
 
     const prorroga = !respuestaCargada && registro.prorroga && typeof registro.prorroga === 'object'
       ? registro.prorroga

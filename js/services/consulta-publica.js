@@ -27,6 +27,14 @@ function crearVistaPublica(radicado, registro) {
         registradoEn: String(registro.prorroga.registradoEn || '')
       }
     : null;
+  const respuestaUrl = obtenerUrlHttpsSegura(registro.respuestaUrl);
+  const respuestaArchivos = Array.isArray(registro.respuestaArchivos)
+    ? registro.respuestaArchivos
+      .map(url => obtenerUrlHttpsSegura(url))
+      .filter(Boolean)
+      .slice(0, 10)
+    : [];
+  if (!respuestaArchivos.length && respuestaUrl) respuestaArchivos.push(respuestaUrl);
 
   return {
     radicado,
@@ -45,7 +53,9 @@ function crearVistaPublica(radicado, registro) {
       ? registro.dependenciasDestino.filter(dependencia => typeof dependencia === 'string')
       : [],
     enTramite: Boolean(String(registro.funcionarioAsignado || '').trim()),
-    respuestaUrl: obtenerUrlHttpsSegura(registro.respuestaUrl),
+    respuestaUrl,
+    respuestaArchivos,
+    respuestaSoloEvidencia: registro.respuestaSoloEvidencia === true,
     fechaCargaRespuesta: String(registro.fechaCargaRespuesta || ''),
     otrosEstados: estadoGestion,
     observaciones: String(registro.observaciones || '').trim(),

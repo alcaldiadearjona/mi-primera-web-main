@@ -59,6 +59,78 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
     </div>
   </div>
 
+  <dialog id="modalRespuestaRadicado" class="received-register-dialog response-upload-dialog" aria-labelledby="tituloModalRespuestaRadicado">
+    <form id="formRespuestaRadicado" class="received-register-dialog-card">
+      <div class="received-register-dialog-heading">
+        <span class="received-register-dialog-icon"><i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="tituloModalRespuestaRadicado">Cargar respuesta</h2>
+          <p id="subtituloModalRespuestaRadicado">Selecciona los archivos y define cómo se gestionará la respuesta.</p>
+        </div>
+        <button id="cerrarModalRespuestaRadicado" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+      </div>
+
+      <section class="response-modal-section" aria-labelledby="tituloArchivosRespuesta">
+        <h3 id="tituloArchivosRespuesta"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Archivos PDF</h3>
+        <label class="response-modal-file-picker" for="archivosRespuestaRadicado">
+          <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 10 MB por archivo.</small></span>
+          <input id="archivosRespuestaRadicado" type="file" accept=".pdf,application/pdf" multiple aria-describedby="resumenArchivosRespuesta">
+        </label>
+        <p id="resumenArchivosRespuesta" class="response-modal-file-summary" aria-live="polite">Aún no has seleccionado archivos.</p>
+        <ul id="listaArchivosRespuesta" class="response-modal-file-list"></ul>
+      </section>
+
+      <section class="response-modal-section" aria-labelledby="tituloEntregaRespuesta">
+        <h3 id="tituloEntregaRespuesta"><i class="bi bi-send" aria-hidden="true"></i> ¿Cómo se gestionará?</h3>
+        <div class="response-modal-options">
+          <label>
+            <input id="respuestaSoloEvidenciaModal" type="checkbox" checked>
+            <span><strong>Solo evidencia</strong><small>Los archivos quedan disponibles en la consulta pública; no se envía correo.</small></span>
+          </label>
+          <label id="contenedorEnviarRespuestaCorreo">
+            <input id="respuestaEnviarAlCiudadanoModal" type="checkbox">
+            <span><strong>Enviar al ciudadano por correo</strong><small>Se adjuntarán todos los PDF al correo registrado.</small></span>
+          </label>
+        </div>
+        <p id="ayudaEntregaRespuesta" class="response-modal-help" role="status"></p>
+      </section>
+
+      <div id="progresoRespuestaRadicado" class="response-modal-progress" hidden>
+        <div class="response-modal-progress-label">
+          <span id="textoProgresoRespuestaRadicado">Subiendo archivos...</span>
+          <span id="porcentajeRespuestaRadicado">0%</span>
+        </div>
+        <div class="response-modal-progress-track">
+          <div id="barraProgresoRespuestaRadicado" class="response-modal-progress-bar"></div>
+        </div>
+      </div>
+
+      <p id="errorRespuestaRadicado" class="received-register-error" role="alert" hidden></p>
+      <div class="received-register-dialog-actions">
+        <button id="cancelarRespuestaRadicado" class="received-register-cancel" type="button">Cancelar</button>
+        <button id="confirmarRespuestaRadicado" class="received-register-submit" type="submit">
+          <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+          Cargar respuesta
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="modalVisualizarRespuesta" class="received-register-dialog response-view-dialog" aria-labelledby="tituloModalVisualizarRespuesta">
+    <div class="received-register-dialog-card">
+      <div class="received-register-dialog-heading">
+        <span class="received-register-dialog-icon"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="tituloModalVisualizarRespuesta">Archivos de respuesta</h2>
+          <p>Selecciona un archivo para visualizarlo.</p>
+        </div>
+        <button id="cerrarModalVisualizarRespuesta" class="received-register-close" type="button" aria-label="Cerrar" onclick="document.getElementById('modalVisualizarRespuesta').close()">×</button>
+      </div>
+      <div id="listaVisualizarRespuesta" class="response-view-file-list"></div>
+    </div>
+  </dialog>
+
   <!-- MODAL PARA PRÓRROGA DE RADICADO -->
   <div id="modalProrrogaRadicado" class="modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.48); z-index:1002; justify-content:center; align-items:center; padding:16px;">
     <div style="width:100%; max-width:520px; padding:24px; border:1px solid #e2eee5; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(22,80,48,.2);">

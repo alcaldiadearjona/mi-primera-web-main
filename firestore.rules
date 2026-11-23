@@ -227,7 +227,15 @@ service cloud.firestore {
             'funcionarioAsignado',
             'otrosEstados',
             'respuestaUrl',
+            'respuestaArchivos',
+            'respuestaSoloEvidencia',
+            'respuestaEnviarAlCiudadano',
             'fechaCargaRespuesta',
+            'correoRespuestaEstado',
+            'correoRespuestaFecha',
+            'correoRespuestaError',
+            'notificacionRespuestaTipo',
+            'notificacionRespuestaContacto',
             'observaciones',
             'dependenciasRecibidas',
             'dependenciasRechazadas',
@@ -412,7 +420,13 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'tipoPeticion',
             'respuestaUrl',
+            'respuestaArchivos',
+            'respuestaSoloEvidencia',
+            'respuestaEnviarAlCiudadano',
             'fechaCargaRespuesta',
+            'correoRespuestaEstado',
+            'correoRespuestaFecha',
+            'correoRespuestaError',
             'funcionarioAsignado',
             'fechaAsignacion',
             'fechaCambioEstado',
@@ -428,6 +442,45 @@ service cloud.firestore {
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaUrl'])
             || request.resource.data.respuestaUrl is string
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaArchivos'])
+            || (
+              request.resource.data.respuestaArchivos is list
+              && request.resource.data.respuestaArchivos.size() > 0
+              && request.resource.data.respuestaArchivos.size() <= 10
+            )
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'respuestaSoloEvidencia',
+              'respuestaEnviarAlCiudadano'
+            ])
+            || (
+              request.resource.data.respuestaSoloEvidencia is bool
+              && request.resource.data.respuestaEnviarAlCiudadano is bool
+              && request.resource.data.respuestaSoloEvidencia
+                != request.resource.data.respuestaEnviarAlCiudadano
+            )
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'correoRespuestaEstado',
+              'correoRespuestaFecha',
+              'correoRespuestaError'
+            ])
+            || (
+              request.resource.data.correoRespuestaEstado in [
+                'pendiente',
+                'enviado',
+                'error',
+                'no-aplica',
+                'omitido'
+              ]
+              && request.resource.data.correoRespuestaFecha is string
+              && request.resource.data.correoRespuestaError is string
+              && request.resource.data.correoRespuestaError.size() <= 500
+            )
           )
         )
         || (
@@ -645,7 +698,13 @@ service cloud.firestore {
             'funcionarioAsignado',
             'tipoPeticion',
             'respuestaUrl',
+            'respuestaArchivos',
+            'respuestaSoloEvidencia',
+            'respuestaEnviarAlCiudadano',
             'fechaCargaRespuesta',
+            'correoRespuestaEstado',
+            'correoRespuestaFecha',
+            'correoRespuestaError',
             'estado',
             'otrosEstados',
             'observaciones'
@@ -657,6 +716,45 @@ service cloud.firestore {
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaUrl'])
             || request.resource.data.respuestaUrl is string
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['respuestaArchivos'])
+            || (
+              request.resource.data.respuestaArchivos is list
+              && request.resource.data.respuestaArchivos.size() > 0
+              && request.resource.data.respuestaArchivos.size() <= 10
+            )
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'respuestaSoloEvidencia',
+              'respuestaEnviarAlCiudadano'
+            ])
+            || (
+              request.resource.data.respuestaSoloEvidencia is bool
+              && request.resource.data.respuestaEnviarAlCiudadano is bool
+              && request.resource.data.respuestaSoloEvidencia
+                != request.resource.data.respuestaEnviarAlCiudadano
+            )
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'correoRespuestaEstado',
+              'correoRespuestaFecha',
+              'correoRespuestaError'
+            ])
+            || (
+              request.resource.data.correoRespuestaEstado in [
+                'pendiente',
+                'enviado',
+                'error',
+                'no-aplica',
+                'omitido'
+              ]
+              && request.resource.data.correoRespuestaFecha is string
+              && request.resource.data.correoRespuestaError is string
+              && request.resource.data.correoRespuestaError.size() <= 500
+            )
           )
         )
         || (
@@ -991,6 +1089,8 @@ service cloud.firestore {
           'dependenciasDestino',
           'enTramite',
           'respuestaUrl',
+          'respuestaArchivos',
+          'respuestaSoloEvidencia',
           'fechaCargaRespuesta',
           'otrosEstados',
           'observaciones',
@@ -1014,6 +1114,8 @@ service cloud.firestore {
           'dependenciasDestino',
           'enTramite',
           'respuestaUrl',
+          'respuestaArchivos',
+          'respuestaSoloEvidencia',
           'fechaCargaRespuesta',
           'otrosEstados',
           'observaciones',
@@ -1040,6 +1142,9 @@ service cloud.firestore {
           request.resource.data.respuestaUrl == ''
           || request.resource.data.respuestaUrl.matches('^https://.*$')
         )
+        && request.resource.data.respuestaArchivos is list
+        && request.resource.data.respuestaArchivos.size() <= 10
+        && request.resource.data.respuestaSoloEvidencia is bool
         && request.resource.data.fechaCargaRespuesta is string
         && request.resource.data.otrosEstados in ['', 'Para conocimiento', 'No requiere respuesta']
         && request.resource.data.observaciones is string

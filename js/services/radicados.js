@@ -142,7 +142,15 @@ function mapearRadicado(documento) {
     pdfCiudadanoNombre: item.pdfCiudadanoNombre || '',
     aceptaTratamientoDatos: item.aceptaTratamientoDatos === true,
     respuestaUrl: item.respuestaUrl || '',
+    respuestaArchivos: Array.isArray(item.respuestaArchivos)
+      ? item.respuestaArchivos.filter(url => typeof url === 'string').slice(0, 10)
+      : [],
+    respuestaSoloEvidencia: item.respuestaSoloEvidencia === true,
+    respuestaEnviarAlCiudadano: item.respuestaEnviarAlCiudadano === true,
     fechaCargaRespuesta: item.fechaCargaRespuesta || '',
+    correoRespuestaEstado: item.correoRespuestaEstado || '',
+    correoRespuestaFecha: item.correoRespuestaFecha || '',
+    correoRespuestaError: item.correoRespuestaError || '',
     tipoPeticion: item.tipoPeticion || '',
     otrosEstados: item.otrosEstados || '',
     observaciones: item.observaciones || '',

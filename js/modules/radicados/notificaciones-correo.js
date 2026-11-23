@@ -23,7 +23,7 @@ export async function enviarNotificacionCorreo(tipo, datos = {}) {
   const resultado = await respuesta.json();
   if (resultado.status !== 'success') {
     const versionAntigua = Boolean(resultado.version)
-      && resultado.version !== 'email-notifications-14';
+      && resultado.version !== 'email-notifications-16';
     const diagnostico = resultado.stage ? ` (etapa: ${resultado.stage})` : '';
     const actualizacionPendiente = versionAntigua
       ? ' El Apps Script aún está ejecutando una versión anterior; publica una nueva versión de la aplicación web.'

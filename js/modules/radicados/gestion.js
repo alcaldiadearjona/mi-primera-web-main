@@ -164,6 +164,27 @@ async function existeOtroRadicadoConArchivo(campo, url, id, coleccionActual) {
   )));
 }
 
+async function existeOtroRadicadoConRespuesta(url, id, coleccionActual) {
+  const colecciones = ['radicados', 'radicadosIAS'];
+  const resultados = await Promise.all(colecciones.map(async nombreColeccion => {
+    const [respuestasAntiguas, respuestasMultiples] = await Promise.all([
+      getDocs(query(
+        collection(db, nombreColeccion),
+        where('respuestaUrl', '==', url)
+      )),
+      getDocs(query(
+        collection(db, nombreColeccion),
+        where('respuestaArchivos', 'array-contains', url)
+      ))
+    ]);
+    return [...respuestasAntiguas.docs, ...respuestasMultiples.docs];
+  }));
+  const rutaActual = `${coleccionActual}/${id}`;
+  return resultados.some(documentos => documentos.some(documento => (
+    `${documento.ref.parent.id}/${documento.id}` !== rutaActual
+  )));
+}
+
 function generarIdCopiaCompetencia(idOrigen, dependencia) {
   const slug = dependencia
     .normalize('NFD')
@@ -600,15 +621,21 @@ window.eliminarRadicado = async function(id, elementoClick) {
         || radicadoAEliminar.dependenciasDestino?.length
       )
     );
-    const [pdfCompartido, respuestaCompartida] = archivosRelacionados
-      ? [false, false]
+    const archivosRespuesta = [...new Set([
+      radicadoAEliminar?.respuestaUrl,
+      ...(Array.isArray(radicadoAEliminar?.respuestaArchivos)
+        ? radicadoAEliminar.respuestaArchivos
+        : [])
+    ].filter(url => typeof url === 'string' && url.trim()))];
+    const [pdfCompartido, respuestasCompartidas] = archivosRelacionados
+      ? [false, []]
       : await Promise.all([
           radicadoAEliminar?.pdfUrl
             ? existeOtroRadicadoConArchivo('pdfUrl', radicadoAEliminar.pdfUrl, id, coleccionActual)
             : false,
-          radicadoAEliminar?.respuestaUrl
-            ? existeOtroRadicadoConArchivo('respuestaUrl', radicadoAEliminar.respuestaUrl, id, coleccionActual)
-            : false
+          Promise.all(archivosRespuesta.map(url => (
+            existeOtroRadicadoConRespuesta(url, id, coleccionActual)
+          )))
         ]);
     if (!archivosRelacionados && !pdfCompartido && radicadoAEliminar?.pdfUrl) {
       try {
@@ -624,17 +651,20 @@ window.eliminarRadicado = async function(id, elementoClick) {
       }
     }
 
-    if (!archivosRelacionados && !respuestaCompartida && radicadoAEliminar?.respuestaUrl) {
-      try {
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "delete",
-            pdfUrl: radicadoAEliminar.respuestaUrl
-          })
-        });
-      } catch (driveErr) {
-        console.warn("No se pudo eliminar la respuesta de Drive:", driveErr);
+    if (!archivosRelacionados) {
+      for (const [indice, url] of archivosRespuesta.entries()) {
+        if (respuestasCompartidas[indice]) continue;
+        try {
+          await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "delete",
+              pdfUrl: url
+            })
+          });
+        } catch (driveErr) {
+          console.warn("No se pudo eliminar un archivo de respuesta de Drive:", driveErr);
+        }
       }
     }
 
@@ -1040,7 +1070,13 @@ window.guardarOtrosEstados = async function() {
             funcionarioAsignado: '',
             otrosEstados: '',
             respuestaUrl: '',
+            respuestaArchivos: [],
+            respuestaSoloEvidencia: false,
+            respuestaEnviarAlCiudadano: false,
             fechaCargaRespuesta: '',
+            correoRespuestaEstado: '',
+            correoRespuestaFecha: '',
+            correoRespuestaError: '',
             observaciones: '',
             fechaEntregaManual: '',
             fechaRecepcionCompetencia: '',
