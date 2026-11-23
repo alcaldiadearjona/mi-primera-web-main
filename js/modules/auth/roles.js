@@ -20,7 +20,8 @@ const CORREO_ADMINISTRADOR = 'majodabel19@gmail.com';
 const CORREO_INVITADO = 'invitado@pqrsalcaldiaarjona.firebaseapp.com';
 const CUENTAS_ADMINISTRADOR_ADICIONALES = {
   bridis: 'bridis@usuarios.pqrsalcaldiaarjona.invalid',
-  licth: 'licth@usuarios.pqrsalcaldiaarjona.invalid'
+  licth: 'licth@usuarios.pqrsalcaldiaarjona.invalid',
+  marcela: 'marcela@usuarios.pqrsalcaldiaarjona.invalid'
 };
 let perfilSesion = null;
 let usuarioSesion = null;

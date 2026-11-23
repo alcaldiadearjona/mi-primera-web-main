@@ -23,14 +23,15 @@ Perfil administrador:
 }
 ```
 
-Para que Bridis Esalas y Licth Montero gestionen PQRS en paralelo, crea estas cuentas individuales en **Authentication > Users**:
+Para que Bridis Esalas, Licth Montero y Marcela gestionen PQRS en paralelo, crea estas cuentas individuales en **Authentication > Users**:
 
 | Usuario de inicio | Correo de Firebase |
 |---|---|
 | `bridis` | `bridis@usuarios.pqrsalcaldiaarjona.invalid` |
 | `licth` | `licth@usuarios.pqrsalcaldiaarjona.invalid` |
+| `marcela` | `marcela@usuarios.pqrsalcaldiaarjona.invalid` |
 
-Para cada cuenta, crea también `usuarios/{uid}` con `"rol": "administrador"` y el nombre correspondiente. Iniciarán sesión eligiendo **Administrador** e ingresando `bridis` o `licth` en el campo **Usuario**. No compartas la misma cuenta: las reservas de pendientes se asignan al UID de cada cuenta. Como el dominio `.invalid` no recibe mensajes, restablece estas contraseñas desde **Authentication > Users** en Firebase Console, no desde el enlace de recuperación.
+Para cada cuenta, crea también `usuarios/{uid}` con `"rol": "administrador"` y el nombre correspondiente. Iniciarán sesión eligiendo **Administrador** e ingresando `bridis`, `licth` o `marcela` en el campo **Usuario**. No compartas la misma cuenta: las reservas de pendientes se asignan al UID de cada cuenta. Como el dominio `.invalid` no recibe mensajes, restablece estas contraseñas desde **Authentication > Users** en Firebase Console, no desde el enlace de recuperación.
 
 Perfil de funcionario:
 

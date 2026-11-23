@@ -123,7 +123,7 @@ test('Las cuentas administradoras adicionales ingresan con correo y perfil autor
   ), false);
 });
 
-test('Bridis y Licth inician sesión con usuarios propios de administrador', () => {
+test('Bridis, Licth y Marcela inician sesión con usuarios propios de administrador', () => {
   assert.deepEqual(obtenerCredencialLogin('bridis'), {
     email: 'bridis@usuarios.pqrsalcaldiaarjona.invalid',
     rol: 'administrador',
@@ -134,8 +134,17 @@ test('Bridis y Licth inician sesión con usuarios propios de administrador', () 
     rol: 'administrador',
     dependencia: ''
   });
+  assert.deepEqual(obtenerCredencialLogin('marcela'), {
+    email: 'marcela@usuarios.pqrsalcaldiaarjona.invalid',
+    rol: 'administrador',
+    dependencia: ''
+  });
   assert.equal(
     obtenerCredencialPorCorreo('licth@usuarios.pqrsalcaldiaarjona.invalid').rol,
+    'administrador'
+  );
+  assert.equal(
+    obtenerCredencialPorCorreo('marcela@usuarios.pqrsalcaldiaarjona.invalid').rol,
     'administrador'
   );
 });
