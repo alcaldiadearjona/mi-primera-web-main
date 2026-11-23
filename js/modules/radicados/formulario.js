@@ -33,6 +33,7 @@ let modoFormularioPQRSF = 'directo';
 let radicadoPendienteGestion = '';
 let datosPendienteGestion = null;
 let cantidadVisiblePendientes = 6;
+let seleccionPQRSFPendienteEnCurso = false;
 
 function actualizarCampoNotificacionRespuesta(tipoSelectId, campoId, etiquetaId) {
   const select = document.getElementById(tipoSelectId);
@@ -323,113 +324,150 @@ function establecerDependenciasGestion(registro) {
   actualizarResumenDependenciasPqrs();
 }
 
-async function seleccionarPQRSFPendiente(id, registro) {
-  const usuario = auth.currentUser;
-  if (!usuario?.uid) {
-    alert('No se pudo identificar la cuenta que reservará esta PQRS.');
-    return;
-  }
-
-  const referencia = doc(db, RADICADOS_COLLECTION, id);
-  const consultaReservasUsuario = query(
-    collection(db, RADICADOS_COLLECTION),
-    where('gestionAsignadaUid', '==', usuario.uid)
+async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
+  if (seleccionPQRSFPendienteEnCurso) return;
+  seleccionPQRSFPendienteEnCurso = true;
+  const inicioCarga = Date.now();
+  const botonesDisponibles = Array.from(
+    document.querySelectorAll('.pqrs-pending-item:not(:disabled)')
   );
-  const nombreGestor = String(
-    obtenerPerfilSesion()?.nombre || usuario.email || 'Administrador'
-  );
-  try {
-    const reservasUsuario = await getDocs(consultaReservasUsuario);
-    const referenciasReservasUsuario = reservasUsuario.docs
-      .filter(reserva => reserva.id !== id)
-      .map(reserva => reserva.ref);
-    await runTransaction(db, async transaccion => {
-      const [pendiente, ...reservas] = await Promise.all([
-        transaccion.get(referencia),
-        ...referenciasReservasUsuario.map(reservaRef => transaccion.get(reservaRef))
-      ]);
-      if (!pendiente.exists() || pendiente.data().estado !== 'PENDIENTE_GESTION') {
-        throw new Error('Esta PQRS ya no está pendiente por gestionar.');
-      }
-      const asignadoUid = pendiente.data().gestionAsignadaUid || '';
-      if (asignadoUid && asignadoUid !== usuario.uid) {
-        throw new Error(
-          `Esta PQRS ya está reservada por ${pendiente.data().gestionAsignadaNombre || 'otra persona'}.`
-        );
-      }
-      reservas.forEach(reserva => {
-        if (
-          reserva.exists()
-          && reserva.data().estado === 'PENDIENTE_GESTION'
-          && reserva.data().gestionAsignadaUid === usuario.uid
-        ) {
-          transaccion.update(reserva.ref, {
-            gestionAsignadaUid: '',
-            gestionAsignadaNombre: '',
-            gestionAsignadaEn: ''
-          });
-        }
-      });
-      transaccion.update(referencia, {
-        gestionAsignadaUid: usuario.uid,
-        gestionAsignadaNombre: nombreGestor,
-        gestionAsignadaEn: new Date().toISOString()
-      });
-    });
-  } catch (error) {
-    console.error('No fue posible reservar la PQRS pendiente:', error);
-    alert(error.message || 'No fue posible reservar la PQRS.');
-    await cargarPQRSFPendientes();
-    return;
+  botonesDisponibles.forEach(boton => {
+    boton.disabled = true;
+  });
+  const indicadorCarga = document.createElement('span');
+  indicadorCarga.className = 'pqrs-pending-spinner';
+  indicadorCarga.setAttribute('aria-hidden', 'true');
+  if (botonSeleccion) {
+    botonSeleccion.setAttribute('aria-busy', 'true');
+    botonSeleccion.append(indicadorCarga);
   }
-
-  radicadoPendienteGestion = id;
-  datosPendienteGestion = {
-    ...registro,
-    gestionAsignadaUid: usuario.uid,
-    gestionAsignadaNombre: nombreGestor
+  const esperarCargaMinima = async () => {
+    const tiempoRestante = 2000 - (Date.now() - inicioCarga);
+    if (tiempoRestante > 0) {
+      await new Promise(resolve => window.setTimeout(resolve, tiempoRestante));
+    }
   };
-  document.getElementById('pqrsForm')?.reset();
-  establecerModoFormularioPQRSF('gestion');
-  document.getElementById('radicado').value = registro.radicado || '';
-  document.getElementById('tipoCanal').value = registro.tipoCanal || '';
-  document.getElementById('estadoSolicitud').value = 'VIGENTE';
-  document.getElementById('fechaRadicacion').value = registro.fechaRadicacion || '';
-  document.getElementById('fechaEntregaManual').value = registro.fechaEntregaManual || '';
-  document.getElementById('diasHabiles').value = registro.diasHabiles || '';
-  document.getElementById('remitente').value = registro.remitente || '';
-  document.getElementById('asunto').value = registro.asunto || '';
-  document.getElementById('folios').value = registro.folios ?? '';
-  document.getElementById('anexos').value = registro.anexos ?? '';
-  document.getElementById('tipoNotificacionCiudadano').value = registro.notificacionRespuestaTipo || '';
-  document.getElementById('contactoNotificacionCiudadano').value = registro.notificacionRespuestaContacto || '';
-  actualizarCampoNotificacionRespuesta(
-    'tipoNotificacionCiudadano',
-    'contactoNotificacionCiudadano',
-    'etiquetaContactoNotificacionCiudadano'
-  );
-  const formularioRecepcion = document.getElementById('contenedorFormularioRecepcion');
-  if (formularioRecepcion) formularioRecepcion.style.display = 'none';
-  actualizarEstadoBotonRecepcion(false);
-  const grupoSolicitudOriginal = document.getElementById('grupoSolicitudOriginalCiudadano');
-  const enlaceSolicitudOriginal = document.getElementById('enlaceSolicitudOriginalCiudadano');
-  const esSolicitudConDocumentoAdjunto = ['ciudadano', 'recepcion'].includes(registro.origenSolicitud);
-  const urlSolicitudOriginal = obtenerUrlHttpsSegura(
-    registro.pdfCiudadanoUrl || (esSolicitudConDocumentoAdjunto ? registro.pdfUrl : '')
-  );
-  if (grupoSolicitudOriginal && enlaceSolicitudOriginal && urlSolicitudOriginal) {
-    enlaceSolicitudOriginal.href = urlSolicitudOriginal;
-    enlaceSolicitudOriginal.textContent = registro.pdfCiudadanoNombre
-      || (registro.origenSolicitud === 'recepcion'
-        ? 'Abrir documento adjunto en Recepción'
-        : 'Abrir solicitud original del ciudadano');
-    grupoSolicitudOriginal.hidden = false;
-    grupoSolicitudOriginal.style.display = '';
+
+  try {
+    const usuario = auth.currentUser;
+    if (!usuario?.uid) {
+      await esperarCargaMinima();
+      alert('No se pudo identificar la cuenta que reservará esta PQRS.');
+      return;
+    }
+
+    const referencia = doc(db, RADICADOS_COLLECTION, id);
+    const consultaReservasUsuario = query(
+      collection(db, RADICADOS_COLLECTION),
+      where('gestionAsignadaUid', '==', usuario.uid)
+    );
+    const nombreGestor = String(
+      obtenerPerfilSesion()?.nombre || usuario.email || 'Administrador'
+    );
+    try {
+      const reservasUsuario = await getDocs(consultaReservasUsuario);
+      const referenciasReservasUsuario = reservasUsuario.docs
+        .filter(reserva => reserva.id !== id)
+        .map(reserva => reserva.ref);
+      await runTransaction(db, async transaccion => {
+        const [pendiente, ...reservas] = await Promise.all([
+          transaccion.get(referencia),
+          ...referenciasReservasUsuario.map(reservaRef => transaccion.get(reservaRef))
+        ]);
+        if (!pendiente.exists() || pendiente.data().estado !== 'PENDIENTE_GESTION') {
+          throw new Error('Esta PQRS ya no está pendiente por gestionar.');
+        }
+        const asignadoUid = pendiente.data().gestionAsignadaUid || '';
+        if (asignadoUid && asignadoUid !== usuario.uid) {
+          throw new Error(
+            `Esta PQRS ya está reservada por ${pendiente.data().gestionAsignadaNombre || 'otra persona'}.`
+          );
+        }
+        reservas.forEach(reserva => {
+          if (
+            reserva.exists()
+            && reserva.data().estado === 'PENDIENTE_GESTION'
+            && reserva.data().gestionAsignadaUid === usuario.uid
+          ) {
+            transaccion.update(reserva.ref, {
+              gestionAsignadaUid: '',
+              gestionAsignadaNombre: '',
+              gestionAsignadaEn: ''
+            });
+          }
+        });
+        transaccion.update(referencia, {
+          gestionAsignadaUid: usuario.uid,
+          gestionAsignadaNombre: nombreGestor,
+          gestionAsignadaEn: new Date().toISOString()
+        });
+      });
+    } catch (error) {
+      await esperarCargaMinima();
+      console.error('No fue posible reservar la PQRS pendiente:', error);
+      alert(error.message || 'No fue posible reservar la PQRS.');
+      await cargarPQRSFPendientes();
+      return;
+    }
+
+    await esperarCargaMinima();
+    radicadoPendienteGestion = id;
+    datosPendienteGestion = {
+      ...registro,
+      gestionAsignadaUid: usuario.uid,
+      gestionAsignadaNombre: nombreGestor
+    };
+    document.getElementById('pqrsForm')?.reset();
+    establecerModoFormularioPQRSF('gestion');
+    document.getElementById('radicado').value = registro.radicado || '';
+    document.getElementById('tipoCanal').value = registro.tipoCanal || '';
+    document.getElementById('estadoSolicitud').value = 'VIGENTE';
+    document.getElementById('fechaRadicacion').value = registro.fechaRadicacion || '';
+    document.getElementById('fechaEntregaManual').value = registro.fechaEntregaManual || '';
+    document.getElementById('diasHabiles').value = registro.diasHabiles || '';
+    document.getElementById('remitente').value = registro.remitente || '';
+    document.getElementById('asunto').value = registro.asunto || '';
+    document.getElementById('folios').value = registro.folios ?? '';
+    document.getElementById('anexos').value = registro.anexos ?? '';
+    document.getElementById('tipoNotificacionCiudadano').value = registro.notificacionRespuestaTipo || '';
+    document.getElementById('contactoNotificacionCiudadano').value = registro.notificacionRespuestaContacto || '';
+    actualizarCampoNotificacionRespuesta(
+      'tipoNotificacionCiudadano',
+      'contactoNotificacionCiudadano',
+      'etiquetaContactoNotificacionCiudadano'
+    );
+    const formularioRecepcion = document.getElementById('contenedorFormularioRecepcion');
+    if (formularioRecepcion) formularioRecepcion.style.display = 'none';
+    actualizarEstadoBotonRecepcion(false);
+    const grupoSolicitudOriginal = document.getElementById('grupoSolicitudOriginalCiudadano');
+    const enlaceSolicitudOriginal = document.getElementById('enlaceSolicitudOriginalCiudadano');
+    const esSolicitudConDocumentoAdjunto = ['ciudadano', 'recepcion'].includes(registro.origenSolicitud);
+    const urlSolicitudOriginal = obtenerUrlHttpsSegura(
+      registro.pdfCiudadanoUrl || (esSolicitudConDocumentoAdjunto ? registro.pdfUrl : '')
+    );
+    if (grupoSolicitudOriginal && enlaceSolicitudOriginal && urlSolicitudOriginal) {
+      enlaceSolicitudOriginal.href = urlSolicitudOriginal;
+      enlaceSolicitudOriginal.textContent = registro.pdfCiudadanoNombre
+        || (registro.origenSolicitud === 'recepcion'
+          ? 'Abrir documento adjunto en Recepción'
+          : 'Abrir solicitud original del ciudadano');
+      grupoSolicitudOriginal.hidden = false;
+      grupoSolicitudOriginal.style.display = '';
+    }
+    establecerDependenciasGestion(registro);
+    calcularFechaVencimiento();
+    establecerFormularioVisible(true);
+    await cargarPQRSFPendientes();
+  } finally {
+    botonesDisponibles.forEach(boton => {
+      if (boton.isConnected) boton.disabled = false;
+    });
+    if (botonSeleccion?.isConnected) {
+      botonSeleccion.removeAttribute('aria-busy');
+      indicadorCarga.remove();
+    }
+    seleccionPQRSFPendienteEnCurso = false;
   }
-  establecerDependenciasGestion(registro);
-  calcularFechaVencimiento();
-  establecerFormularioVisible(true);
-  await cargarPQRSFPendientes();
 }
 
 export async function liberarReservasPQRSFGestionUsuario() {
@@ -777,7 +815,7 @@ async function cargarPQRSFPendientes() {
         detalle.textContent = detalles.join(' · ');
         boton.append(numero, detalle);
         if (!asignadoPorOtraPersona) {
-          boton.addEventListener('click', () => seleccionarPQRSFPendiente(registro.id, registro));
+          boton.addEventListener('click', () => seleccionarPQRSFPendiente(registro.id, registro, boton));
         }
         entrada.append(boton);
         lista.append(entrada);

@@ -100,6 +100,7 @@
 }
 
 .pqrs-pending-item {
+  position: relative;
   display: grid;
   width: 100%;
   gap: 4px;
@@ -110,6 +111,22 @@
   color: #1e293b;
   text-align: left;
   cursor: pointer;
+}
+
+.pqrs-pending-spinner {
+  position: absolute;
+  top: calc(50% - 9px);
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(22, 128, 74, 0.2);
+  border-top-color: #16804a;
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.pqrs-pending-item[aria-busy="true"] {
+  cursor: wait;
 }
 
 .pqrs-pending-entry {
