@@ -519,8 +519,8 @@ async function recuperarContrasena(event) {
     estado.textContent = '';
   }
 
-  if (rol === 'invitado' || rol === 'ciudadano') {
-    mostrarErrorLogin(`El rol ${rol === 'ciudadano' ? 'Ciudadano' : 'Invitado'} no usa contraseña.`);
+  if (rol === 'ciudadano') {
+    mostrarErrorLogin('El rol Ciudadano no usa contraseña.');
     return;
   }
 
