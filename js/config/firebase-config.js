@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 export const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDnWC030OCZX2IEPj3tfwZ8njN3pfiidsPrXNpWjjH4lx8N_m_7BLZmj9EBMjO0JxHtg/exec";
@@ -8,6 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBsUtju2qT5PI_6SEkr6qg14fUEgs4xocg",
   authDomain: "pqrsalcaldiaarjona.firebaseapp.com",
   projectId: "pqrsalcaldiaarjona",
+  databaseURL: "https://pqrsalcaldiaarjona-default-rtdb.firebaseio.com",
   storageBucket: "pqrsalcaldiaarjona.firebasestorage.app",
   messagingSenderId: "586549565310",
   appId: "1:586549565310:web:4667979305cc27165d052f",
@@ -19,3 +21,4 @@ export const RADICADOS_COLLECTION = 'radicados';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const realtimeDb = getDatabase(app);

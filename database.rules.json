@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "presenciaPQRS": {
+      "$token": {
+        ".read": "auth != null",
+        ".write": "auth != null && (newData.child('uid').val() == auth.uid || data.child('uid').val() == auth.uid || !data.exists())",
+        ".validate": "newData.hasChildren(['uid', 'conectadoEn']) && newData.child('uid').isString() && newData.child('conectadoEn').isNumber()"
+      }
+    }
+  }
+}

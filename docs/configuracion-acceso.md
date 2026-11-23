@@ -81,3 +81,13 @@ También puedes desplegarlas desde Firebase Console. Sin estas reglas desplegada
 La asignación automática de consecutivos al rol Ciudadano requiere publicar estas reglas y la nueva versión de la aplicación.
 
 El administrador y Control Interno pueden consultar y gestionar todas las colecciones, administrar usuarios y eliminar radicados. En **PQRS**, estos roles reciben solicitudes con un consecutivo anual `R-AAAA-00001`; luego, en **Gestionar PQRSF**, completan los datos, asignan dependencias y fechas y adjuntan el oficio antes de guardar. La recepción queda guardada como pendiente hasta completar su gestión. **Ciudadano comparte esa misma secuencia anual** al radicar: la solicitud queda pendiente en **Gestionar PQRSF** para que se completen los datos de trámite y se asigne la dependencia. El archivo original del ciudadano se conserva en Google Drive; Firestore guarda su enlace y no una copia del archivo. Los radicados de salida usan el prefijo `E` y mantienen una secuencia independiente. Los funcionarios ven todas las tarjetas de dependencias, pero solo pueden abrir la propia; las demás muestran “Acceso restringido”. En sus PQRS pueden registrar, asignar y actualizar el seguimiento, pero no editar los datos generales ni eliminar radicados. También pueden usar informes y planillas. La generación de radicados de salida es general: pueden consultar y gestionar radicados de todas las dependencias y seleccionar cualquier dependencia. Allí pueden editar y anular registros; la eliminación permanente sigue reservada al administrador y a Control Interno. Invitado solo puede consultar, generar y gestionar registros de salida y sus consecutivos; el resto de las colecciones y pantallas no están disponibles para este rol. Jurídica tiene acceso completo de consulta y gestión a IAS, incluida la creación, edición, asignación, seguimiento y gestión de respuestas, pero no puede eliminar registros IAS. IAS y su gestión quedan restringidas a los demás funcionarios.
+
+## 4. Configurar presencia para las reservas de PQRS
+
+Realtime Database se usa únicamente para detectar que una pestaña se desconectó y liberar su reserva; los datos de las PQRS siguen en Firestore. Crea la instancia en `us-central1` y usa la URL configurada en `js/config/firebase-config.js` junto con las reglas de `database.rules.json`. Después de crear la base de datos en el mismo proyecto, publica sus reglas desde la raíz del repositorio:
+
+```sh
+firebase deploy --only database
+```
+
+La aplicación registra un token aleatorio por pestaña. Las reglas permiten consultar el estado de ese token y solo permiten a la cuenta propietaria escribirlo o eliminarlo.

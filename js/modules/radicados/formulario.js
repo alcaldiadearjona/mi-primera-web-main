@@ -21,6 +21,11 @@ import {
 } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import {
+  detenerPresenciaPQRS,
+  obtenerTokenPresenciaPQRS,
+  observarPresenciaPQRS
+} from '../../services/presencia.js';
+import {
   COLECCION_CONSULTA_PUBLICA,
   sincronizarConsultaPublicaRadicado
 } from '../../services/consulta-publica.js';
@@ -34,6 +39,8 @@ let radicadoPendienteGestion = '';
 let datosPendienteGestion = null;
 let cantidadVisiblePendientes = 6;
 let seleccionPQRSFPendienteEnCurso = false;
+const observadoresPresenciaPQRS = new Map();
+const reservasPQRSEnLiberacion = new Set();
 
 function actualizarCampoNotificacionRespuesta(tipoSelectId, campoId, etiquetaId) {
   const select = document.getElementById(tipoSelectId);
@@ -364,7 +371,9 @@ async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
     const nombreGestor = String(
       obtenerPerfilSesion()?.nombre || usuario.email || 'Administrador'
     );
+    let tokenPresencia = '';
     try {
+      tokenPresencia = await obtenerTokenPresenciaPQRS(usuario.uid);
       const reservasUsuario = await getDocs(consultaReservasUsuario);
       const referenciasReservasUsuario = reservasUsuario.docs
         .filter(reserva => reserva.id !== id)
@@ -392,14 +401,16 @@ async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
             transaccion.update(reserva.ref, {
               gestionAsignadaUid: '',
               gestionAsignadaNombre: '',
-              gestionAsignadaEn: ''
+              gestionAsignadaEn: '',
+              gestionAsignadaPresenciaToken: ''
             });
           }
         });
         transaccion.update(referencia, {
           gestionAsignadaUid: usuario.uid,
           gestionAsignadaNombre: nombreGestor,
-          gestionAsignadaEn: new Date().toISOString()
+          gestionAsignadaEn: new Date().toISOString(),
+          gestionAsignadaPresenciaToken: tokenPresencia
         });
       });
     } catch (error) {
@@ -415,7 +426,8 @@ async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
     datosPendienteGestion = {
       ...registro,
       gestionAsignadaUid: usuario.uid,
-      gestionAsignadaNombre: nombreGestor
+      gestionAsignadaNombre: nombreGestor,
+      gestionAsignadaPresenciaToken: tokenPresencia
     };
     document.getElementById('pqrsForm')?.reset();
     establecerModoFormularioPQRSF('gestion');
@@ -493,13 +505,88 @@ export async function liberarReservasPQRSFGestionUsuario() {
         transaccion.update(reserva.ref, {
           gestionAsignadaUid: '',
           gestionAsignadaNombre: '',
-          gestionAsignadaEn: ''
+          gestionAsignadaEn: '',
+          gestionAsignadaPresenciaToken: ''
         });
       }
     });
   });
   radicadoPendienteGestion = '';
   datosPendienteGestion = null;
+  observadoresPresenciaPQRS.forEach(desuscribir => desuscribir());
+  observadoresPresenciaPQRS.clear();
+  await detenerPresenciaPQRS();
+}
+
+async function liberarReservaPorDesconexion(id, usuarioUid, tokenEsperado) {
+  const referencia = doc(db, RADICADOS_COLLECTION, id);
+  return runTransaction(db, async transaccion => {
+    const pendiente = await transaccion.get(referencia);
+    if (!pendiente.exists()) return false;
+    const datos = pendiente.data();
+    if (
+      datos.estado !== 'PENDIENTE_GESTION'
+      || datos.gestionAsignadaUid !== usuarioUid
+      || (datos.gestionAsignadaPresenciaToken || '') !== tokenEsperado
+    ) return false;
+
+    transaccion.update(referencia, {
+      gestionAsignadaUid: '',
+      gestionAsignadaNombre: '',
+      gestionAsignadaEn: '',
+      gestionAsignadaPresenciaToken: ''
+    });
+    return true;
+  });
+}
+
+async function procesarDesconexionPQRS(id, usuarioUid, token) {
+  const clave = `${id}:${token}`;
+  if (reservasPQRSEnLiberacion.has(clave)) return;
+  reservasPQRSEnLiberacion.add(clave);
+  try {
+    if (await liberarReservaPorDesconexion(id, usuarioUid, token)) {
+      await cargarPQRSFPendientes();
+    }
+  } catch (error) {
+    console.error('No fue posible liberar la PQRS después de una desconexión:', error);
+  } finally {
+    reservasPQRSEnLiberacion.delete(clave);
+  }
+}
+
+function sincronizarObservadoresPresencia(registros) {
+  const asignacionesActivas = new Map(
+    registros
+      .filter(registro => registro.gestionAsignadaUid && registro.gestionAsignadaPresenciaToken)
+      .map(registro => [
+        `${registro.id}:${registro.gestionAsignadaPresenciaToken}`,
+        registro
+      ])
+  );
+  observadoresPresenciaPQRS.forEach((desuscribir, clave) => {
+    if (!asignacionesActivas.has(clave)) {
+      desuscribir();
+      observadoresPresenciaPQRS.delete(clave);
+    }
+  });
+  asignacionesActivas.forEach((registro, clave) => {
+    if (observadoresPresenciaPQRS.has(clave)) return;
+    const desuscribir = observarPresenciaPQRS(
+      registro.gestionAsignadaPresenciaToken,
+      presencia => {
+        if (presencia?.uid !== registro.gestionAsignadaUid) {
+          void procesarDesconexionPQRS(
+            registro.id,
+            registro.gestionAsignadaUid,
+            registro.gestionAsignadaPresenciaToken
+          );
+        }
+      },
+      error => console.error('No fue posible observar la conexión de quien gestiona la PQRS:', error)
+    );
+    observadoresPresenciaPQRS.set(clave, desuscribir);
+  });
 }
 
 function obtenerEstadoVisibleCiudadano(registro) {
@@ -776,7 +863,29 @@ async function cargarPQRSFPendientes() {
       .map(documento => ({ id: documento.id, ...documento.data() }))
       .sort(compararRadicadosPendientes);
     const lista = document.getElementById('listaPQRSFpendientes');
-    if (!lista) return;
+    if (!lista) {
+      sincronizarObservadoresPresencia([]);
+      return;
+    }
+    let seLiberaronReservasAntiguas = false;
+    for (const registro of registros) {
+      if (registro.gestionAsignadaUid && !registro.gestionAsignadaPresenciaToken) {
+        try {
+          seLiberaronReservasAntiguas = await liberarReservaPorDesconexion(
+            registro.id,
+            registro.gestionAsignadaUid,
+            ''
+          ) || seLiberaronReservasAntiguas;
+        } catch (error) {
+          console.error('No fue posible limpiar una reserva antigua de PQRS:', error);
+        }
+      }
+    }
+    if (seLiberaronReservasAntiguas) {
+      await cargarPQRSFPendientes();
+      return;
+    }
+    sincronizarObservadoresPresencia(registros);
     if (!registros.length) {
       mostrarMensajePendientes('No hay PQRS pendientes por gestionar.');
       return;
@@ -1394,7 +1503,12 @@ async function guardarRadicado(e) {
             error.name = 'AsignacionRadicadoError';
             throw error;
           }
-          if (!usuarioUid || pendiente.data().gestionAsignadaUid !== usuarioUid) {
+          if (
+            !usuarioUid
+            || pendiente.data().gestionAsignadaUid !== usuarioUid
+            || pendiente.data().gestionAsignadaPresenciaToken
+              !== datosPendienteGestion?.gestionAsignadaPresenciaToken
+          ) {
             const error = new Error('La reserva de esta PQRS ya no está asignada a tu cuenta.');
             error.name = 'AsignacionRadicadoError';
             throw error;
@@ -1405,7 +1519,8 @@ async function guardarRadicado(e) {
               dependencia,
               gestionAsignadaUid: '',
               gestionAsignadaNombre: '',
-              gestionAsignadaEn: ''
+              gestionAsignadaEn: '',
+              gestionAsignadaPresenciaToken: ''
             };
             if (actualizarPendiente) {
               transaccion.update(referencia, registro);
