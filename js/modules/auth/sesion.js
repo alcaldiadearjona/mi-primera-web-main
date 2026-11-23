@@ -92,10 +92,15 @@ async function cerrarSesionPorExpiracion(perfil) {
   limpiarTemporizadorSesion();
   try {
     await liberarReservasPQRSFGestionUsuario();
-    await signOut(auth);
   } catch (error) {
-    cierrePorExpiracionEnCurso = false;
     console.error('No fue posible cerrar la sesión al alcanzar su tiempo de expiración:', error);
+  } finally {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      cierrePorExpiracionEnCurso = false;
+      console.error('No fue posible finalizar el cierre de la sesión:', error);
+    }
   }
 }
 
@@ -591,12 +596,21 @@ window.cerrarSesion = async function(event) {
 
   try {
     await new Promise(resolve => window.setTimeout(resolve, 500));
-    await liberarReservasPQRSFGestionUsuario();
-    limpiarSesionExpiradaActual();
+    try {
+      await liberarReservasPQRSFGestionUsuario();
+    } catch (error) {
+      console.error('No fue posible liberar las reservas antes de cerrar sesión:', error);
+    }
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+  }
+
+  limpiarSesionExpiradaActual();
+  try {
     await signOut(auth);
     location.reload();
   } catch (error) {
-    console.error('Error al cerrar sesión:', error);
+    console.error('Error al finalizar el cierre de sesión:', error);
     if (boton) {
       boton.setAttribute('aria-busy', 'false');
       boton.removeAttribute('aria-disabled');

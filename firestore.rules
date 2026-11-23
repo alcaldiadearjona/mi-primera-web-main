@@ -130,7 +130,8 @@ service cloud.firestore {
           && resource.data.origenSolicitud == 'ciudadano'
           && resource.data.ciudadanoUid == request.auth.uid
         );
-      allow list: if isAdmin() || isEmployeeOf(resource.data.dependencia);
+      allow list: if isAdministradorEstricto()
+        || isEmployeeOf(resource.data.dependencia);
       allow create: if isAdmin()
         || (
           isEmployeeOf(request.resource.data.dependencia)
@@ -613,6 +614,32 @@ service cloud.firestore {
           && request.resource.data.rechazosCompetencia[
             request.resource.data.rechazosCompetencia.size() - 1
           ].fechaRechazo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        )
+        || (
+          isAdministradorEstricto()
+          && resource.data.estado == 'PENDIENTE_GESTION'
+          && request.resource.data.dependencia == resource.data.dependencia
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'gestionAsignadaUid',
+            'gestionAsignadaNombre',
+            'gestionAsignadaEn',
+            'gestionAsignadaPresenciaToken'
+          ])
+          && (
+            (
+              request.resource.data.gestionAsignadaUid == ''
+              && request.resource.data.gestionAsignadaNombre == ''
+              && request.resource.data.gestionAsignadaEn == ''
+              && request.resource.data.gestionAsignadaPresenciaToken == ''
+            )
+            ||
+            (
+              request.resource.data.gestionAsignadaUid == request.auth.uid
+              && request.resource.data.gestionAsignadaNombre is string
+              && request.resource.data.gestionAsignadaEn is string
+              && request.resource.data.gestionAsignadaPresenciaToken is string
+            )
+          )
         );
       allow delete: if isAdmin()
         || (

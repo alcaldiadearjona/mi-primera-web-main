@@ -333,6 +333,10 @@ function establecerDependenciasGestion(registro) {
 
 async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
   if (seleccionPQRSFPendienteEnCurso) return;
+  if (obtenerPerfilSesion()?.rol !== 'administrador') {
+    alert('Solo el rol Administrador puede gestionar PQRS.');
+    return;
+  }
   seleccionPQRSFPendienteEnCurso = true;
   const inicioCarga = Date.now();
   const botonesDisponibles = Array.from(
@@ -483,6 +487,7 @@ async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
 }
 
 export async function liberarReservasPQRSFGestionUsuario() {
+  if (obtenerPerfilSesion()?.rol !== 'administrador') return;
   const usuarioUid = auth.currentUser?.uid || '';
   if (!usuarioUid) return;
 
@@ -904,7 +909,8 @@ async function cargarPQRSFPendientes() {
         const usuarioUid = auth.currentUser?.uid || '';
         const asignadoUid = registro.gestionAsignadaUid || '';
         const asignadoPorOtraPersona = Boolean(asignadoUid && asignadoUid !== usuarioUid);
-        boton.disabled = asignadoPorOtraPersona;
+        boton.disabled = asignadoPorOtraPersona
+          || obtenerPerfilSesion()?.rol !== 'administrador';
         const numero = document.createElement('span');
         numero.className = 'pqrs-pending-number';
         numero.textContent = registro.sinNumeroRadicado
