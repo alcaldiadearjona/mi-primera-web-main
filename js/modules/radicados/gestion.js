@@ -239,8 +239,63 @@ function actualizarEstadoFuncionarioPreview(event) {
   }
 }
 
-const NOMBRES_FUNCIONARIOS = ['Yoice Castro', 'Kelly Garcia', 'Maria Davila'];
+const FUNCIONARIOS_POR_DEPENDENCIA = {
+  'Secretaría de Gobierno': [
+    'Juan Ramos',
+    'Jenesis Acevedo',
+    'Alvaro Castro',
+    'Angie Martinez',
+    'Maricela Martinez',
+    'Katherine Rodriguez',
+    'Jhonatan Montero'
+  ],
+  'Secretaría de Hacienda': [
+    'Jhon Torres',
+    'Angelica Esalas',
+    'Camila Feria'
+  ],
+  'Secretaría de Educación': [
+    'Sonia Márquez'
+  ],
+  'Oficina Juridica': [
+    'Marco Tovar',
+    'Maria J. Santiago',
+    'Santiago Herrera',
+    'Daniela Marin',
+    'Rosa Espitia',
+    'Armando Del Villar',
+    'Julian Gonzalez',
+    'Yoice Castro',
+    'Delanis Salas'
+  ],
+  'Secretaría de Umata': [
+    'Yeraldin Blanco Bossio'
+  ],
+  'Secretaría de Planeación': [
+    'Juan Castilla',
+    'Oscar Torres',
+    'Juan Ortiz',
+    'Jennifer Villarreal',
+    'María A. Santos',
+    'Danilsa Acevedo',
+    'Heiner Perez',
+    'Luis Tinoco',
+    'Diego Tinoco',
+    'Matthews Guardo'
+  ],
+  'Secretaría de Salud': [
+    'Carmen Carreño',
+    'Arleidis Teran',
+    'Angela Avila',
+    'Amelis Castilla',
+    'Alida Garizao',
+    'Vianeys Ortega',
+    'Angie Mendivil',
+    'Adriana Pinedo'
+  ]
+};
 let funcionarioAsignadoSeleccionado = '';
+let nombresFuncionariosActivos = [];
 
 function normalizarTextoBusqueda(texto) {
   return String(texto || '')
@@ -248,6 +303,15 @@ function normalizarTextoBusqueda(texto) {
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('es-CO')
     .trim();
+}
+
+function obtenerNombresFuncionarios(radicado) {
+  if (!radicado) return [];
+  const dependenciaNormalizada = normalizarTextoBusqueda(radicado.dependencia);
+  const coincidencia = Object.keys(FUNCIONARIOS_POR_DEPENDENCIA).find(dependencia =>
+    normalizarTextoBusqueda(dependencia) === dependenciaNormalizada
+  );
+  return coincidencia ? FUNCIONARIOS_POR_DEPENDENCIA[coincidencia] : [];
 }
 
 function cerrarSugerenciasFuncionarios() {
@@ -266,7 +330,7 @@ function filtrarSugerenciasFuncionarios() {
 
   const consulta = normalizarTextoBusqueda(input.value);
   const coincidencias = consulta
-    ? NOMBRES_FUNCIONARIOS.filter(nombre => normalizarTextoBusqueda(nombre).includes(consulta))
+    ? nombresFuncionariosActivos.filter(nombre => normalizarTextoBusqueda(nombre).includes(consulta))
     : [];
   lista.replaceChildren(...coincidencias.map((nombre, indice) => {
     const opcion = document.createElement('button');
@@ -352,7 +416,7 @@ async function guardarFuncionarioAsignado(event) {
   const inputFuncionario = document.getElementById('txtFuncionarioAsignado');
   const funcionarioAsignado = inputFuncionario.value.trim();
   if (
-    !NOMBRES_FUNCIONARIOS.includes(funcionarioAsignado)
+    !nombresFuncionariosActivos.includes(funcionarioAsignado)
     || funcionarioAsignado !== funcionarioAsignadoSeleccionado
   ) {
     alert('Escribe y selecciona un funcionario de la lista antes de guardar.');
@@ -926,8 +990,9 @@ window.abrirModalFuncionarioAsignado = function(id, coleccion = '') {
 
   document.getElementById('funcionarioAsignadoDocId').value = item.id;
   document.getElementById('funcionarioAsignadoDocId').dataset.collection = obtenerColeccionRegistro(item);
+  nombresFuncionariosActivos = obtenerNombresFuncionarios(item);
   const input = document.getElementById('txtFuncionarioAsignado');
-  input.value = NOMBRES_FUNCIONARIOS.includes(item.funcionarioAsignado)
+  input.value = nombresFuncionariosActivos.includes(item.funcionarioAsignado)
     ? item.funcionarioAsignado
     : '';
   funcionarioAsignadoSeleccionado = input.value;

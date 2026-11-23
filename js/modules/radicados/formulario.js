@@ -34,6 +34,13 @@ import { mostrarAviso } from '../ui/avisos.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
 
 const COLECCION_SECUENCIAS_ENTRADA = 'radicadosEntradaSecuencias';
+const MINIMO_SECUENCIA_ENTRADA_2026 = 4380;
+function obtenerUltimoSecuenciaEntrada(anio, secuencia) {
+  const ultimoActual = secuencia?.exists() ? Number(secuencia.data().ultimo) : 0;
+  return anio === 2026
+    ? Math.max(Number.isSafeInteger(ultimoActual) && ultimoActual >= 0 ? ultimoActual : 0, MINIMO_SECUENCIA_ENTRADA_2026)
+    : ultimoActual;
+}
 let modoFormularioPQRSF = 'directo';
 let radicadoPendienteGestion = '';
 let datosPendienteGestion = null;
@@ -1046,7 +1053,7 @@ async function guardarRecepcionPQRSF(ahora, archivoPdf) {
       }
 
       const secuencia = await transaccion.get(secuenciaRef);
-      const ultimo = secuencia.exists() ? Number(secuencia.data().ultimo) : 0;
+      const ultimo = obtenerUltimoSecuenciaEntrada(anio, secuencia);
       if (!Number.isSafeInteger(ultimo) || ultimo < 0 || ultimo >= 99999) {
         throw new Error(`La secuencia de radicados de entrada para ${anio} no es válida o se agotó.`);
       }
@@ -1465,7 +1472,7 @@ async function guardarRadicado(e) {
       const secuenciaRef = doc(db, COLECCION_SECUENCIAS_ENTRADA, String(anio));
       const resultadoTransaccion = await runTransaction(db, async transaccion => {
         const secuencia = await transaccion.get(secuenciaRef);
-        const ultimo = secuencia.exists() ? Number(secuencia.data().ultimo) : 0;
+        const ultimo = obtenerUltimoSecuenciaEntrada(anio, secuencia);
         if (!Number.isSafeInteger(ultimo) || ultimo < 0 || ultimo >= 99999) {
           throw new Error(`La secuencia de radicados de entrada para ${anio} no es válida o se agotó.`);
         }
