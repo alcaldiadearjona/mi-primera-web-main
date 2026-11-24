@@ -945,13 +945,14 @@ async function guardarEdicionRadicado(e) {
     const normalizarTextoPQRSF = coleccion === RADICADOS_COLLECTION
       ? formatearMayusculasIniciales
       : valor => valor;
+    const fechaVencimiento = document.getElementById('editFechaEntrega').value;
     await updateDoc(docRef, {
       radicado: document.getElementById('editRadicado').value,
       fechaRadicacion: document.getElementById('editFechaRadicacion').value,
       fechaEntregaManual: document.getElementById('editFechaEntregaManual')?.value || '',
       diasHabiles: document.getElementById('editDiasHabiles').value,
-      [obtenerColeccionRegistro(radicado) === 'radicadosIAS' ? 'fechaVencimiento' : 'fechaEntrega']:
-        document.getElementById('editFechaEntrega').value,
+      fechaVencimiento,
+      fechaEntrega: fechaVencimiento,
       remitente: normalizarTextoPQRSF(document.getElementById('editRemitente').value),
       asunto: normalizarTextoPQRSF(document.getElementById('editAsunto').value),
       ...(obtenerColeccionRegistro(radicado) === RADICADOS_COLLECTION ? {
