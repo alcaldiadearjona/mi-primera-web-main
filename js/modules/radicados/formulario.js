@@ -360,8 +360,8 @@ function actualizarEstadoBibliotecaPdfGestion(mensaje = '', esError = false) {
 function actualizarContadorBibliotecaPdfGestion() {
   const contador = document.getElementById('contadorPdfGestion');
   if (contador) {
-    contador.hidden = obtenerPerfilSesion()?.rol !== 'administrador';
-    contador.textContent = `${pdfsBibliotecaGestion.length} disponible${pdfsBibliotecaGestion.length === 1 ? '' : 's'} · máx. ${MAX_PDFS_POR_CARGA_GESTION} por carga`;
+    contador.hidden = true;
+    contador.textContent = '';
   }
   const boton = document.getElementById('btnSubirPdfGestion');
   if (boton) {

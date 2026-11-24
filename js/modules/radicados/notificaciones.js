@@ -5,9 +5,15 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { db, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
-import { esAdministrador, esFuncionario, obtenerDependenciaSesion } from '../auth/roles.js';
+import {
+  esAdministrador,
+  esFuncionario,
+  obtenerDependenciaSesion,
+  obtenerPerfilSesion
+} from '../auth/roles.js';
 import { abreviarNombreDependencia } from '../../utils/helpers.js';
 import { abrirDependencia } from './detalle.js';
+import { confirmarAccion } from '../ui/avisos.js';
 
 let cancelarSuscripcionRemisiones = null;
 const notificacionesDescartadas = new Set();
@@ -58,6 +64,7 @@ function mostrarEstadoNotificaciones(contenedor, mensaje, esError = false) {
 function actualizarContadorNotificaciones(cantidad) {
   const boton = document.getElementById('alternarNotificacionesPqrs');
   const contador = document.getElementById('contadorNotificacionesPqrs');
+  const botonBorrar = document.getElementById('borrarNotificacionesPqrs');
   if (!boton || !contador) return;
 
   contador.textContent = cantidad > 99 ? '99+' : String(cantidad);
@@ -72,6 +79,38 @@ function actualizarContadorNotificaciones(cantidad) {
       ? `Notificaciones, ${cantidad} ${cantidad === 1 ? 'nueva' : 'nuevas'}`
       : 'Notificaciones'
   );
+  if (botonBorrar) {
+    botonBorrar.hidden = obtenerPerfilSesion()?.rol !== 'administrador';
+    botonBorrar.disabled = cantidad === 0;
+  }
+}
+
+async function borrarTodasNotificaciones(contenedor) {
+  if (obtenerPerfilSesion()?.rol !== 'administrador') return;
+
+  const ids = Array.from(
+    contenedor.querySelectorAll('.pqrs-notification-item')
+  ).map(notificacion => notificacion.dataset.notificationId).filter(Boolean);
+  if (!ids.length) return;
+
+  const confirmado = await confirmarAccion(
+    'Se quitarán todas las notificaciones actuales de esta lista. Los radicados y sus archivos no se eliminarán.',
+    { titulo: 'Borrar notificaciones', aceptarTexto: 'Borrar todas' }
+  );
+  if (!confirmado) return;
+
+  ids.forEach(id => notificacionesDescartadas.add(id));
+  try {
+    guardarNotificacionesDescartadas();
+  } catch (error) {
+    ids.forEach(id => notificacionesDescartadas.delete(id));
+    console.error('No fue posible borrar las notificaciones:', error);
+    alert(error.message);
+    return;
+  }
+
+  mostrarEstadoNotificaciones(contenedor, 'No hay notificaciones pendientes.');
+  actualizarContadorNotificaciones(0);
 }
 
 function alternarListaNotificaciones() {
@@ -372,10 +411,15 @@ export function suscribirNotificacionesRemisionesFuncionario() {
   const contenedor = document.getElementById('listaNotificacionesPqrs');
   if (!panel || !contenedor) return;
   const botonAlternar = document.getElementById('alternarNotificacionesPqrs');
+  const botonBorrar = document.getElementById('borrarNotificacionesPqrs');
   if (botonAlternar) {
     botonAlternar.onclick = alternarListaNotificaciones;
     botonAlternar.setAttribute('aria-expanded', 'false');
     contenedor.hidden = true;
+  }
+  if (botonBorrar) {
+    botonBorrar.hidden = obtenerPerfilSesion()?.rol !== 'administrador';
+    botonBorrar.onclick = () => void borrarTodasNotificaciones(contenedor);
   }
 
   const funcionario = esFuncionario();
