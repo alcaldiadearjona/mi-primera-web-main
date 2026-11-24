@@ -156,6 +156,34 @@ window.cerrarInfoRemitente = function() {
   if (modal) modal.style.display = 'none';
 };
 
+function expandirTextoSeleccionado() {
+  const seleccion = window.getSelection();
+  const textoSeleccionado = seleccion?.toString().trim();
+  if (!textoSeleccionado || !seleccion.rangeCount) return;
+
+  const rango = seleccion.getRangeAt(0);
+  let nodo = rango.commonAncestorContainer;
+  if (nodo.nodeType === Node.TEXT_NODE) nodo = nodo.parentElement;
+  const contenedor = nodo instanceof Element
+    ? nodo.closest('.table-truncated-text')
+    : null;
+  if (!contenedor) return;
+
+  contenedor.classList.add('is-expanded');
+}
+
+window.alternarTextoCompletoTabla = function(elemento) {
+  const contenedor = elemento instanceof Element
+    ? elemento.closest('.table-truncated-text')
+    : null;
+  if (!contenedor) return;
+  contenedor.classList.toggle('is-expanded');
+};
+
+document.addEventListener('mouseup', () => {
+  window.setTimeout(expandirTextoSeleccionado, 0);
+});
+
 document.getElementById('modalInfoRemitente')?.addEventListener('click', event => {
   if (event.target.id === 'modalInfoRemitente') window.cerrarInfoRemitente();
 });
@@ -431,7 +459,7 @@ export function renderizarTablaRadicados(
       <!-- Remitente con información general -->
       <td>
         <div style="max-width: 220px;">
-          <span style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400;" title="${aTitulo(reg.remitente) || ''}">
+          <span class="table-truncated-text" onclick="alternarTextoCompletoTabla(this)" style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400;" title="${aTitulo(reg.remitente) || ''}">
             ${aTitulo(reg.remitente) || ''}
           </span>
           <button type="button" class="remitente-info-toggle" aria-expanded="false"
@@ -443,7 +471,7 @@ export function renderizarTablaRadicados(
       </td>
       
       <td title="${aTitulo(reg.asunto) || ''}">
-        <div style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div class="table-truncated-text" onclick="alternarTextoCompletoTabla(this)" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
           ${aTitulo(reg.asunto) || ''}
         </div>
       </td>

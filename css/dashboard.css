@@ -10,6 +10,19 @@
 @import url("dashboard/auth.css");
 @import url("dashboard/dropdowns.css");
 
+.table-truncated-text {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: pointer;
+}
+
+.table-truncated-text.is-expanded {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+}
+
 #pantallaDependencia .table-custom tbody tr.month-record-row.is-active-row > td,
 #pantallaIAS .ias-table tbody tr.month-record-row.is-active-row > td {
   background-color: rgba(205, 235, 213, 0.58) !important;
