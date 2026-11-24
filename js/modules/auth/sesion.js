@@ -61,7 +61,7 @@ const CLAVE_SESION_INVITADO = 'ventanilla:sesion:invitado';
 const CLAVE_SESION_CIUDADANO = 'ventanilla:sesion:ciudadano';
 
 function obtenerDuracionSesion(perfil) {
-  if (perfil?.rol === 'administrador') return 24 * 60 * 60 * 1000;
+  if (perfil?.rol === 'administrador') return 12 * 60 * 60 * 1000;
   if (perfil?.rol === 'invitado') return 60 * 60 * 1000;
   if (perfil?.rol === 'ciudadano') return 30 * 60 * 1000;
   return null;
