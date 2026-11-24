@@ -172,9 +172,12 @@ function expandirTextoSeleccionado() {
   contenedor.classList.add('is-expanded');
 }
 
-window.alternarTextoCompletoTabla = function(elemento) {
+window.alternarTextoCompletoTabla = function(elemento, event) {
+  if (event?.target instanceof Element && event.target.closest('button, a')) return;
   const contenedor = elemento instanceof Element
-    ? elemento.closest('.table-truncated-text')
+    ? elemento.matches('.table-truncated-cell')
+      ? elemento.querySelector('.table-truncated-text')
+      : elemento.closest('.table-truncated-text')
     : null;
   if (!contenedor) return;
   contenedor.classList.toggle('is-expanded');
@@ -457,9 +460,9 @@ export function renderizarTablaRadicados(
       <td style="text-align: center;"><strong>${reg.diasHabiles}</strong></td>
 
       <!-- Remitente con información general -->
-      <td>
+      <td class="table-truncated-cell" onclick="alternarTextoCompletoTabla(this, event)">
         <div style="max-width: 220px;">
-          <span class="table-truncated-text" onclick="alternarTextoCompletoTabla(this)" style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400;" title="${aTitulo(reg.remitente) || ''}">
+          <span class="table-truncated-text" style="display:block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400;" title="${aTitulo(reg.remitente) || ''}">
             ${aTitulo(reg.remitente) || ''}
           </span>
           <button type="button" class="remitente-info-toggle" aria-expanded="false"
@@ -470,8 +473,8 @@ export function renderizarTablaRadicados(
         </div>
       </td>
       
-      <td title="${aTitulo(reg.asunto) || ''}">
-        <div class="table-truncated-text" onclick="alternarTextoCompletoTabla(this)" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+      <td class="table-truncated-cell" title="${aTitulo(reg.asunto) || ''}" onclick="alternarTextoCompletoTabla(this, event)">
+        <div class="table-truncated-text" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
           ${aTitulo(reg.asunto) || ''}
         </div>
       </td>

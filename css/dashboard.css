@@ -16,6 +16,10 @@
   cursor: pointer;
 }
 
+.table-truncated-cell {
+  cursor: pointer;
+}
+
 .table-truncated-text.is-expanded {
   white-space: normal !important;
   overflow: visible !important;
