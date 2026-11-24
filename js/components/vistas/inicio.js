@@ -250,6 +250,34 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               <label for="solicitudPdf">Adjuntar Oficio (Archivo PDF)</label>
               <input type="file" id="solicitudPdf" accept=".pdf">
               <small id="ayudaSolicitudArchivo" hidden></small>
+              <div id="selectorPdfGestion" class="pqrs-pdf-management-selector" hidden>
+                <label for="abrirSelectorPdfGestion">Oficio de gestión (PDF obligatorio)</label>
+                <button id="abrirSelectorPdfGestion" class="pqrs-pdf-selector-trigger" type="button" aria-haspopup="dialog" aria-controls="modalSeleccionarPdfGestion">
+                  <span id="nombrePdfGestionSeleccionado">Buscar PDF en Google Drive</span>
+                  <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <input id="pdfGestionSeleccionado" type="hidden">
+                <small>Selecciona el oficio que se asociará al radicado y se enviará a la dependencia.</small>
+                <dialog id="modalSeleccionarPdfGestion" class="received-register-dialog pqrs-pdf-picker-dialog" aria-labelledby="tituloModalPdfGestion">
+                  <div class="received-register-dialog-card">
+                    <div class="received-register-dialog-heading">
+                      <span class="received-register-dialog-icon"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i></span>
+                      <div>
+                        <h2 id="tituloModalPdfGestion">Seleccionar oficio de gestión</h2>
+                        <p>Busca por nombre y selecciona el PDF que necesitas.</p>
+                      </div>
+                      <button id="cerrarModalPdfGestion" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+                    </div>
+                    <label for="buscarPdfGestion">Buscar PDF en Google Drive</label>
+                    <input id="buscarPdfGestion" type="search" autocomplete="off" placeholder="Escribe para ver coincidencias">
+                    <p id="estadoBusquedaPdfGestion" class="pqrs-pdf-picker-status" role="status" aria-live="polite"></p>
+                    <ul id="resultadosPdfGestion" class="pqrs-pdf-picker-results"></ul>
+                    <div class="received-register-dialog-actions">
+                      <button id="cancelarModalPdfGestion" class="received-register-cancel" type="button">Cancelar</button>
+                    </div>
+                  </div>
+                </dialog>
+              </div>
             </div>
             <div id="grupoAceptacionDatosCiudadano" class="form-group full-width" hidden>
               <label class="citizen-consent-label" for="aceptaTratamientoDatos">
@@ -349,7 +377,15 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
           </div>
 
           <section id="pqrsPendientesGestion" class="pqrs-pending-section" aria-labelledby="tituloPQRSFpendientes" hidden>
-            <h3 id="tituloPQRSFpendientes">PQRS Pendientes Por Gestionar</h3>
+            <div class="pqrs-pending-heading">
+              <h3 id="tituloPQRSFpendientes">PQRS Pendientes Por Gestionar</h3>
+              <div class="pqrs-pdf-upload-controls">
+                <input id="archivosPdfGestion" type="file" accept=".pdf,application/pdf" multiple hidden>
+                <button id="btnSubirPdfGestion" type="button" class="pqrs-pdf-upload-button" hidden>Subir PDF</button>
+                <span id="contadorPdfGestion" class="pqrs-pdf-upload-count" aria-live="polite" hidden>0 disponibles</span>
+              </div>
+            </div>
+            <p id="estadoPdfGestion" class="pqrs-pdf-upload-status" role="status" aria-live="polite" hidden></p>
             <p class="pqrs-pending-order-hint">Cada solicitud puede ser gestionada por una persona a la vez. Puedes reservar un pendiente disponible.</p>
             <div id="listaPQRSFpendientes" class="pqrs-pending-list" aria-live="polite">
               <p class="pqrs-pending-empty">Cargando PQRS pendientes…</p>

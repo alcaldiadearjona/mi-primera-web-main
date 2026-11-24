@@ -42,6 +42,11 @@ import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js'
 
 const COLECCION_SECUENCIAS_ENTRADA = 'radicadosEntradaSecuencias';
 const MINIMO_SECUENCIA_ENTRADA_2026 = 4380;
+const MAX_PDFS_POR_CARGA_GESTION = 20;
+const MAX_TAMANO_PDF_GESTION = 10 * 1024 * 1024;
+const pdfsBibliotecaGestion = [];
+let cargaPdfGestionEnCurso = false;
+let cargaBibliotecaPdfGestionEnCurso = false;
 function obtenerUltimoSecuenciaEntrada(anio, secuencia) {
   const ultimoActual = secuencia?.exists() ? Number(secuencia.data().ultimo) : 0;
   return anio === 2026
@@ -183,13 +188,27 @@ function establecerModoFormularioPQRSF(modo) {
   if (solicitudPdf) {
     solicitudPdf.accept = '.pdf';
     solicitudPdf.required = esRadicacionCiudadana;
+    solicitudPdf.hidden = modo === 'gestion';
   }
-  const esGestionCiudadanoPendiente = modo === 'gestion'
-    && datosPendienteGestion?.origenSolicitud === 'ciudadano';
+  const esGestionPendienteActiva = modo === 'gestion' && Boolean(radicadoPendienteGestion);
   const grupoSolicitudPdf = document.getElementById('grupoSolicitudPdf');
   if (grupoSolicitudPdf) {
-    grupoSolicitudPdf.hidden = esGestionCiudadanoPendiente;
-    grupoSolicitudPdf.style.display = esGestionCiudadanoPendiente ? 'none' : '';
+    grupoSolicitudPdf.hidden = modo === 'gestion' && !esGestionPendienteActiva;
+    grupoSolicitudPdf.style.display = grupoSolicitudPdf.hidden ? 'none' : '';
+  }
+  const selectorPdfGestion = document.getElementById('selectorPdfGestion');
+  if (selectorPdfGestion) {
+    selectorPdfGestion.hidden = !esGestionPendienteActiva;
+    selectorPdfGestion.style.display = selectorPdfGestion.hidden ? 'none' : '';
+  }
+  const pdfGestionSeleccionado = document.getElementById('pdfGestionSeleccionado');
+  if (pdfGestionSeleccionado) {
+    pdfGestionSeleccionado.disabled = !esGestionPendienteActiva;
+  }
+  const abrirSelectorPdfGestion = document.getElementById('abrirSelectorPdfGestion');
+  if (abrirSelectorPdfGestion) {
+    abrirSelectorPdfGestion.disabled = !esGestionPendienteActiva;
+    abrirSelectorPdfGestion.setAttribute('aria-required', String(esGestionPendienteActiva));
   }
   const aceptacion = document.getElementById('aceptaTratamientoDatos');
   if (aceptacion) aceptacion.required = esRadicacionCiudadana;
@@ -236,10 +255,9 @@ function establecerModoFormularioPQRSF(modo) {
   }
   const etiquetaSolicitudPdf = document.querySelector('label[for="solicitudPdf"]');
   if (etiquetaSolicitudPdf) {
-    etiquetaSolicitudPdf.textContent = esGestionCiudadanoPendiente
-      ? 'Documento ciudadano adjunto'
-      : modo === 'gestion'
-      ? 'Oficio de gestión (PDF opcional)'
+    etiquetaSolicitudPdf.hidden = modo === 'gestion';
+    etiquetaSolicitudPdf.textContent = modo === 'gestion'
+      ? 'Oficio de gestión (PDF obligatorio)'
       : esRadicacionCiudadana
         ? 'Adjuntar Oficio (Archivo PDF obligatorio)'
         : 'Solicitud Escaneada (Archivo PDF)';
@@ -329,6 +347,248 @@ function mostrarMensajePendientes(mensaje, esError = false) {
   estado.setAttribute('role', esError ? 'alert' : 'status');
   estado.textContent = mensaje;
   lista.replaceChildren(estado);
+}
+
+function actualizarEstadoBibliotecaPdfGestion(mensaje = '', esError = false) {
+  const estado = document.getElementById('estadoPdfGestion');
+  if (!estado) return;
+  estado.textContent = mensaje;
+  estado.hidden = !mensaje;
+  estado.classList.toggle('is-error', esError);
+}
+
+function actualizarContadorBibliotecaPdfGestion() {
+  const contador = document.getElementById('contadorPdfGestion');
+  if (contador) {
+    contador.hidden = obtenerPerfilSesion()?.rol !== 'administrador';
+    contador.textContent = `${pdfsBibliotecaGestion.length} disponible${pdfsBibliotecaGestion.length === 1 ? '' : 's'} · máx. ${MAX_PDFS_POR_CARGA_GESTION} por carga`;
+  }
+  const boton = document.getElementById('btnSubirPdfGestion');
+  if (boton) {
+    const esAdministradorSesion = obtenerPerfilSesion()?.rol === 'administrador';
+    boton.hidden = !esAdministradorSesion;
+    boton.disabled = !esAdministradorSesion || cargaPdfGestionEnCurso;
+    boton.textContent = cargaPdfGestionEnCurso ? 'Subiendo…' : 'Subir PDF';
+  }
+  const entrada = document.getElementById('archivosPdfGestion');
+  if (entrada) entrada.disabled = cargaPdfGestionEnCurso;
+}
+
+function actualizarEtiquetaPdfGestion(nombre = '') {
+  const etiqueta = document.getElementById('nombrePdfGestionSeleccionado');
+  if (etiqueta) etiqueta.textContent = nombre || 'Buscar PDF en Google Drive';
+  const boton = document.getElementById('abrirSelectorPdfGestion');
+  if (boton) {
+    boton.setAttribute(
+      'aria-label',
+      nombre ? `PDF seleccionado: ${nombre}. Cambiar PDF.` : 'Buscar PDF en Google Drive'
+    );
+  }
+}
+
+function renderizarResultadosBibliotecaPdfGestion() {
+  const lista = document.getElementById('resultadosPdfGestion');
+  const estado = document.getElementById('estadoBusquedaPdfGestion');
+  if (!lista || !estado) return;
+
+  const busqueda = String(document.getElementById('buscarPdfGestion')?.value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-CO');
+  const normalizar = texto => String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-CO');
+  lista.replaceChildren();
+
+  if (!busqueda) {
+    estado.textContent = 'Escribe el nombre del PDF para ver coincidencias.';
+    return;
+  }
+
+  const coincidencias = pdfsBibliotecaGestion.filter(pdf => (
+    normalizar(pdf.nombre).includes(busqueda)
+  ));
+
+  if (!pdfsBibliotecaGestion.length) {
+    estado.textContent = 'No hay PDF guardados. Usa “Subir PDF” para añadirlos a la biblioteca.';
+    return;
+  }
+  if (!coincidencias.length) {
+    estado.textContent = 'No se encontraron coincidencias.';
+    return;
+  }
+
+  estado.textContent = `${coincidencias.length} resultado${coincidencias.length === 1 ? '' : 's'}`;
+  coincidencias.forEach(pdf => {
+    const elemento = document.createElement('li');
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'pqrs-pdf-picker-option';
+    boton.textContent = pdf.nombre;
+    boton.addEventListener('click', () => {
+      document.getElementById('pdfGestionSeleccionado').value = pdf.url;
+      actualizarEtiquetaPdfGestion(pdf.nombre);
+      document.getElementById('modalSeleccionarPdfGestion')?.close();
+    });
+    elemento.append(boton);
+    lista.append(elemento);
+  });
+}
+
+function abrirDialogoSeleccionPdfGestion() {
+  const dialogo = document.getElementById('modalSeleccionarPdfGestion');
+  const busqueda = document.getElementById('buscarPdfGestion');
+  if (!dialogo || dialogo.open) return;
+  if (busqueda) busqueda.value = '';
+  renderizarResultadosBibliotecaPdfGestion();
+  if (!pdfsBibliotecaGestion.length) {
+    const estado = document.getElementById('estadoBusquedaPdfGestion');
+    if (estado) estado.textContent = 'Consultando los PDF guardados en Google Drive…';
+  }
+  dialogo.showModal();
+  busqueda?.focus();
+  void cargarBibliotecaPdfGestion();
+}
+
+async function cargarPdfBibliotecaGestion(event) {
+  const entrada = event.currentTarget;
+  const archivos = Array.from(entrada.files || []);
+  entrada.value = '';
+  if (!archivos.length || cargaPdfGestionEnCurso) return;
+
+  if (obtenerPerfilSesion()?.rol !== 'administrador') {
+    actualizarEstadoBibliotecaPdfGestion('Solo el rol Administrador puede subir PDF de gestión.', true);
+    return;
+  }
+  if (archivos.length > MAX_PDFS_POR_CARGA_GESTION) {
+    actualizarEstadoBibliotecaPdfGestion(
+      `Puedes seleccionar hasta ${MAX_PDFS_POR_CARGA_GESTION} PDF por cada carga.`,
+      true
+    );
+    return;
+  }
+
+  cargaPdfGestionEnCurso = true;
+  actualizarContadorBibliotecaPdfGestion();
+  let cantidadCargada = 0;
+  let nombreEnCarga = '';
+  try {
+    for (const archivo of archivos) {
+      nombreEnCarga = archivo.name;
+      actualizarEstadoBibliotecaPdfGestion(`Validando ${archivo.name}…`);
+      const esPdf = /\.pdf$/i.test(archivo.name)
+        && (!archivo.type || archivo.type.toLowerCase() === 'application/pdf');
+      if (!esPdf || archivo.size > MAX_TAMANO_PDF_GESTION
+        || await archivo.slice(0, 5).text() !== '%PDF-') {
+        throw new Error(`“${archivo.name}” no es un PDF válido de máximo 10 MB.`);
+      }
+    }
+
+    for (let indice = 0; indice < archivos.length; indice += 1) {
+      const archivo = archivos[indice];
+      nombreEnCarga = archivo.name;
+      actualizarEstadoBibliotecaPdfGestion(
+        `Subiendo PDF ${indice + 1} de ${archivos.length}: ${archivo.name}`
+      );
+      const usuario = auth.currentUser;
+      if (!usuario?.uid) throw new Error('Debes iniciar sesión para subir PDF de gestión.');
+      const idToken = await usuario.getIdToken();
+      const base64 = await convertirABase64(archivo);
+      const respuesta = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'uploadManagementPdf',
+          uid: usuario.uid,
+          idToken,
+          archivoBase64: base64.split(',')[1] || '',
+          mimeType: 'application/pdf',
+          nombreArchivo: archivo.name
+        })
+      });
+      const resultado = await respuesta.json();
+      const url = obtenerUrlHttpsSegura(resultado?.url || '');
+      if (!respuesta.ok || resultado?.status !== 'success' || !url) {
+        throw new Error(resultado?.message || 'Google Drive no confirmó el archivo.');
+      }
+      pdfsBibliotecaGestion.push({ nombre: archivo.name, url });
+      cantidadCargada += 1;
+      actualizarContadorBibliotecaPdfGestion();
+      renderizarResultadosBibliotecaPdfGestion();
+    }
+    actualizarEstadoBibliotecaPdfGestion();
+  } catch (error) {
+    console.error('No fue posible subir un PDF de gestión:', nombreEnCarga, error);
+    const resumenCarga = cantidadCargada
+      ? `Se cargaron ${cantidadCargada} de ${archivos.length}. `
+      : 'No se cargó ningún archivo. ';
+    actualizarEstadoBibliotecaPdfGestion(
+      `${resumenCarga}No se pudo cargar “${nombreEnCarga}”: ${error.message}`,
+      true
+    );
+  } finally {
+    cargaPdfGestionEnCurso = false;
+    actualizarContadorBibliotecaPdfGestion();
+  }
+}
+
+async function cargarBibliotecaPdfGestion() {
+  if (
+    obtenerPerfilSesion()?.rol !== 'administrador'
+    || cargaBibliotecaPdfGestionEnCurso
+  ) return;
+  cargaBibliotecaPdfGestionEnCurso = true;
+  actualizarEstadoBibliotecaPdfGestion('Consultando los PDF guardados en Google Drive…');
+  try {
+    const usuario = auth.currentUser;
+    if (!usuario?.uid) throw new Error('Debes iniciar sesión para consultar la biblioteca.');
+    const idToken = await usuario.getIdToken();
+    const respuesta = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'listManagementPdfs',
+        uid: usuario.uid,
+        idToken
+      })
+    });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok || resultado?.status !== 'success' || !Array.isArray(resultado.files)) {
+      throw new Error(resultado?.message || 'Google Drive no devolvió la biblioteca de PDF.');
+    }
+    const archivos = resultado.files.map(archivo => {
+      const nombre = String(archivo?.name || '').trim();
+      const url = obtenerUrlHttpsSegura(archivo?.url || '');
+      if (!nombre || !url) {
+        throw new Error('Google Drive devolvió un PDF sin nombre o con enlace no válido.');
+      }
+      return { nombre, url };
+    });
+    pdfsBibliotecaGestion.splice(0, pdfsBibliotecaGestion.length, ...archivos);
+    const selector = document.getElementById('pdfGestionSeleccionado');
+    const pdfSeleccionado = archivos.find(pdf => pdf.url === selector?.value);
+    if (selector?.value && !pdfSeleccionado) {
+      selector.value = '';
+      actualizarEtiquetaPdfGestion();
+    } else if (pdfSeleccionado) {
+      actualizarEtiquetaPdfGestion(pdfSeleccionado.nombre);
+    }
+    actualizarContadorBibliotecaPdfGestion();
+    renderizarResultadosBibliotecaPdfGestion();
+    actualizarEstadoBibliotecaPdfGestion();
+  } catch (error) {
+    console.error('No fue posible consultar los PDF de gestión en Google Drive:', error);
+    actualizarEstadoBibliotecaPdfGestion(
+      `No fue posible cargar la biblioteca de PDF: ${error.message}`,
+      true
+    );
+    const estadoModal = document.getElementById('estadoBusquedaPdfGestion');
+    if (estadoModal && document.getElementById('modalSeleccionarPdfGestion')?.open) {
+      estadoModal.textContent = `No fue posible consultar los PDF: ${error.message}`;
+    }
+  } finally {
+    cargaBibliotecaPdfGestionEnCurso = false;
+  }
 }
 
 function establecerDependenciasGestion(registro) {
@@ -448,6 +708,7 @@ async function seleccionarPQRSFPendiente(id, registro, botonSeleccion) {
       gestionAsignadaPresenciaToken: tokenPresencia
     };
     document.getElementById('pqrsForm')?.reset();
+    actualizarEtiquetaPdfGestion();
     establecerModoFormularioPQRSF('gestion');
     document.getElementById('radicado').value = registro.radicado || '';
     document.getElementById('tipoCanal').value = registro.tipoCanal || '';
@@ -1330,6 +1591,7 @@ function inicializarSelectorDependenciasPqrs() {
 async function guardarRadicado(e) {
   e.preventDefault();
   const esRadicacionCiudadana = (esCiudadano() || esAdministrador()) && modoFormularioPQRSF === 'directo';
+  const esGestionPendiente = modoFormularioPQRSF === 'gestion';
   if (esRadicacionCiudadana) {
     const tipoNotificacion = document.getElementById('tipoNotificacionCiudadano')?.value || '';
     const contactoNotificacion = document.getElementById('contactoNotificacionCiudadano');
@@ -1368,7 +1630,19 @@ async function guardarRadicado(e) {
   }
 
   const fileInput = document.getElementById('solicitudPdf');
-  const archivoPdf = fileInput?.files[0];
+  const selectorPdfGestion = document.getElementById('pdfGestionSeleccionado');
+  const pdfGestion = esGestionPendiente
+    ? pdfsBibliotecaGestion.find(pdf => pdf.url === selectorPdfGestion?.value)
+    : null;
+  if (esGestionPendiente && !pdfGestion) {
+    alert(pdfsBibliotecaGestion.length
+      ? 'Busca y selecciona el oficio de gestión que se enviará a la dependencia.'
+      : 'Sube primero el PDF del oficio de gestión y luego selecciónalo.');
+    document.getElementById('abrirSelectorPdfGestion')?.focus();
+    if (pdfsBibliotecaGestion.length) abrirDialogoSeleccionPdfGestion();
+    return;
+  }
+  const archivoPdf = esGestionPendiente ? null : fileInput?.files[0];
   if (esRadicacionCiudadana) {
     if (!document.getElementById('aceptaTratamientoDatos')?.checked) {
       alert('Debes aceptar el tratamiento de datos personales.');
@@ -1401,7 +1675,7 @@ async function guardarRadicado(e) {
   if (texto) texto.textContent = archivoPdf
     ? esRadicacionCiudadana ? 'Subiendo documento...' : 'Subiendo PDF...'
     : 'Guardando...';
-  let driveUrl = "";
+  let driveUrl = pdfGestion?.url || '';
 
   try {
     // 1. Subida del archivo PDF a Google Drive si existe
@@ -1432,7 +1706,6 @@ async function guardarRadicado(e) {
     if (texto) texto.textContent = esRadicacionCiudadana ? 'Guardando...' : 'Guardando datos...';
 
     // 2. Estructuración de los datos del nuevo radicado
-    const esGestionPendiente = modoFormularioPQRSF === 'gestion';
     const ahora = new Date();
     const notificacionRespuestaTipo = document.getElementById('tipoNotificacionCiudadano')?.value || '';
     const notificacionRespuestaContacto = document.getElementById('contactoNotificacionCiudadano')?.value.trim() || '';
@@ -1460,6 +1733,9 @@ async function guardarRadicado(e) {
         : esRadicacionCiudadana
           ? ''
           : driveUrl || '',
+      pdfNombre: esGestionPendiente
+        ? pdfGestion?.nombre || datosPendienteGestion?.pdfNombre || ''
+        : archivoPdf?.name || '',
       ...(esRadicacionCiudadana ? {
         pdfCiudadanoUrl: driveUrl || '',
         pdfCiudadanoNombre: archivoPdf?.name || '',
@@ -1606,6 +1882,7 @@ async function guardarRadicado(e) {
       }
     );
     document.getElementById('pqrsForm')?.reset();
+    actualizarEtiquetaPdfGestion();
     actualizarCampoNotificacionRespuesta(
       'tipoNotificacionCiudadano',
       'contactoNotificacionCiudadano',
@@ -1713,6 +1990,7 @@ export function prepararVistaPQRSF(esVistaCiudadano = false) {
   radicadoPendienteGestion = '';
   datosPendienteGestion = null;
   document.getElementById('pqrsForm')?.reset();
+  actualizarEtiquetaPdfGestion();
   actualizarCampoNotificacionRespuesta(
     'tipoNotificacionCiudadano',
     'contactoNotificacionCiudadano',
@@ -1728,6 +2006,7 @@ export function prepararVistaPQRSF(esVistaCiudadano = false) {
   const pendientes = document.getElementById('pqrsPendientesGestion');
   const puedeConsultarPendientes = !esVistaCiudadano && esAdministrador();
   if (pendientes) pendientes.hidden = !puedeConsultarPendientes;
+  actualizarContadorBibliotecaPdfGestion();
   actualizarEstadoBotonGestion(false);
   const formularioRecepcion = document.getElementById('contenedorFormularioRecepcion');
   if (formularioRecepcion) formularioRecepcion.style.display = 'none';
@@ -1738,6 +2017,9 @@ export function prepararVistaPQRSF(esVistaCiudadano = false) {
   }
   establecerFormularioVisible(false);
   if (puedeConsultarPendientes) void cargarPQRSFPendientes();
+  if (!esVistaCiudadano && obtenerPerfilSesion()?.rol === 'administrador') {
+    void cargarBibliotecaPdfGestion();
+  }
 }
 
 export function establecerFormularioVisible(visible) {
@@ -1762,6 +2044,34 @@ export function inicializarFormulario() {
   if (inputFechaEntregaManual) inputFechaEntregaManual.value = hoy;
 
   inicializarSelectorDependenciasPqrs();
+  const botonSubirPdfGestion = document.getElementById('btnSubirPdfGestion');
+  const entradaPdfGestion = document.getElementById('archivosPdfGestion');
+  botonSubirPdfGestion?.addEventListener('click', () => {
+    if (obtenerPerfilSesion()?.rol === 'administrador') entradaPdfGestion?.click();
+  });
+  entradaPdfGestion?.addEventListener('change', cargarPdfBibliotecaGestion);
+  document.getElementById('abrirSelectorPdfGestion')?.addEventListener(
+    'click',
+    abrirDialogoSeleccionPdfGestion
+  );
+  document.getElementById('buscarPdfGestion')?.addEventListener(
+    'input',
+    renderizarResultadosBibliotecaPdfGestion
+  );
+  const modalPdfGestion = document.getElementById('modalSeleccionarPdfGestion');
+  document.getElementById('cerrarModalPdfGestion')?.addEventListener(
+    'click',
+    () => modalPdfGestion?.close()
+  );
+  document.getElementById('cancelarModalPdfGestion')?.addEventListener(
+    'click',
+    () => modalPdfGestion?.close()
+  );
+  modalPdfGestion?.addEventListener('click', event => {
+    if (event.target === modalPdfGestion) modalPdfGestion.close();
+  });
+  actualizarContadorBibliotecaPdfGestion();
+  renderizarResultadosBibliotecaPdfGestion();
   calcularFechaVencimiento();
   document.getElementById('fechaRadicacion')?.addEventListener('input', calcularFechaVencimiento);
   document.getElementById('diasHabiles')?.addEventListener('input', calcularFechaVencimiento);

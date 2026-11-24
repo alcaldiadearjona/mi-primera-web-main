@@ -67,6 +67,34 @@ function eliminarArchivo(pdfUrl) {
   return responderEliminacionArchivo("success", "Archivo eliminado de Drive");
 }
 
+var MANAGEMENT_PDF_LIBRARY_MARKER = "PQRS_MANAGEMENT_PDF_LIBRARY";
+
+function listarOficiosGestion(folderId) {
+  var archivos = [];
+  var iterador = DriveApp.getFolderById(folderId).getFiles();
+  while (iterador.hasNext()) {
+    var archivo = iterador.next();
+    var nombreArchivo = String(archivo.getName() || "");
+    var coincidencia = nombreArchivo.match(
+      /^OficioGestion_\d+_\d+_(.+\.pdf)$/i
+    );
+    var esPdfBiblioteca = archivo.getDescription
+      && archivo.getDescription() === MANAGEMENT_PDF_LIBRARY_MARKER;
+    if ((!esPdfBiblioteca && !coincidencia) || archivo.getMimeType() !== "application/pdf") continue;
+    archivos.push({
+      name: esPdfBiblioteca ? nombreArchivo : coincidencia[1],
+      url: archivo.getUrl(),
+      fechaCarga: archivo.getDateCreated().getTime()
+    });
+  }
+  archivos.sort(function(a, b) {
+    return b.fechaCarga - a.fechaCarga || a.name.localeCompare(b.name);
+  });
+  return archivos.map(function(archivo) {
+    return { name: archivo.name, url: archivo.url };
+  });
+}
+
 function doPost(e) {
   var etapaSolicitud = "recibiendo la solicitud";
   try {
@@ -127,6 +155,34 @@ function doPost(e) {
           : "Firebase no autorizó la validación del registro (" + codigo + ").");
       }
       return objetoFirestore((JSON.parse(cuerpo).fields) || {});
+    }
+
+    function validarSesionAdministrador(solicitud) {
+      var sesion = obtenerTokenFirebase(solicitud);
+      var perfil = obtenerDocumentoFirestore("usuarios/" + sesion.uid, sesion.token);
+      if (perfil.rol !== "administrador") {
+        throw new Error("Solo el rol Administrador puede consultar o subir estos PDF.");
+      }
+    }
+
+    if (data.action === "listManagementPdfs") {
+      validarSesionAdministrador(data);
+      return ContentService.createTextOutput(JSON.stringify({
+        version: EMAIL_NOTIFICATIONS_VERSION,
+        status: "success",
+        files: listarOficiosGestion(FOLDER_ID)
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (data.action === "uploadManagementPdf") {
+      validarSesionAdministrador(data);
+      if (
+        data.mimeType !== "application/pdf"
+        || !/^[^\\/]+\.pdf$/i.test(String(data.nombreArchivo || ""))
+        || !data.archivoBase64
+      ) {
+        throw new Error("El archivo de biblioteca debe ser un PDF válido.");
+      }
     }
 
     function dependenciaNombreCorreo(dependencia) {
@@ -689,6 +745,16 @@ function doPost(e) {
     } else {
       etapaSolicitud = "guardando el archivo en Google Drive";
       file = folder.createFile(blob);
+    }
+
+    if (data.action === "uploadManagementPdf") {
+      etapaSolicitud = "registrando el PDF en la biblioteca de gestión";
+      try {
+        file.setDescription(MANAGEMENT_PDF_LIBRARY_MARKER);
+      } catch (errorDescripcion) {
+        file.setTrashed();
+        throw new Error("No fue posible registrar el PDF en la biblioteca de gestión: " + errorDescripcion.message);
+      }
     }
     
     etapaSolicitud = "configurando el acceso al archivo";

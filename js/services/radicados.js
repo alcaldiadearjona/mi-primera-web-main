@@ -138,6 +138,7 @@ function mapearRadicado(documento) {
     fechaAsignacion: item.fechaAsignacion || '',
     fechaCambioEstado: item.fechaCambioEstado || '',
     pdfUrl: item.pdfUrl || '',
+    pdfNombre: item.pdfNombre || '',
     pdfCiudadanoUrl: item.pdfCiudadanoUrl || '',
     pdfCiudadanoNombre: item.pdfCiudadanoNombre || '',
     aceptaTratamientoDatos: item.aceptaTratamientoDatos === true,
