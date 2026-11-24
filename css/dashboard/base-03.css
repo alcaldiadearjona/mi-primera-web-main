@@ -299,16 +299,3 @@
   cursor: pointer;
 }
 
-/* 3. Despliegue flotante al pasar el mouse sobre Remitente y Asunto */
-.table-custom td:nth-child(8):hover,
-.table-custom td:nth-child(9):hover {
-  overflow: visible !important;
-  white-space: normal !important;
-  word-break: break-word !important;
-  position: relative;
-  z-index: 30;
-  background-color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  border-radius: 6px;
-  padding: 8px !important;
-}

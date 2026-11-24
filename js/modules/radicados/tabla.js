@@ -170,17 +170,18 @@ function expandirTextoSeleccionado() {
   if (!contenedor) return;
 
   contenedor.classList.add('is-expanded');
+  contenedor.closest('.table-truncated-cell')?.classList.add('is-expanded');
 }
 
 window.alternarTextoCompletoTabla = function(elemento, event) {
   if (event?.target instanceof Element && event.target.closest('button, a')) return;
-  const contenedor = elemento instanceof Element
-    ? elemento.matches('.table-truncated-cell')
-      ? elemento.querySelector('.table-truncated-text')
-      : elemento.closest('.table-truncated-text')
+  const celda = elemento instanceof Element
+    ? elemento.closest('.table-truncated-cell')
     : null;
-  if (!contenedor) return;
-  contenedor.classList.toggle('is-expanded');
+  const contenedor = celda?.querySelector('.table-truncated-text');
+  if (!celda || !contenedor) return;
+  const expandida = celda.classList.toggle('is-expanded');
+  contenedor.classList.toggle('is-expanded', expandida);
 };
 
 document.addEventListener('mouseup', () => {
