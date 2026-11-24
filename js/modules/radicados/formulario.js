@@ -47,6 +47,7 @@ const MAX_TAMANO_PDF_GESTION = 10 * 1024 * 1024;
 const pdfsBibliotecaGestion = [];
 let cargaPdfGestionEnCurso = false;
 let cargaBibliotecaPdfGestionEnCurso = false;
+let bibliotecaPdfGestionCargada = false;
 function obtenerUltimoSecuenciaEntrada(anio, secuencia) {
   const ultimoActual = secuencia?.exists() ? Number(secuencia.data().ultimo) : 0;
   return anio === 2026
@@ -407,6 +408,13 @@ function renderizarResultadosBibliotecaPdfGestion() {
     return;
   }
 
+  if (!bibliotecaPdfGestionCargada) {
+    estado.textContent = cargaBibliotecaPdfGestionEnCurso
+      ? 'Consultando los PDF guardados en Google Drive…'
+      : 'Se consultará Google Drive al buscar.';
+    return;
+  }
+
   const coincidencias = pdfsBibliotecaGestion.filter(pdf => (
     normalizar(pdf.nombre).includes(busqueda)
   ));
@@ -443,13 +451,8 @@ function abrirDialogoSeleccionPdfGestion() {
   if (!dialogo || dialogo.open) return;
   if (busqueda) busqueda.value = '';
   renderizarResultadosBibliotecaPdfGestion();
-  if (!pdfsBibliotecaGestion.length) {
-    const estado = document.getElementById('estadoBusquedaPdfGestion');
-    if (estado) estado.textContent = 'Consultando los PDF guardados en Google Drive…';
-  }
   dialogo.showModal();
   busqueda?.focus();
-  void cargarBibliotecaPdfGestion();
 }
 
 async function cargarPdfBibliotecaGestion(event) {
@@ -536,6 +539,7 @@ async function cargarPdfBibliotecaGestion(event) {
 async function cargarBibliotecaPdfGestion() {
   if (
     obtenerPerfilSesion()?.rol !== 'administrador'
+    || bibliotecaPdfGestionCargada
     || cargaBibliotecaPdfGestionEnCurso
   ) return;
   cargaBibliotecaPdfGestionEnCurso = true;
@@ -565,6 +569,7 @@ async function cargarBibliotecaPdfGestion() {
       return { nombre, url };
     });
     pdfsBibliotecaGestion.splice(0, pdfsBibliotecaGestion.length, ...archivos);
+    bibliotecaPdfGestionCargada = true;
     const selector = document.getElementById('pdfGestionSeleccionado');
     const pdfSeleccionado = archivos.find(pdf => pdf.url === selector?.value);
     if (selector?.value && !pdfSeleccionado) {
@@ -2017,9 +2022,6 @@ export function prepararVistaPQRSF(esVistaCiudadano = false) {
   }
   establecerFormularioVisible(false);
   if (puedeConsultarPendientes) void cargarPQRSFPendientes();
-  if (!esVistaCiudadano && obtenerPerfilSesion()?.rol === 'administrador') {
-    void cargarBibliotecaPdfGestion();
-  }
 }
 
 export function establecerFormularioVisible(visible) {
@@ -2056,7 +2058,13 @@ export function inicializarFormulario() {
   );
   document.getElementById('buscarPdfGestion')?.addEventListener(
     'input',
-    renderizarResultadosBibliotecaPdfGestion
+    () => {
+      renderizarResultadosBibliotecaPdfGestion();
+      const busqueda = document.getElementById('buscarPdfGestion')?.value.trim();
+      if (busqueda && !bibliotecaPdfGestionCargada) {
+        void cargarBibliotecaPdfGestion();
+      }
+    }
   );
   const modalPdfGestion = document.getElementById('modalSeleccionarPdfGestion');
   document.getElementById('cerrarModalPdfGestion')?.addEventListener(
