@@ -251,13 +251,13 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
               <input type="file" id="solicitudPdf" accept=".pdf">
               <small id="ayudaSolicitudArchivo" hidden></small>
               <div id="selectorPdfGestion" class="pqrs-pdf-management-selector" hidden>
-                <label for="abrirSelectorPdfGestion">Oficio de gestión (PDF obligatorio)</label>
+                <label id="etiquetaPdfGestion" for="abrirSelectorPdfGestion">Oficio de gestión (PDF obligatorio)</label>
                 <button id="abrirSelectorPdfGestion" class="pqrs-pdf-selector-trigger" type="button" aria-haspopup="dialog" aria-controls="modalSeleccionarPdfGestion">
                   <span id="nombrePdfGestionSeleccionado">Buscar PDF en Google Drive</span>
                   <i class="bi bi-chevron-down" aria-hidden="true"></i>
                 </button>
                 <input id="pdfGestionSeleccionado" type="hidden">
-                <small>Selecciona el oficio que se asociará al radicado y se enviará a la dependencia.</small>
+                <small id="ayudaPdfGestion">Selecciona el oficio que se asociará al radicado y se enviará a la dependencia.</small>
                 <dialog id="modalSeleccionarPdfGestion" class="received-register-dialog pqrs-pdf-picker-dialog" aria-labelledby="tituloModalPdfGestion">
                   <div class="received-register-dialog-card">
                     <div class="received-register-dialog-heading">

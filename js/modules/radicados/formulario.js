@@ -62,6 +62,13 @@ let seleccionPQRSFPendienteEnCurso = false;
 const observadoresPresenciaPQRS = new Map();
 const reservasPQRSEnLiberacion = new Set();
 
+function tienePdfOriginalCiudadano(registro) {
+  return registro?.origenSolicitud === 'ciudadano'
+    && Boolean(obtenerUrlHttpsSegura(
+      registro.pdfCiudadanoUrl || registro.pdfUrl || ''
+    ));
+}
+
 function actualizarCampoNotificacionRespuesta(tipoSelectId, campoId, etiquetaId) {
   const select = document.getElementById(tipoSelectId);
   const campo = document.getElementById(campoId);
@@ -207,9 +214,26 @@ function establecerModoFormularioPQRSF(modo) {
     pdfGestionSeleccionado.disabled = !esGestionPendienteActiva;
   }
   const abrirSelectorPdfGestion = document.getElementById('abrirSelectorPdfGestion');
+  const pdfGestionOpcional = esGestionPendienteActiva
+    && tienePdfOriginalCiudadano(datosPendienteGestion);
+  const etiquetaPdfGestion = document.getElementById('etiquetaPdfGestion');
+  if (etiquetaPdfGestion) {
+    etiquetaPdfGestion.textContent = pdfGestionOpcional
+      ? 'Oficio de gestión (PDF opcional)'
+      : 'Oficio de gestión (PDF obligatorio)';
+  }
+  const ayudaPdfGestion = document.getElementById('ayudaPdfGestion');
+  if (ayudaPdfGestion) {
+    ayudaPdfGestion.textContent = pdfGestionOpcional
+      ? 'La solicitud original adjunta se enviará a la dependencia. Puedes seleccionar otro oficio si corresponde.'
+      : 'Selecciona el oficio que se asociará al radicado y se enviará a la dependencia.';
+  }
   if (abrirSelectorPdfGestion) {
     abrirSelectorPdfGestion.disabled = !esGestionPendienteActiva;
-    abrirSelectorPdfGestion.setAttribute('aria-required', String(esGestionPendienteActiva));
+    abrirSelectorPdfGestion.setAttribute(
+      'aria-required',
+      String(esGestionPendienteActiva && !pdfGestionOpcional)
+    );
   }
   const aceptacion = document.getElementById('aceptaTratamientoDatos');
   if (aceptacion) aceptacion.required = esRadicacionCiudadana;
@@ -1639,7 +1663,9 @@ async function guardarRadicado(e) {
   const pdfGestion = esGestionPendiente
     ? pdfsBibliotecaGestion.find(pdf => pdf.url === selectorPdfGestion?.value)
     : null;
-  if (esGestionPendiente && !pdfGestion) {
+  const pdfGestionOpcional = esGestionPendiente
+    && tienePdfOriginalCiudadano(datosPendienteGestion);
+  if (esGestionPendiente && !pdfGestion && !pdfGestionOpcional) {
     alert(pdfsBibliotecaGestion.length
       ? 'Busca y selecciona el oficio de gestión que se enviará a la dependencia.'
       : 'Sube primero el PDF del oficio de gestión y luego selecciónalo.');
