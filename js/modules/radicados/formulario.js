@@ -29,7 +29,14 @@ import {
   COLECCION_CONSULTA_PUBLICA,
   sincronizarConsultaPublicaRadicado
 } from '../../services/consulta-publica.js';
-import { esAdministrador, esCiudadano, esFuncionario, obtenerDependenciaSesion, obtenerPerfilSesion } from '../auth/roles.js';
+import {
+  esAdministrador,
+  esCiudadano,
+  esFuncionario,
+  obtenerCanalPendientesSesion,
+  obtenerDependenciaSesion,
+  obtenerPerfilSesion
+} from '../auth/roles.js';
 import { mostrarAviso } from '../ui/avisos.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
 
@@ -898,8 +905,17 @@ async function cargarPQRSFPendientes() {
       return;
     }
     sincronizarObservadoresPresencia(registros);
-    if (!registros.length) {
-      mostrarMensajePendientes('No hay PQRS pendientes por gestionar.');
+    const canalPendientes = obtenerCanalPendientesSesion();
+    const registrosVisibles = canalPendientes
+      ? registros.filter(registro => registro.tipoCanal === canalPendientes)
+      : registros;
+    if (!registrosVisibles.length) {
+      const mensajeVacio = canalPendientes === 'Presencial'
+        ? 'No hay PQRS presenciales pendientes por gestionar.'
+        : canalPendientes === 'Virtual'
+          ? 'No hay PQRS virtuales pendientes por gestionar.'
+          : 'No hay PQRS pendientes por gestionar.';
+      mostrarMensajePendientes(mensajeVacio);
       return;
     }
 
@@ -907,7 +923,7 @@ async function cargarPQRSFPendientes() {
     lista.replaceChildren();
     const renderizarPendientes = () => {
       lista.replaceChildren();
-      registros.slice(0, cantidadVisiblePendientes).forEach(registro => {
+      registrosVisibles.slice(0, cantidadVisiblePendientes).forEach(registro => {
         const entrada = document.createElement('div');
         entrada.className = 'pqrs-pending-entry';
         const boton = document.createElement('button');
@@ -943,7 +959,7 @@ async function cargarPQRSFPendientes() {
         lista.append(entrada);
       });
 
-      if (cantidadVisiblePendientes < registros.length) {
+      if (cantidadVisiblePendientes < registrosVisibles.length) {
         const verMas = document.createElement('button');
         verMas.type = 'button';
         verMas.className = 'pqrs-pending-show-more';

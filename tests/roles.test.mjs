@@ -7,6 +7,7 @@ import {
   esFuncionario,
   esInvitado,
   limpiarSesionUsuario,
+  obtenerCanalPendientesSesion,
   obtenerCredencialLogin,
   obtenerCredencialPorCorreo,
   perfilCoincideCredencial,
@@ -147,4 +148,28 @@ test('Bridis, Licth y Marcela inician sesión con usuarios propios de administra
     obtenerCredencialPorCorreo('marcela@usuarios.pqrsalcaldiaarjona.invalid').rol,
     'administrador'
   );
+});
+
+test('La lista de pendientes asigna presencial a Bridis y Licth, y virtual a Marcela', () => {
+  establecerSesionUsuario(
+    { email: 'bridis@usuarios.pqrsalcaldiaarjona.invalid' },
+    { rol: 'administrador' }
+  );
+  assert.equal(obtenerCanalPendientesSesion(), 'Presencial');
+
+  establecerSesionUsuario(
+    { email: 'licth@usuarios.pqrsalcaldiaarjona.invalid' },
+    { rol: 'administrador' }
+  );
+  assert.equal(obtenerCanalPendientesSesion(), 'Presencial');
+
+  establecerSesionUsuario(
+    { email: 'marcela@usuarios.pqrsalcaldiaarjona.invalid' },
+    { rol: 'administrador' }
+  );
+  assert.equal(obtenerCanalPendientesSesion(), 'Virtual');
+
+  establecerSesionUsuario({ email: 'majodabel19@gmail.com' }, { rol: 'administrador' });
+  assert.equal(obtenerCanalPendientesSesion(), '');
+  limpiarSesionUsuario();
 });

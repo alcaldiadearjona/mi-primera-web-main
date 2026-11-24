@@ -23,6 +23,11 @@ const CUENTAS_ADMINISTRADOR_ADICIONALES = {
   licth: 'licth@usuarios.pqrsalcaldiaarjona.invalid',
   marcela: 'marcela@usuarios.pqrsalcaldiaarjona.invalid'
 };
+const CANALES_PENDIENTES_POR_ADMIN = {
+  bridis: 'Presencial',
+  licth: 'Presencial',
+  marcela: 'Virtual'
+};
 let perfilSesion = null;
 let usuarioSesion = null;
 
@@ -116,6 +121,14 @@ export function obtenerPerfilSesion() {
 
 export function obtenerUsuarioSesion() {
   return usuarioSesion;
+}
+
+export function obtenerCanalPendientesSesion() {
+  const correo = String(usuarioSesion?.email || '').trim().toLowerCase();
+  const cuenta = Object.keys(CUENTAS_ADMINISTRADOR_ADICIONALES).find(
+    nombre => CUENTAS_ADMINISTRADOR_ADICIONALES[nombre] === correo
+  );
+  return cuenta ? CANALES_PENDIENTES_POR_ADMIN[cuenta] || '' : '';
 }
 
 export function esControlInterno() {
