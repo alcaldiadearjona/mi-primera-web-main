@@ -101,6 +101,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   font-family: "Inter", sans-serif;
 }
 
+.received-register-dialog.flatpickr-calendar-open {
+  overflow: visible;
+}
+
+.received-register-dialog.flatpickr-calendar-open > .received-register-dialog-card {
+  max-height: calc(100vh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .flatpickr-months {
   height: 54px;
   border-radius: 11px 11px 0 0;
@@ -158,6 +168,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .flatpickr-calendar .flatpickr-custom-header select.flatpickr-custom-year {
   min-height: 36px !important;
   padding: 0 6px !important;
+  background-image: none !important;
+  appearance: auto !important;
+  -webkit-appearance: menulist !important;
+}
+
+.flatpickr-calendar .flatpickr-custom-header select.flatpickr-custom-month {
+  min-height: 36px !important;
+  padding: 0 18px 0 8px !important;
   background-image: none !important;
   appearance: auto !important;
   -webkit-appearance: menulist !important;

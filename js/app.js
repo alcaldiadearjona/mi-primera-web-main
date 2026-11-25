@@ -12,6 +12,7 @@ import { modalesMarkup } from './components/modales/modales.js';
 import { avisosMarkup } from './components/modales/avisos.js';
 import { inicializarAvisos } from './modules/ui/avisos.js';
 import { inicializarSelectoresPersonalizados } from './modules/ui/selectores-personalizados.js';
+import { configurarSelectoresFechaModernos } from './modules/radicados/formulario.js';
 import { inicializarSesion } from './modules/auth/sesion.js';
 import './modules/dependencias/busqueda.js';
 import { inicializarNavegacion } from './modules/navegacion/vistas.js';
@@ -36,6 +37,7 @@ document.body.insertAdjacentHTML('beforeend', [
   avisosMarkup
 ].join(''));
 
+configurarSelectoresFechaModernos();
 inicializarSelectoresPersonalizados();
 inicializarAvisos();
 

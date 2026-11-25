@@ -2059,7 +2059,7 @@ export function establecerFormularioVisible(visible) {
   toggle?.classList.toggle('is-collapsed', !visible);
 }
 
-function configurarSelectoresFechaModernos() {
+export function configurarSelectoresFechaModernos() {
   if (!window.flatpickr) return;
 
   const sincronizarSelectores = instancia => {
@@ -2068,6 +2068,20 @@ function configurarSelectoresFechaModernos() {
     const selectorAnio = calendario.querySelector('.flatpickr-custom-year');
     if (selectorMes) selectorMes.value = String(instancia.currentMonth);
     if (selectorAnio) selectorAnio.value = String(instancia.currentYear);
+  };
+
+  const ajustarPosicionCalendarioEnDialogo = instancia => {
+    const dialogo = instancia.input.closest('dialog');
+    if (!dialogo) return;
+
+    const calendario = instancia.calendarContainer;
+    const rectDialogo = dialogo.getBoundingClientRect();
+    const left = Number.parseFloat(calendario.style.left);
+    const top = Number.parseFloat(calendario.style.top);
+    if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+
+    calendario.style.left = `${left - rectDialogo.left - dialogo.clientLeft + dialogo.scrollLeft}px`;
+    calendario.style.top = `${top - rectDialogo.top - dialogo.clientTop + dialogo.scrollTop}px`;
   };
 
   const crearSelectores = instancia => {
@@ -2113,6 +2127,30 @@ function configurarSelectoresFechaModernos() {
     sincronizarSelectores(instancia);
   };
 
+  const configurarRangosFecha = () => {
+    document.querySelectorAll('input[id^="fechaDesde"]').forEach(desde => {
+      if (desde.dataset.rangoFechaConfigurado === 'true' || !desde._flatpickr) return;
+      const idHasta = desde.id.replace('fechaDesde', 'fechaHasta');
+      const hasta = document.getElementById(idHasta);
+      if (!hasta?._flatpickr) return;
+
+      const actualizarLimiteHasta = () => {
+        const fechaDesde = desde.value;
+        const fechaHasta = hasta.value;
+        hasta.min = fechaDesde;
+        hasta._flatpickr.set('minDate', fechaDesde || null);
+        if (fechaDesde && fechaHasta && fechaHasta < fechaDesde) {
+          hasta._flatpickr.clear();
+        }
+      };
+
+      desde.addEventListener('change', actualizarLimiteHasta);
+      hasta.addEventListener('change', actualizarLimiteHasta);
+      desde.dataset.rangoFechaConfigurado = 'true';
+      actualizarLimiteHasta();
+    });
+  };
+
   const inicializar = input => {
     if (input.dataset.calendarModerno === 'true' || input.disabled || input.readOnly) return;
     input.dataset.calendarModerno = 'true';
@@ -2124,25 +2162,43 @@ function configurarSelectoresFechaModernos() {
       allowInput: false,
       monthSelectorType: 'dropdown',
       disableMobile: true,
+      appendTo: input.closest('dialog') || document.body,
       onReady: (_, __, instancia) => crearSelectores(instancia),
       onMonthChange: (_, __, instancia) => sincronizarSelectores(instancia),
-      onYearChange: (_, __, instancia) => sincronizarSelectores(instancia)
+      onYearChange: (_, __, instancia) => sincronizarSelectores(instancia),
+      onOpen: (_, __, instancia) => {
+        instancia.input.closest('dialog')?.classList.add('flatpickr-calendar-open');
+        window.requestAnimationFrame(() => {
+          ajustarPosicionCalendarioEnDialogo(instancia);
+        });
+      },
+      onClose: (_, __, instancia) => {
+        instancia.input.closest('dialog')?.classList.remove('flatpickr-calendar-open');
+      }
     });
     instancia.altInput?.classList.add('flatpickr-date-display');
   };
 
   document.querySelectorAll('input[type="date"]').forEach(inicializar);
+  configurarRangosFecha();
 
   if (document.documentElement.dataset.selectoresFechaObserverConfigurado) return;
   document.documentElement.dataset.selectoresFechaObserverConfigurado = 'true';
   const observer = new MutationObserver(mutations => {
+    let seAgregaronCamposFecha = false;
     mutations.forEach(mutation => {
       mutation.addedNodes.forEach(nodo => {
         if (!(nodo instanceof Element)) return;
-        if (nodo.matches?.('input[type="date"]')) inicializar(nodo);
-        nodo.querySelectorAll?.('input[type="date"]').forEach(inicializar);
+        if (nodo.matches?.('input[type="date"]')) {
+          inicializar(nodo);
+          seAgregaronCamposFecha = true;
+        }
+        const camposFecha = nodo.querySelectorAll?.('input[type="date"]');
+        camposFecha?.forEach(inicializar);
+        if (camposFecha?.length) seAgregaronCamposFecha = true;
       });
     });
+    if (seAgregaronCamposFecha) configurarRangosFecha();
   });
   observer.observe(document.body, { childList: true, subtree: true });
 }
