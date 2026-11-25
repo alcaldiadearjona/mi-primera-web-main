@@ -62,8 +62,8 @@ let seleccionPQRSFPendienteEnCurso = false;
 const observadoresPresenciaPQRS = new Map();
 const reservasPQRSEnLiberacion = new Set();
 
-function tienePdfOriginalCiudadano(registro) {
-  return registro?.origenSolicitud === 'ciudadano'
+function tieneDocumentoAdjuntoSolicitud(registro) {
+  return ['ciudadano', 'recepcion'].includes(registro?.origenSolicitud)
     && Boolean(obtenerUrlHttpsSegura(
       registro.pdfCiudadanoUrl || registro.pdfUrl || ''
     ));
@@ -215,7 +215,7 @@ function establecerModoFormularioPQRSF(modo) {
   }
   const abrirSelectorPdfGestion = document.getElementById('abrirSelectorPdfGestion');
   const pdfGestionOpcional = esGestionPendienteActiva
-    && tienePdfOriginalCiudadano(datosPendienteGestion);
+    && tieneDocumentoAdjuntoSolicitud(datosPendienteGestion);
   const etiquetaPdfGestion = document.getElementById('etiquetaPdfGestion');
   if (etiquetaPdfGestion) {
     etiquetaPdfGestion.textContent = pdfGestionOpcional
@@ -1664,7 +1664,7 @@ async function guardarRadicado(e) {
     ? pdfsBibliotecaGestion.find(pdf => pdf.url === selectorPdfGestion?.value)
     : null;
   const pdfGestionOpcional = esGestionPendiente
-    && tienePdfOriginalCiudadano(datosPendienteGestion);
+    && tieneDocumentoAdjuntoSolicitud(datosPendienteGestion);
   if (esGestionPendiente && !pdfGestion && !pdfGestionOpcional) {
     alert(pdfsBibliotecaGestion.length
       ? 'Busca y selecciona el oficio de gestión que se enviará a la dependencia.'
