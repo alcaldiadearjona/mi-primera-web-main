@@ -1,7 +1,13 @@
-import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
+import {
+  arrayUnion,
+  doc,
+  getDoc,
+  updateDoc,
+  writeBatch
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { auth, db, GOOGLE_SCRIPT_URL, RADICADOS_COLLECTION } from '../../config/firebase-config.js';
 import { buscarRegistroRadicado, obtenerColeccionRegistro } from '../../data/registros.js';
-import { convertirABase64 } from '../../utils/helpers.js';
+import { convertirABase64, obtenerUrlHttpsSegura } from '../../utils/helpers.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { sincronizarConsultaPublicaRadicado } from '../../services/consulta-publica.js';
 import { recargarDatosIAS } from '../ias/tablero.js';
@@ -9,12 +15,14 @@ import { confirmarAccion } from '../ui/avisos.js';
 import {
   esAdministrador,
   puedeGestionarIAS,
-  puedeGestionarRadicado
+  puedeGestionarRadicado,
+  obtenerPerfilSesion
 } from '../auth/roles.js';
 import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
 import { enviarNotificacionCorreo } from './notificaciones-correo.js';
 
 const guardadosTipoPeticionPendientes = new Map();
+const gruposRespuestaCache = new Map();
 
 async function sincronizarConsultaPublicaSiAplica(radicado) {
   if (obtenerColeccionRegistro(radicado) !== RADICADOS_COLLECTION) return;
@@ -35,6 +43,393 @@ function recargarDatosRegistro(registro) {
   return obtenerColeccionRegistro(registro) === 'radicadosIAS'
     ? recargarDatosIAS()
     : cargarDatosDesdeFirebase();
+}
+
+function idsRadicadosCompartidos(radicado) {
+  return [...new Set([
+    radicado.grupoRespuestaId,
+    ...(Array.isArray(radicado.grupoRadicadoIds) ? radicado.grupoRadicadoIds : [])
+  ].filter(id => typeof id === 'string' && id))];
+}
+
+async function actualizarGrupoRadicado(radicado, campos) {
+  const ids = idsRadicadosCompartidos(radicado);
+  if (!ids.length || radicado.grupoRespuestaId !== radicado.id) {
+    throw new Error('No se pudo identificar el grupo del radicado líder.');
+  }
+  const lote = writeBatch(db);
+  ids.forEach(id => lote.update(doc(db, RADICADOS_COLLECTION, id), campos));
+  await lote.commit();
+}
+
+async function obtenerGrupoRespuesta(radicado, actualizar = false) {
+  const idGrupo = radicado.grupoRespuestaId;
+  if (!idGrupo) throw new Error('No se encontró el grupo de respuesta de este radicado.');
+  if (actualizar || !gruposRespuestaCache.has(idGrupo)) {
+    gruposRespuestaCache.set(idGrupo, getDoc(doc(db, RADICADOS_COLLECTION, idGrupo)));
+  }
+  let snapshot;
+  try {
+    snapshot = await gruposRespuestaCache.get(idGrupo);
+  } catch (error) {
+    gruposRespuestaCache.delete(idGrupo);
+    throw error;
+  }
+  if (!snapshot.exists()) {
+    gruposRespuestaCache.delete(idGrupo);
+    throw new Error('No se encontró el radicado principal del grupo.');
+  }
+  return snapshot.data();
+}
+
+function mostrarAportesEnModal(radicado, aportes) {
+  const modal = document.getElementById('modalDetalleAportes');
+  const lista = document.getElementById('listaDetalleAportes');
+  document.getElementById('subtituloModalDetalleAportes').textContent =
+    `Radicado ${radicado.radicado || radicado.id} · ${radicado.dependencia === radicado.dependenciaLider ? 'Todas las dependencias' : radicado.dependencia}`;
+  lista.replaceChildren();
+
+  if (!aportes.length) {
+    const vacio = document.createElement('p');
+    vacio.className = 'contribution-view-empty';
+    vacio.textContent = 'Esta dependencia aún no ha enviado aportes.';
+    lista.appendChild(vacio);
+  }
+
+  aportes.forEach(aporte => {
+    const tarjeta = document.createElement('article');
+    tarjeta.className = 'contribution-view-item';
+    const encabezado = document.createElement('div');
+    encabezado.className = 'contribution-view-heading';
+    const dependencia = document.createElement('strong');
+    dependencia.textContent = aporte.dependencia || 'Dependencia';
+    encabezado.appendChild(dependencia);
+
+    const fecha = document.createElement('small');
+    const fechaAporte = new Date(aporte.fecha || '');
+    fecha.textContent = Number.isNaN(fechaAporte.getTime())
+      ? String(aporte.fecha || '')
+      : new Intl.DateTimeFormat('es-CO', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'America/Bogota'
+        }).format(fechaAporte);
+    encabezado.appendChild(fecha);
+    tarjeta.appendChild(encabezado);
+
+    if (aporte.funcionario) {
+      const funcionario = document.createElement('p');
+      funcionario.className = 'contribution-view-author';
+      funcionario.textContent = `Enviado por: ${aporte.funcionario}`;
+      tarjeta.appendChild(funcionario);
+    }
+    if (aporte.texto) {
+      const texto = document.createElement('p');
+      texto.className = 'contribution-view-text';
+      texto.textContent = aporte.texto;
+      tarjeta.appendChild(texto);
+    }
+
+    const enlaces = (Array.isArray(aporte.archivos) ? aporte.archivos : [])
+      .map(obtenerUrlHttpsSegura)
+      .filter(Boolean);
+    enlaces.forEach((url, indice) => {
+      const enlace = document.createElement('a');
+      enlace.className = 'contribution-view-file-link';
+      enlace.href = url;
+      enlace.target = '_blank';
+      enlace.rel = 'noopener noreferrer';
+      enlace.innerHTML = `<i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Ver PDF ${indice + 1}`;
+      tarjeta.appendChild(enlace);
+    });
+    lista.appendChild(tarjeta);
+  });
+
+  if (!modal.open) modal.showModal();
+}
+
+window.actualizarEstadoAporteDependencia = async function(idRadicado, boton) {
+  const radicado = buscarRadicado(idRadicado, boton);
+  if (!radicado?.grupoRespuestaId || !boton) return;
+  try {
+    const grupo = await obtenerGrupoRespuesta(radicado);
+    const aportesPropios = (Array.isArray(grupo.aportesDependencias) ? grupo.aportesDependencias : [])
+      .filter(aporte => aporte?.dependencia === radicado.dependencia);
+    const etiqueta = boton.querySelector('span');
+    if (aportesPropios.length) {
+      if (etiqueta) etiqueta.textContent = 'Aporte Enviado';
+      boton.title = 'Consultar la información enviada por esta dependencia';
+    } else if (grupo.estado === 'CERRADO' || radicado.estado === 'CERRADO') {
+      if (etiqueta) etiqueta.textContent = 'Aportes cerrados';
+      boton.disabled = true;
+      boton.title = 'Esta copia ya está cerrada';
+    }
+  } catch (error) {
+    console.error('No se pudo consultar el estado del aporte:', error);
+    boton.title = 'No se pudo consultar el aporte. Intenta de nuevo.';
+  }
+};
+
+window.abrirAporteOConsultar = async function(idRadicado, boton) {
+  const radicado = buscarRadicado(idRadicado, boton);
+  if (!radicado?.grupoRespuestaId) return;
+  try {
+    const grupo = await obtenerGrupoRespuesta(radicado, true);
+    const aportesPropios = (Array.isArray(grupo.aportesDependencias) ? grupo.aportesDependencias : [])
+      .filter(aporte => aporte?.dependencia === radicado.dependencia);
+    if (aportesPropios.length) {
+      mostrarAportesEnModal(radicado, aportesPropios);
+    } else if (grupo.estado === 'CERRADO' || radicado.estado === 'CERRADO') {
+      alert(radicado.estado === 'CERRADO'
+        ? 'Esta copia ya está cerrada y no admite nuevos aportes.'
+        : 'El caso ya tiene respuesta final y no admite nuevos aportes.');
+    } else {
+      window.abrirModalAporteDependencia(idRadicado, boton);
+    }
+  } catch (error) {
+    console.error('No se pudo consultar el aporte del radicado:', error);
+    alert(`No se pudo consultar el aporte: ${error.message}`);
+  }
+};
+
+window.abrirModalAportesGrupo = async function(idRadicado, boton) {
+  const radicado = buscarRadicado(idRadicado, boton);
+  if (!radicado?.grupoRespuestaId || radicado.dependencia !== radicado.dependenciaLider) return;
+  try {
+    const grupo = await obtenerGrupoRespuesta(radicado, true);
+    const aportes = (Array.isArray(grupo.aportesDependencias) ? grupo.aportesDependencias : [])
+      .filter(aporte => aporte && typeof aporte === 'object');
+    mostrarAportesEnModal(radicado, aportes);
+  } catch (error) {
+    console.error('No se pudieron consultar los aportes del grupo:', error);
+    alert(`No se pudieron consultar los aportes: ${error.message}`);
+  }
+};
+
+window.cerrarModalDetalleAportes = function() {
+  const modal = document.getElementById('modalDetalleAportes');
+  if (modal?.open) modal.close();
+};
+
+function inicializarModalAporteDependencia() {
+  const modal = document.getElementById('modalAporteDependencia');
+  const formulario = document.getElementById('formAporteDependencia');
+  const inputArchivos = document.getElementById('archivosAporteDependencia');
+  const resumen = document.getElementById('resumenArchivosAporte');
+  if (!modal || !formulario || !inputArchivos || formulario.dataset.initialized === 'true') return;
+  formulario.dataset.initialized = 'true';
+
+  inputArchivos.addEventListener('change', () => {
+    const archivos = Array.from(inputArchivos.files || []);
+    resumen.textContent = archivos.length
+      ? `${archivos.length} archivo${archivos.length === 1 ? '' : 's'} seleccionado${archivos.length === 1 ? '' : 's'}`
+      : 'Aún no has seleccionado archivos.';
+  });
+  formulario.addEventListener('submit', guardarAporteDependencia);
+  document.getElementById('cerrarModalAporteDependencia')?.addEventListener('click', window.cerrarModalAporteDependencia);
+  document.getElementById('cancelarAporteDependencia')?.addEventListener('click', window.cerrarModalAporteDependencia);
+  document.getElementById('cerrarModalDetalleAportes')?.addEventListener('click', window.cerrarModalDetalleAportes);
+  document.getElementById('cerrarDetalleAportes')?.addEventListener('click', window.cerrarModalDetalleAportes);
+}
+
+window.abrirModalAporteDependencia = function(idRadicado, boton) {
+  const fila = boton?.closest('tr');
+  const radicado = buscarRadicado(idRadicado, fila);
+  if (!radicado?.grupoRespuestaId || radicado.dependencia === radicado.dependenciaLider) {
+    alert('No se pudo identificar el grupo de respuesta de esta dependencia.');
+    return;
+  }
+  if (!puedeGestionarRadicado(radicado.dependencia)) {
+    alert('No tienes permiso para aportar a este radicado.');
+    return;
+  }
+
+  const modal = document.getElementById('modalAporteDependencia');
+  const formulario = document.getElementById('formAporteDependencia');
+  formulario.reset();
+  document.getElementById('errorAporteDependencia').hidden = true;
+  document.getElementById('resumenArchivosAporte').textContent = 'Aún no has seleccionado archivos.';
+  modal.dataset.radicadoId = idRadicado;
+  modal.dataset.collection = obtenerColeccionRegistro(radicado);
+  document.getElementById('subtituloModalAporteDependencia').textContent =
+    `Radicado ${radicado.radicado || idRadicado} · ${radicado.dependencia}. La dependencia líder es ${radicado.dependenciaLider}.`;
+  modal.showModal();
+};
+
+window.cerrarModalAporteDependencia = function() {
+  const modal = document.getElementById('modalAporteDependencia');
+  if (modal?.open) modal.close();
+};
+
+async function guardarAporteDependencia(event) {
+  event.preventDefault();
+  const modal = document.getElementById('modalAporteDependencia');
+  const inputArchivos = document.getElementById('archivosAporteDependencia');
+  const texto = document.getElementById('textoAporteDependencia').value.trim();
+  const archivos = Array.from(inputArchivos.files || []);
+  const error = document.getElementById('errorAporteDependencia');
+  const boton = document.getElementById('guardarAporteDependencia');
+  const id = modal.dataset.radicadoId;
+  const radicado = buscarRegistroRadicado(id, modal.dataset.collection || '');
+  if (boton.disabled) return;
+  error.hidden = true;
+
+  if (!radicado?.grupoRespuestaId || radicado.dependencia === radicado.dependenciaLider) {
+    error.textContent = 'El aporte solo está disponible para las dependencias colaboradoras del grupo.';
+    error.hidden = false;
+    return;
+  }
+  if (!puedeGestionarRadicado(radicado.dependencia)) {
+    error.textContent = 'No tienes permiso para aportar a este radicado.';
+    error.hidden = false;
+    return;
+  }
+  if (!texto && !archivos.length) {
+    error.textContent = 'Escribe un concepto o adjunta al menos un PDF.';
+    error.hidden = false;
+    return;
+  }
+  if (archivos.length > 10) {
+    error.textContent = 'Puedes adjuntar hasta 10 PDF.';
+    error.hidden = false;
+    return;
+  }
+  for (const archivo of archivos) {
+    if (!/\.pdf$/i.test(archivo.name)
+      || (archivo.type && archivo.type.toLowerCase() !== 'application/pdf')
+      || archivo.size > 10 * 1024 * 1024
+      || await archivo.slice(0, 5).text() !== '%PDF-') {
+      error.textContent = 'Cada archivo debe ser un PDF válido de máximo 10 MB.';
+      error.hidden = false;
+      return;
+    }
+  }
+
+  boton.disabled = true;
+  boton.setAttribute('aria-busy', 'true');
+  boton.textContent = 'Guardando aporte...';
+  const urls = [];
+  let aporteGuardado = false;
+  try {
+    const referenciaGrupo = doc(db, RADICADOS_COLLECTION, radicado.grupoRespuestaId);
+    const snapshotGrupo = await getDoc(referenciaGrupo);
+    if (!snapshotGrupo.exists()) throw new Error('No se encontró el radicado principal del grupo.');
+    const grupo = snapshotGrupo.data();
+    if (!Array.isArray(grupo.dependenciasParticipantes)
+      || !grupo.dependenciasParticipantes.includes(radicado.dependencia)
+      || grupo.dependenciaLider !== radicado.dependenciaLider) {
+      throw new Error('La dependencia no pertenece al grupo de este radicado.');
+    }
+    if (grupo.estado === 'CERRADO') {
+      throw new Error('El radicado ya tiene una respuesta final y está cerrado.');
+    }
+    const dependenciasAportesEnviados = Array.isArray(grupo.dependenciasAportesEnviados)
+      ? grupo.dependenciasAportesEnviados
+      : (Array.isArray(grupo.aportesDependencias) ? grupo.aportesDependencias : [])
+        .filter(aporte => aporte && typeof aporte === 'object')
+        .map(aporte => aporte.dependencia);
+    if (dependenciasAportesEnviados.includes(radicado.dependencia)) {
+      throw new Error('Esta dependencia ya envió su aporte.');
+    }
+    if (radicado.id === radicado.grupoRespuestaId) {
+      throw new Error('No se puede cerrar la copia de la dependencia líder al enviar un aporte.');
+    }
+
+    for (const [indice, archivo] of archivos.entries()) {
+      const base64File = await convertirABase64(archivo);
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          archivoBase64: base64File.split(',')[1] || '',
+          nombreArchivo: `Aporte_${radicado.radicado}_${radicado.dependencia}_${indice + 1}_${archivo.name}`,
+          mimeType: 'application/pdf'
+        })
+      });
+      if (!response.ok) throw new Error(`Google Drive respondió con el estado ${response.status}.`);
+      const resultado = await response.json();
+      let url;
+      try {
+        url = new URL(resultado.url);
+      } catch {
+        throw new Error('Google Drive devolvió una URL de archivo no válida.');
+      }
+      if (resultado.status !== 'success'
+        || url.protocol !== 'https:'
+        || url.hostname !== 'drive.google.com') {
+        throw new Error(resultado.message || 'No fue posible guardar el PDF de aporte.');
+      }
+      urls.push(url.href);
+    }
+
+    const aporte = {
+      id: `${auth.currentUser?.uid || 'usuario'}-${Date.now()}`,
+      dependencia: radicado.dependencia,
+      funcionario: obtenerPerfilSesion()?.nombre || '',
+      texto,
+      archivos: urls,
+      fecha: new Date().toISOString()
+    };
+    const fechaCambioEstado = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+    const loteAporte = writeBatch(db);
+    loteAporte.update(referenciaGrupo, {
+      aportesDependencias: arrayUnion(aporte),
+      dependenciasAportesEnviados: arrayUnion(radicado.dependencia)
+    });
+    loteAporte.update(doc(db, RADICADOS_COLLECTION, radicado.id), {
+      estado: 'CERRADO',
+      fechaCambioEstado
+    });
+    await loteAporte.commit();
+    aporteGuardado = true;
+    gruposRespuestaCache.delete(radicado.grupoRespuestaId);
+    window.cerrarModalAporteDependencia();
+    try {
+      const recargaExitosa = await recargarDatosRegistro(radicado);
+      if (recargaExitosa === false) {
+        alert('El aporte se guardó correctamente, pero no se pudo actualizar la vista. Recarga la página para ver los cambios.');
+        return;
+      }
+    } catch (errorRecarga) {
+      console.error('El aporte se guardó, pero no se pudo actualizar la vista:', errorRecarga);
+      alert('El aporte se guardó correctamente, pero no se pudo actualizar la vista. Recarga la página para ver los cambios.');
+      return;
+    }
+    alert('El aporte se envió correctamente y se cerró la copia de esta dependencia. El caso compartido sigue abierto para la dependencia líder.');
+  } catch (saveError) {
+    console.error('Error al guardar el aporte de la dependencia:', saveError);
+    error.textContent = `No fue posible guardar el aporte: ${saveError.message}`;
+    error.hidden = false;
+    if (!aporteGuardado) {
+      const urlsNoEliminadas = [];
+      for (const url of urls) {
+        try {
+          const respuestaEliminacion = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'delete', pdfUrl: url })
+          });
+          const resultadoEliminacion = await respuestaEliminacion.json();
+          if (!respuestaEliminacion.ok || resultadoEliminacion.status !== 'success') {
+            urlsNoEliminadas.push(url);
+          }
+        } catch (errorLimpieza) {
+          console.error('No fue posible limpiar un PDF de aporte no guardado:', errorLimpieza);
+          urlsNoEliminadas.push(url);
+        }
+      }
+      if (urlsNoEliminadas.length) {
+        console.error('Algunos PDF de aporte no guardados siguen en Drive:', urlsNoEliminadas);
+      }
+    }
+  } finally {
+    boton.disabled = false;
+    boton.removeAttribute('aria-busy');
+    boton.innerHTML = '<i class="bi bi-send" aria-hidden="true"></i> Enviar aporte';
+  }
 }
 
 window.guardarTipoPeticionRadicado = async function(idRadicado, selectElement) {
@@ -106,6 +501,12 @@ window.abrirModalRespuestaRadicado = function(idRadicado, boton) {
     alert('No fue posible abrir la carga de respuesta.');
     return;
   }
+  if (radicado.grupoRespuestaId
+    && (radicado.dependenciaLider !== radicado.dependencia
+      || radicado.grupoRespuestaId !== radicado.id)) {
+    alert('La respuesta final solo puede cargarla la dependencia líder del grupo.');
+    return;
+  }
   modal.dataset.radicadoId = idRadicado;
   modal.dataset.collection = obtenerColeccionRegistro(radicado);
   formulario.reset();
@@ -125,8 +526,12 @@ window.abrirModalRespuestaRadicado = function(idRadicado, boton) {
     : radicado.notificacionRespuestaTipo === 'Correo'
       ? 'El correo registrado no es válido. La respuesta solo podrá quedar como evidencia.'
       : 'El ciudadano no registró el correo como medio de notificación. La respuesta solo podrá quedar como evidencia.';
+  document.getElementById('tituloModalRespuestaRadicado').textContent =
+    radicado.grupoRespuestaId ? 'Cargar respuesta final' : 'Cargar respuesta';
   document.getElementById('subtituloModalRespuestaRadicado').textContent =
-    `Radicado ${radicado.radicado || idRadicado}`;
+    radicado.grupoRespuestaId
+      ? `Radicado ${radicado.radicado || idRadicado}. Esta respuesta cerrará el caso para todas las dependencias participantes.`
+      : `Radicado ${radicado.radicado || idRadicado}`;
   document.getElementById('progresoRespuestaRadicado').hidden = true;
   document.getElementById('porcentajeRespuestaRadicado').textContent = '0%';
   document.getElementById('barraProgresoRespuestaRadicado').style.width = '0%';
@@ -325,7 +730,7 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
         month: '2-digit',
         day: '2-digit'
       }).format(new Date());
-      await updateDoc(radicadoRef, {
+      const camposRespuesta = {
         respuestaUrl: urlsCargadas[0],
         respuestaArchivos: urlsCargadas,
         respuestaSoloEvidencia: soloEvidencia,
@@ -336,7 +741,12 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
         correoRespuestaEstado: enviarAlCiudadano ? 'pendiente' : 'no-aplica',
         correoRespuestaFecha: '',
         correoRespuestaError: ''
-      });
+      };
+      if (radicado.grupoRespuestaId) {
+        await actualizarGrupoRadicado(radicado, camposRespuesta);
+      } else {
+        await updateDoc(radicadoRef, camposRespuesta);
+      }
       guardado = true;
       radicado.respuestaUrl = urlsCargadas[0];
       radicado.respuestaArchivos = urlsCargadas;
@@ -358,11 +768,16 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
           console.error('No fue posible enviar la respuesta por correo:', errorCorreo);
           const mensajeErrorCorreo = String(errorCorreo?.message || errorCorreo).slice(0, 500);
           try {
-            await updateDoc(radicadoRef, {
+            const camposCorreoError = {
               correoRespuestaEstado: 'error',
               correoRespuestaFecha: '',
               correoRespuestaError: mensajeErrorCorreo
-            });
+            };
+            if (radicado.grupoRespuestaId) {
+              await actualizarGrupoRadicado(radicado, camposCorreoError);
+            } else {
+              await updateDoc(radicadoRef, camposCorreoError);
+            }
           } catch (errorRegistroCorreo) {
             console.error('No fue posible registrar el error del correo de respuesta:', errorRegistroCorreo);
           }
@@ -372,11 +787,16 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
         if (resultadoCorreo) {
           const enviado = Number(resultadoCorreo.sent) > 0 || Number(resultadoCorreo.alreadySent) > 0;
           try {
-            await updateDoc(radicadoRef, {
+            const camposResultadoCorreo = {
               correoRespuestaEstado: enviado ? 'enviado' : 'omitido',
               correoRespuestaFecha: enviado ? fechaCargaRespuesta : '',
               correoRespuestaError: ''
-            });
+            };
+            if (radicado.grupoRespuestaId) {
+              await actualizarGrupoRadicado(radicado, camposResultadoCorreo);
+            } else {
+              await updateDoc(radicadoRef, camposResultadoCorreo);
+            }
             mensajeCorreo = enviado
                 ? `La respuesta se cargó y se envió al ciudadano con ${urlsCargadas.length} PDF adjunto(s).`
               : 'La respuesta se cargó, pero el servicio no confirmó el envío del correo.';
@@ -492,8 +912,10 @@ function inicializarModalRespuestaRadicado() {
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', inicializarModalRespuestaRadicado);
+  document.addEventListener('DOMContentLoaded', inicializarModalAporteDependencia);
 } else {
   setTimeout(inicializarModalRespuestaRadicado, 0);
+  setTimeout(inicializarModalAporteDependencia, 0);
 }
 
 window.eliminarRespuestaRadicado = async function(idRadicado, botonEliminar) {

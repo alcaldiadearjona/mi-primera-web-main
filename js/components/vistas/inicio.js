@@ -157,6 +157,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                   <p id="sinResultadosDependenciasPqrs" class="pqrs-dependency-no-results" hidden>No se encontraron dependencias.</p>
                 </div>
               </div>
+              <small id="dependenciaLiderPqrs" class="dashboard-form-hint" hidden></small>
               <select id="dependencia" hidden aria-hidden="true" tabindex="-1">
                 <option value="">-- Seleccionar Dependencia --</option>
                 <option value="Secretaría de Gobierno">Secretaría de Gobierno</option>

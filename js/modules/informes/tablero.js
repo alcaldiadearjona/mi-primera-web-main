@@ -1,5 +1,6 @@
 import { datosRadicados } from '../../data/radicados.js';
 import { abreviarNombreDependencia, evaluarEstadoAutomatico } from '../../utils/helpers.js';
+import { esCopiaLiderRespuesta } from '../../utils/respuestas-compartidas.js';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/+esm';
@@ -55,7 +56,7 @@ function obtenerRegistros(origenSeleccionado = origen) {
     }));
   }
 
-  return Object.values(datosRadicados).flat().map(registro => {
+  return Object.values(datosRadicados).flat().filter(esCopiaLiderRespuesta).map(registro => {
     const estado = obtenerEstadoDependencia(registro);
     return {
       registro,

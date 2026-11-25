@@ -11,6 +11,7 @@ import {
   obtenerCredencialLogin,
   obtenerCredencialPorCorreo,
   perfilCoincideCredencial,
+  puedeAgregarObservacionesDestinatario,
   puedeConsultarIAS,
   puedeEditarRadicado,
   puedeGestionarIAS
@@ -45,6 +46,22 @@ test('Los demás funcionarios no pueden gestionar ni editar IAS', () => {
   assert.equal(puedeConsultarIAS(), true);
   assert.equal(puedeGestionarIAS(), false);
   assert.equal(puedeEditarRadicado({ coleccion: 'radicadosIAS' }), false);
+  assert.equal(puedeAgregarObservacionesDestinatario(), false);
+  limpiarSesionUsuario();
+});
+
+test('Solo funcionarios de Planeación pueden agregar observaciones al destinatario', () => {
+  establecerSesionUsuario({}, {
+    rol: 'funcionario',
+    dependencia: 'Secretaría de Planeación'
+  });
+  assert.equal(puedeAgregarObservacionesDestinatario(), true);
+
+  establecerSesionUsuario({}, {
+    rol: 'administrador',
+    dependencia: 'Secretaría de Planeación'
+  });
+  assert.equal(puedeAgregarObservacionesDestinatario(), false);
   limpiarSesionUsuario();
 });
 

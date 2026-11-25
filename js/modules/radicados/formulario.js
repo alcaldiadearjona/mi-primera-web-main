@@ -39,6 +39,7 @@ import {
 } from '../auth/roles.js';
 import { mostrarAviso } from '../ui/avisos.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
+import { crearMetadatosGrupoRespuesta } from '../../utils/respuestas-compartidas.js';
 
 const COLECCION_SECUENCIAS_ENTRADA = 'radicadosEntradaSecuencias';
 const MINIMO_SECUENCIA_ENTRADA_2026 = 4380;
@@ -57,6 +58,7 @@ function obtenerUltimoSecuenciaEntrada(anio, secuencia) {
 let modoFormularioPQRSF = 'directo';
 let radicadoPendienteGestion = '';
 let datosPendienteGestion = null;
+let ordenSeleccionDependenciaPqrs = 0;
 let cantidadVisiblePendientes = 6;
 let seleccionPQRSFPendienteEnCurso = false;
 const observadoresPresenciaPQRS = new Map();
@@ -1502,9 +1504,19 @@ export function calcularFechaVencimientoEdicion() {
 
 function actualizarResumenDependenciasPqrs() {
   const resumen = document.getElementById('resumenDependenciasPqrs');
-  const seleccionadas = Array.from(
+  const liderazgo = document.getElementById('dependenciaLiderPqrs');
+  const casillasSeleccionadas = Array.from(
     document.querySelectorAll('input[name="dependenciasDestinoPqrs"]:checked')
-  ).map(casilla => casilla.value);
+  );
+  const seleccionadas = casillasSeleccionadas
+    .sort((a, b) => Number(a.dataset.ordenSeleccion || 0) - Number(b.dataset.ordenSeleccion || 0))
+    .map(casilla => casilla.value);
+  if (liderazgo) {
+    liderazgo.hidden = seleccionadas.length < 2;
+    liderazgo.textContent = seleccionadas.length > 1
+      ? `La primera dependencia que seleccionaste será la líder: ${seleccionadas[0]}.`
+      : '';
+  }
   if (!resumen) return seleccionadas;
 
   resumen.textContent = seleccionadas.length
@@ -1597,6 +1609,12 @@ function inicializarSelectorDependenciasPqrs() {
   busqueda.addEventListener('input', () => filtrarDependenciasPqrs(busqueda.value));
   lista.addEventListener('change', event => {
     if (!event.target.matches('input[name="dependenciasDestinoPqrs"]')) return;
+    if (event.target.checked) {
+      ordenSeleccionDependenciaPqrs += 1;
+      event.target.dataset.ordenSeleccion = String(ordenSeleccionDependenciaPqrs);
+    } else {
+      delete event.target.dataset.ordenSeleccion;
+    }
     actualizarResumenDependenciasPqrs();
     busqueda.value = '';
     filtrarDependenciasPqrs('');
@@ -1827,6 +1845,7 @@ async function guardarRadicado(e) {
           : doc(collection(db, RADICADOS_COLLECTION)),
         actualizarPendiente: esGestionPendiente && indice === 0
       }));
+      const metadatosGrupo = crearMetadatosGrupoRespuesta(registrosDestino);
       if (esGestionPendiente) {
         const referenciaPendiente = doc(db, RADICADOS_COLLECTION, radicadoPendienteGestion);
         const usuarioUid = auth.currentUser?.uid || '';
@@ -1850,6 +1869,7 @@ async function guardarRadicado(e) {
           registrosDestino.forEach(({ dependencia, referencia, actualizarPendiente }) => {
             const registro = {
               ...nuevoRadicado,
+              ...metadatosGrupo,
               dependencia,
               gestionAsignadaUid: '',
               gestionAsignadaNombre: '',
@@ -1866,7 +1886,7 @@ async function guardarRadicado(e) {
       } else {
         const lote = writeBatch(db);
         registrosDestino.forEach(({ dependencia, referencia }) => {
-          lote.set(referencia, { ...nuevoRadicado, dependencia });
+          lote.set(referencia, { ...nuevoRadicado, ...metadatosGrupo, dependencia });
         });
         await lote.commit();
       }
@@ -1920,6 +1940,7 @@ async function guardarRadicado(e) {
     document.querySelectorAll('input[name="dependenciasDestinoPqrs"]').forEach(casilla => {
       casilla.checked = esFuncionario()
         && casilla.value === obtenerDependenciaSesion();
+      delete casilla.dataset.ordenSeleccion;
     });
     actualizarResumenDependenciasPqrs();
     cerrarDesplegableDependenciasPqrs();

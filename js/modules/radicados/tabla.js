@@ -144,6 +144,7 @@ window.abrirInfoRemitente = function(id, coleccion = '') {
   agregarDato('Responsable', aTitulo(registro.funcionarioAsignado), 'bi-person');
   agregarDato('Otros estados', registro.otrosEstados, 'bi-pin-angle');
   agregarDato('Observaciones', registro.observaciones, 'bi-eye');
+  agregarDato('Observaciones de remisión', registro.observacionesDestinatario, 'bi-chat-left-text');
 
   modal.style.display = 'flex';
   modal.onclick = event => {
@@ -350,6 +351,13 @@ export function renderizarTablaRadicados(
     const tieneTipoPeticion = TIPOS_PETICION.includes(reg.tipoPeticion);
     const tieneFuncionario = Boolean(reg.funcionarioAsignado?.trim());
     const accionesHabilitadas = tieneTipoPeticion && tieneFuncionario;
+    const casoCompartido = Boolean(
+      reg.grupoRespuestaId
+      && reg.dependenciaLider
+      && Array.isArray(reg.dependenciasParticipantes)
+      && reg.dependenciasParticipantes.length > 1
+    );
+    const esDependenciaLider = !casoCompartido || reg.dependencia === reg.dependenciaLider;
     const coleccion = reg.coleccion === 'radicadosIAS' ? 'radicadosIAS' : 'radicados';
     const puedeGestionarRegistro = coleccion === 'radicadosIAS'
       ? puedeGestionarIAS()
@@ -403,13 +411,23 @@ export function renderizarTablaRadicados(
       columnaRespuestaHtml = tieneRespuesta
         ? '<button class="response-files-toggle" type="button"><i class="bi bi-eye" aria-hidden="true"></i> Visualizar</button>'
         : '<span>-</span>';
+    } else if (casoCompartido && !esDependenciaLider) {
+      columnaRespuestaHtml = `
+        ${tieneRespuesta
+          ? '<button class="response-files-toggle" type="button"><i class="bi bi-eye" aria-hidden="true"></i> Visualizar</button>'
+          : ''}
+        <button class="department-contribution-trigger" type="button" aria-label="Consultar o enviar aporte" ${puedeGestionarRegistro ? '' : 'disabled'}>
+          <i class="bi bi-chat-square-text" aria-hidden="true"></i>
+          <span>Aportar concepto</span>
+        </button>
+      `;
     } else if (tieneRespuesta) {
       columnaRespuestaHtml = '<button class="response-files-toggle" type="button"><i class="bi bi-eye" aria-hidden="true"></i> Visualizar</button>';
     } else {
       columnaRespuestaHtml = `
-        <button class="response-upload-trigger" type="button" onclick="abrirModalRespuestaRadicado('${reg.id}', this)" title="${accionesHabilitadas ? 'Cargar respuesta' : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>
+        <button class="response-upload-trigger" type="button" onclick="abrirModalRespuestaRadicado('${reg.id}', this)" title="${accionesHabilitadas ? (casoCompartido ? 'Enviar respuesta final para todas las dependencias' : 'Cargar respuesta') : !tieneTipoPeticion ? 'Selecciona primero el tipo de petición' : 'Asigna primero un funcionario'}" ${accionesHabilitadas ? '' : 'disabled'}>
           <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-          <span>Cargar Respuesta</span>
+          <span>${casoCompartido ? 'Respuesta final' : 'Cargar Respuesta'}</span>
         </button>
       `;
     }
@@ -561,6 +579,37 @@ export function renderizarTablaRadicados(
         'Ver origen',
         `Recibido de: ${abreviarNombreDependencia(reg.remisionOrigenDependencia)}`
       );
+    }
+
+    if (casoCompartido) {
+      const aportesGrupo = Array.isArray(reg.aportesDependencias)
+        ? reg.aportesDependencias.filter(aporte => aporte && typeof aporte === 'object')
+        : [];
+      const columnaRespuesta = tr.querySelector('.response-action-stack');
+      if (esDependenciaLider) {
+        const resumenAportes = document.createElement('small');
+        resumenAportes.className = 'shared-case-status';
+        resumenAportes.textContent =
+          `Líder · aportes ${new Set(aportesGrupo.map(aporte => aporte.dependencia)).size}/${reg.dependenciasParticipantes.length - 1}`;
+        columnaRespuesta.appendChild(resumenAportes);
+
+        const botonAportes = document.createElement('button');
+        botonAportes.className = 'shared-case-contributions-toggle';
+        botonAportes.type = 'button';
+        botonAportes.textContent = 'Ver aportes';
+        botonAportes.addEventListener('click', () => (
+          window.abrirModalAportesGrupo(reg.id, botonAportes)
+        ));
+        columnaRespuesta.appendChild(botonAportes);
+      } else {
+        const botonAporte = tr.querySelector('.department-contribution-trigger');
+        if (botonAporte) {
+          botonAporte.addEventListener('click', () => (
+            window.abrirAporteOConsultar(reg.id, botonAporte)
+          ));
+          window.actualizarEstadoAporteDependencia(reg.id, botonAporte);
+        }
+      }
     }
 
     const funcionarioCell = document.createElement('td');

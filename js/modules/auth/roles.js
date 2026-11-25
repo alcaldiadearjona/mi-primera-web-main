@@ -149,6 +149,11 @@ export function esFuncionario() {
   return perfilSesion?.rol === 'funcionario' && !esControlInterno();
 }
 
+export function puedeAgregarObservacionesDestinatario() {
+  return perfilSesion?.rol === 'funcionario'
+    && perfilSesion.dependencia === 'Secretaría de Planeación';
+}
+
 export function esInvitado() {
   return perfilSesion?.rol === 'invitado';
 }

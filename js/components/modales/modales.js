@@ -124,6 +124,55 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
     </form>
   </dialog>
 
+  <dialog id="modalAporteDependencia" class="received-register-dialog response-upload-dialog" aria-labelledby="tituloModalAporteDependencia">
+    <form id="formAporteDependencia" class="received-register-dialog-card">
+      <div class="received-register-dialog-heading">
+        <span class="received-register-dialog-icon"><i class="bi bi-chat-square-text" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="tituloModalAporteDependencia">Aportar al radicado</h2>
+          <p id="subtituloModalAporteDependencia">Agrega el concepto de tu dependencia para que la líder prepare la respuesta final.</p>
+        </div>
+        <button id="cerrarModalAporteDependencia" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <label for="textoAporteDependencia">Concepto o información</label>
+      <textarea id="textoAporteDependencia" rows="4" maxlength="4000" placeholder="Escribe el aporte de tu dependencia..."></textarea>
+      <section class="response-modal-section" aria-labelledby="tituloArchivosAporte">
+        <h3 id="tituloArchivosAporte"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Documentos de apoyo</h3>
+        <label class="response-modal-file-picker" for="archivosAporteDependencia">
+          <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 10 MB por archivo.</small></span>
+          <input id="archivosAporteDependencia" type="file" accept=".pdf,application/pdf" multiple aria-describedby="resumenArchivosAporte">
+        </label>
+        <p id="resumenArchivosAporte" class="response-modal-file-summary" aria-live="polite">Aún no has seleccionado archivos.</p>
+      </section>
+      <p id="errorAporteDependencia" class="received-register-error" role="alert" hidden></p>
+      <div class="received-register-dialog-actions">
+        <button id="cancelarAporteDependencia" class="received-register-cancel" type="button">Cancelar</button>
+        <button id="guardarAporteDependencia" class="received-register-submit" type="submit">
+          <i class="bi bi-send" aria-hidden="true"></i>
+          Enviar aporte
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="modalDetalleAportes" class="received-register-dialog response-view-dialog contribution-view-dialog" aria-labelledby="tituloModalDetalleAportes">
+    <div class="received-register-dialog-card">
+      <div class="received-register-dialog-heading">
+        <span class="received-register-dialog-icon"><i class="bi bi-chat-square-text" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="tituloModalDetalleAportes">Aportes del radicado</h2>
+          <p id="subtituloModalDetalleAportes">Consulta la información enviada por las dependencias.</p>
+        </div>
+        <button id="cerrarModalDetalleAportes" class="received-register-close" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div id="listaDetalleAportes" class="contribution-view-list" aria-live="polite"></div>
+      <div class="received-register-dialog-actions">
+        <button id="cerrarDetalleAportes" class="received-register-cancel" type="button">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="modalVisualizarRespuesta" class="received-register-dialog response-view-dialog" aria-labelledby="tituloModalVisualizarRespuesta">
     <div class="received-register-dialog-card">
       <div class="received-register-dialog-heading">
@@ -203,6 +252,11 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
             <i class="bi bi-chevron-down" aria-hidden="true"></i>
           </button>
           <div id="dependenciasRemisionCompetencia" role="group" aria-label="Dependencias destino para remisión por competencia" hidden></div>
+        </div>
+        <div id="campoObservacionesRemision" hidden style="margin-top: 12px;">
+          <label for="txtObservacionesRemision" style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px;">Observaciones para la dependencia destinataria:</label>
+          <textarea id="txtObservacionesRemision" rows="3" maxlength="4000" placeholder="Escriba las indicaciones para la dependencia destinataria..." style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+          <small style="display: block; margin-top: 5px; color: #64748b;">Estas observaciones aparecerán en la copia recibida por la dependencia.</small>
         </div>
       </section>
 

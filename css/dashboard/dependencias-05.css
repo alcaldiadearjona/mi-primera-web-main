@@ -830,6 +830,114 @@
   outline-offset: 2px;
 }
 
+#pantallaDependencia .department-contribution-trigger {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid #32648a;
+  border-radius: 7px;
+  background: #edf6fc;
+  color: #245579;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#pantallaDependencia .department-contribution-trigger:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+#pantallaDependencia .shared-case-status {
+  display: block;
+  margin-top: 4px;
+  color: #526b5a;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+#pantallaDependencia .shared-case-contributions-toggle {
+  margin-top: 4px;
+  padding: 3px 7px;
+  border: 1px solid #d5e4d9;
+  border-radius: 6px;
+  background: #f5faf6;
+  color: #315343;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.contribution-view-dialog {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.contribution-view-list {
+  display: grid;
+  max-height: min(60vh, 480px);
+  gap: 10px;
+  overflow: auto;
+}
+
+.contribution-view-item {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid #dce8df;
+  border-radius: 10px;
+  background: #f8fbf9;
+}
+
+.contribution-view-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #315343;
+}
+
+.contribution-view-heading small,
+.contribution-view-author {
+  color: #678071;
+  font-size: 12px;
+}
+
+.contribution-view-author,
+.contribution-view-text,
+.contribution-view-empty {
+  margin: 0;
+}
+
+.contribution-view-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.contribution-view-file-link {
+  display: inline-block;
+  width: fit-content;
+  padding: 6px 9px;
+  border: 1px solid #c9dcce;
+  border-radius: 7px;
+  background: #f2f8f3;
+  color: #276344;
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.contribution-view-file-link:hover {
+  background: #e7f2e9;
+}
+
+.contribution-view-empty {
+  padding: 12px;
+  color: #678071;
+  font-size: 13px;
+}
+
 #pantallaDependencia .prorroga-view-link {
   display: inline-flex;
   min-height: 24px;
