@@ -2059,6 +2059,94 @@ export function establecerFormularioVisible(visible) {
   toggle?.classList.toggle('is-collapsed', !visible);
 }
 
+function configurarSelectoresFechaModernos() {
+  if (!window.flatpickr) return;
+
+  const sincronizarSelectores = instancia => {
+    const calendario = instancia.calendarContainer;
+    const selectorMes = calendario.querySelector('.flatpickr-custom-month');
+    const selectorAnio = calendario.querySelector('.flatpickr-custom-year');
+    if (selectorMes) selectorMes.value = String(instancia.currentMonth);
+    if (selectorAnio) selectorAnio.value = String(instancia.currentYear);
+  };
+
+  const crearSelectores = instancia => {
+    const meses = instancia.l10n.months.longhand;
+    const encabezadoNativo = instancia.calendarContainer.querySelector('.flatpickr-current-month');
+    const contenedorMeses = instancia.calendarContainer.querySelector('.flatpickr-months');
+    if (!encabezadoNativo || !contenedorMeses) return;
+
+    instancia.calendarContainer.classList.add('has-custom-date-header');
+    const encabezado = document.createElement('div');
+    encabezado.className = 'flatpickr-custom-header';
+
+    const selectorMes = document.createElement('select');
+    selectorMes.className = 'flatpickr-custom-month';
+    selectorMes.setAttribute('aria-label', 'Seleccionar mes');
+    meses.forEach((mes, indice) => {
+      const opcion = document.createElement('option');
+      opcion.value = String(indice);
+      opcion.textContent = mes.charAt(0).toLocaleUpperCase('es') + mes.slice(1);
+      selectorMes.appendChild(opcion);
+    });
+    selectorMes.addEventListener('change', () => {
+      instancia.changeMonth(Number(selectorMes.value), false);
+      sincronizarSelectores(instancia);
+    });
+
+    const selectorAnio = document.createElement('select');
+    selectorAnio.className = 'flatpickr-custom-year';
+    selectorAnio.setAttribute('aria-label', 'Seleccionar año');
+    for (let anio = 1900; anio <= 2100; anio += 1) {
+      const opcion = document.createElement('option');
+      opcion.value = String(anio);
+      opcion.textContent = String(anio);
+      selectorAnio.appendChild(opcion);
+    }
+    selectorAnio.addEventListener('change', () => {
+      instancia.changeYear(Number(selectorAnio.value));
+      sincronizarSelectores(instancia);
+    });
+
+    encabezado.append(selectorMes, selectorAnio);
+    contenedorMeses.appendChild(encabezado);
+    sincronizarSelectores(instancia);
+  };
+
+  const inicializar = input => {
+    if (input.dataset.calendarModerno === 'true' || input.disabled || input.readOnly) return;
+    input.dataset.calendarModerno = 'true';
+    const instancia = window.flatpickr(input, {
+      locale: 'es',
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      allowInput: false,
+      monthSelectorType: 'dropdown',
+      disableMobile: true,
+      onReady: (_, __, instancia) => crearSelectores(instancia),
+      onMonthChange: (_, __, instancia) => sincronizarSelectores(instancia),
+      onYearChange: (_, __, instancia) => sincronizarSelectores(instancia)
+    });
+    instancia.altInput?.classList.add('flatpickr-date-display');
+  };
+
+  document.querySelectorAll('input[type="date"]').forEach(inicializar);
+
+  if (document.documentElement.dataset.selectoresFechaObserverConfigurado) return;
+  document.documentElement.dataset.selectoresFechaObserverConfigurado = 'true';
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(nodo => {
+        if (!(nodo instanceof Element)) return;
+        if (nodo.matches?.('input[type="date"]')) inicializar(nodo);
+        nodo.querySelectorAll?.('input[type="date"]').forEach(inicializar);
+      });
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 export function inicializarFormulario() {
   const hoy = new Date().toISOString().split('T')[0];
   const inputFechaRadicacion = document.getElementById('fechaRadicacion');
@@ -2066,6 +2154,7 @@ export function inicializarFormulario() {
   const form = document.getElementById('pqrsForm');
   const formularioRecepcion = document.getElementById('formRecepcionPQRSF');
 
+  configurarSelectoresFechaModernos();
   if (inputFechaRadicacion) inputFechaRadicacion.value = hoy;
   if (inputFechaEntregaManual) inputFechaEntregaManual.value = hoy;
 
