@@ -44,7 +44,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                 <div class="form-group">
                   <label for="tipoCanalRecepcion">Tipo de Canal</label>
                   <select id="tipoCanalRecepcion">
-                    <option value="">-- Seleccionar tipo de canal --</option>
+                    <option value="">Seleccionar Tipo de Canal</option>
                     <option value="Virtual">Virtual</option>
                     <option value="Presencial">Presencial</option>
                   </select>
@@ -63,12 +63,12 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                   <input type="text" id="contactoNotificacionRecepcion" disabled>
                 </div>
                 <div class="form-group full-width">
-                  <label for="remitenteRecepcion">Nombre y Datos del Remitente</label>
-                  <input type="text" id="remitenteRecepcion">
+                  <label for="remitenteRecepcion">Nombre Completo del Remitente</label>
+                  <input type="text" id="remitenteRecepcion" maxlength="40">
                 </div>
                 <div class="form-group full-width">
                   <label for="asuntoRecepcion">Asunto de la Comunicación</label>
-                  <textarea id="asuntoRecepcion"></textarea>
+                  <textarea id="asuntoRecepcion" maxlength="80"></textarea>
                 </div>
                 <div class="form-group">
                   <label for="foliosRecepcion">Folios <span aria-hidden="true">*</span></label>
@@ -180,7 +180,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             <div id="grupoTipoCanal" class="form-group">
               <label for="tipoCanal">Tipo de Canal</label>
               <select id="tipoCanal" required>
-                <option value="">-- Seleccionar tipo de canal --</option>
+                <option value="">Seleccionar Tipo de Canal</option>
                 <option value="Virtual">Virtual</option>
                 <option value="Presencial">Presencial</option>
               </select>
@@ -228,13 +228,13 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
             </div>
 
             <div id="grupoRemitente" class="form-group full-width">
-              <label for="remitente">Nombre y Datos del Remitente</label>
-              <input type="text" id="remitente" required>
+              <label for="remitente">Nombre Completo del Remitente</label>
+              <input type="text" id="remitente" maxlength="40" required>
             </div>
 
             <div id="grupoAsunto" class="form-group full-width">
               <label for="asunto">Asunto de la Comunicación</label>
-              <textarea id="asunto" required></textarea>
+              <textarea id="asunto" maxlength="80" required></textarea>
             </div>
 
             <div class="form-group">

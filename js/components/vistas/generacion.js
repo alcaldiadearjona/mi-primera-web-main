@@ -97,7 +97,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
 
                 <div class="form-group">
                   <label for="asuntoSalida">Asunto de la Comunicación <span aria-hidden="true">*</span></label>
-                  <input id="asuntoSalida" name="asunto" type="text" required>
+                  <input id="asuntoSalida" name="asunto" type="text" maxlength="80" required>
                 </div>
 
                 <div class="form-group">
@@ -270,7 +270,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
               </div>
               <div class="form-group">
                 <label for="asuntoEditarSalida">Asunto de la Comunicación *</label>
-                <input id="asuntoEditarSalida" type="text" required>
+                <input id="asuntoEditarSalida" type="text" maxlength="80" required>
               </div>
               <div class="form-group">
                 <label for="foliosEditarSalida">Folios *</label>

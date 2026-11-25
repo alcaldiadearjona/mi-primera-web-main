@@ -152,7 +152,7 @@ function establecerModoFormularioPQRSF(modo) {
       ].join('');
     } else {
       tipoCanal.innerHTML = [
-        '<option value="">-- Seleccionar tipo de canal --</option>',
+        '<option value="">Seleccionar Tipo de Canal</option>',
         '<option value="Virtual">Virtual</option>',
         '<option value="Presencial">Presencial</option>'
       ].join('');
@@ -188,9 +188,7 @@ function establecerModoFormularioPQRSF(modo) {
   if (asunto) asunto.required = true;
   const etiquetaRemitente = document.querySelector('label[for="remitente"]');
   if (etiquetaRemitente) {
-    etiquetaRemitente.textContent = esRadicacionCiudadana
-      ? 'Nombre y Datos del Destinatario'
-      : 'Nombre y Datos del Remitente';
+    etiquetaRemitente.textContent = 'Nombre Completo del Remitente';
   }
   const solicitudPdf = document.getElementById('solicitudPdf');
   if (solicitudPdf) {

@@ -38,7 +38,7 @@ export const iasMarkup = String.raw`<div id="pantallaIAS" style="display: none;"
                 <div class="form-group">
                   <label for="tipoCanalIA">Tipo de Canal</label>
                   <select id="tipoCanalIA" required>
-                    <option value="">-- Seleccionar tipo de canal --</option>
+                    <option value="">Seleccionar Tipo de Canal</option>
                     <option value="Virtual">Virtual</option>
                     <option value="Presencial">Presencial</option>
                   </select>
@@ -62,12 +62,12 @@ export const iasMarkup = String.raw`<div id="pantallaIAS" style="display: none;"
                   <input id="fechaVencimientoIA" type="date" disabled>
                 </div>
                 <div class="form-group full-width">
-                  <label for="remitenteIA">Nombre y Datos del Remitente</label>
-                  <input id="remitenteIA" type="text" required>
+                  <label for="remitenteIA">Nombre Completo del Remitente</label>
+                  <input id="remitenteIA" type="text" maxlength="40" required>
                 </div>
                 <div class="form-group full-width">
                   <label for="asuntoIA">Asunto de la Comunicación</label>
-                  <textarea id="asuntoIA" required></textarea>
+                  <textarea id="asuntoIA" maxlength="80" required></textarea>
                 </div>
                 <div class="form-group full-width">
                   <label for="solicitudPdfIA">Solicitud Escaneada (Archivo PDF)</label>

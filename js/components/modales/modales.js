@@ -34,11 +34,11 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
           </div>
           <div class="form-group full-width">
             <label>Remitente</label>
-            <input type="text" id="editRemitente" required>
+            <input type="text" id="editRemitente" maxlength="40" required>
           </div>
           <div class="form-group full-width">
             <label>Asunto</label>
-            <textarea id="editAsunto" required></textarea>
+            <textarea id="editAsunto" maxlength="80" required></textarea>
           </div>
           <div id="grupoEdicionFolios" class="form-group" hidden>
             <label for="editFolios">Folios *</label>
