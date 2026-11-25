@@ -44,7 +44,7 @@ import { crearMetadatosGrupoRespuesta } from '../../utils/respuestas-compartidas
 const COLECCION_SECUENCIAS_ENTRADA = 'radicadosEntradaSecuencias';
 const MINIMO_SECUENCIA_ENTRADA_2026 = 4380;
 const MAX_PDFS_POR_CARGA_GESTION = 20;
-const MAX_TAMANO_PDF_GESTION = 10 * 1024 * 1024;
+const MAX_TAMANO_PDF_GESTION = 30 * 1024 * 1024;
 const pdfsBibliotecaGestion = [];
 let cargaPdfGestionEnCurso = false;
 let cargaBibliotecaPdfGestionEnCurso = false;
@@ -509,7 +509,7 @@ async function cargarPdfBibliotecaGestion(event) {
         && (!archivo.type || archivo.type.toLowerCase() === 'application/pdf');
       if (!esPdf || archivo.size > MAX_TAMANO_PDF_GESTION
         || await archivo.slice(0, 5).text() !== '%PDF-') {
-        throw new Error(`“${archivo.name}” no es un PDF válido de máximo 10 MB.`);
+        throw new Error(`“${archivo.name}” no es un PDF válido de máximo 30 MB.`);
       }
     }
 
@@ -1423,9 +1423,9 @@ async function procesarFormularioRecepcionPQRSF(event) {
   if (archivoPdf) {
     const esPdf = /\.pdf$/i.test(archivoPdf.name)
       && (!archivoPdf.type || archivoPdf.type.toLowerCase() === 'application/pdf');
-    if (!esPdf || archivoPdf.size > 10 * 1024 * 1024
+    if (!esPdf || archivoPdf.size > 30 * 1024 * 1024
       || await archivoPdf.slice(0, 5).text() !== '%PDF-') {
-      alert('El archivo adjunto debe ser un PDF válido de máximo 10 MB.');
+      alert('El archivo adjunto debe ser un PDF válido de máximo 30 MB.');
       inputArchivoPdf.value = '';
       inputArchivoPdf.focus();
       return;

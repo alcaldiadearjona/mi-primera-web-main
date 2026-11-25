@@ -297,9 +297,9 @@ async function guardarAporteDependencia(event) {
   for (const archivo of archivos) {
     if (!/\.pdf$/i.test(archivo.name)
       || (archivo.type && archivo.type.toLowerCase() !== 'application/pdf')
-      || archivo.size > 10 * 1024 * 1024
+      || archivo.size > 30 * 1024 * 1024
       || await archivo.slice(0, 5).text() !== '%PDF-') {
-      error.textContent = 'Cada archivo debe ser un PDF válido de máximo 10 MB.';
+      error.textContent = 'Cada archivo debe ser un PDF válido de máximo 30 MB.';
       error.hidden = false;
       return;
     }
@@ -555,9 +555,9 @@ window.subirRespuestaRadicado = async function(idRadicado, inputElement) {
   for (const archivo of archivos) {
     const esPdf = /\.pdf$/i.test(archivo.name)
       && (!archivo.type || archivo.type.toLowerCase() === 'application/pdf');
-    if (!esPdf || archivo.size > 10 * 1024 * 1024
+    if (!esPdf || archivo.size > 30 * 1024 * 1024
       || await archivo.slice(0, 5).text() !== '%PDF-') {
-      alert('Cada archivo debe ser un PDF válido de máximo 10 MB.');
+      alert('Cada archivo debe ser un PDF válido de máximo 30 MB.');
       inputElement.value = '';
       return;
     }

@@ -81,7 +81,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
         <h3 id="tituloArchivosRespuesta"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Archivos PDF</h3>
         <label class="response-modal-file-picker" for="archivosRespuestaRadicado">
           <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 10 MB por archivo.</small></span>
+          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 30 MB por archivo.</small></span>
           <input id="archivosRespuestaRadicado" type="file" accept=".pdf,application/pdf" multiple aria-describedby="resumenArchivosRespuesta">
         </label>
         <p id="resumenArchivosRespuesta" class="response-modal-file-summary" aria-live="polite">Aún no has seleccionado archivos.</p>
@@ -140,7 +140,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
         <h3 id="tituloArchivosAporte"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Documentos de apoyo</h3>
         <label class="response-modal-file-picker" for="archivosAporteDependencia">
           <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 10 MB por archivo.</small></span>
+          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 30 MB por archivo.</small></span>
           <input id="archivosAporteDependencia" type="file" accept=".pdf,application/pdf" multiple aria-describedby="resumenArchivosAporte">
         </label>
         <p id="resumenArchivosAporte" class="response-modal-file-summary" aria-live="polite">Aún no has seleccionado archivos.</p>

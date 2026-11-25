@@ -1137,8 +1137,8 @@ async function guardarProrrogaRadicado(event) {
     alert('Debes indicar los días hábiles adicionales y cargar el oficio de prórroga.');
     return;
   }
-  if (archivo.size > 10 * 1024 * 1024) {
-    alert('El oficio de prórroga no puede superar 10 MB.');
+  if (archivo.size > 30 * 1024 * 1024) {
+    alert('El oficio de prórroga no puede superar 30 MB.');
     return;
   }
   const encabezadoPdf = new TextDecoder().decode(await archivo.slice(0, 5).arrayBuffer());

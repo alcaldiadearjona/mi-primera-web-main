@@ -18,7 +18,7 @@ import { mostrarAviso } from '../ui/avisos.js';
 import { esInvitado, obtenerPerfilSesion, obtenerUsuarioSesion } from '../auth/roles.js';
 
 const MAX_ARCHIVOS = 10;
-const MAX_TAMANO_ARCHIVO = 10 * 1024 * 1024;
+const MAX_TAMANO_ARCHIVO = 30 * 1024 * 1024;
 const MAX_RADICADOS_POR_LOTE = 400;
 const MAX_NUMERO_RADICADO = 99999;
 const COLECCION_SALIDA = 'radicadosSalida';
@@ -174,7 +174,7 @@ function validarArchivos(archivos, limite = MAX_ARCHIVOS) {
 
   const excedidos = archivos.filter(archivo => archivo.size > MAX_TAMANO_ARCHIVO);
   if (excedidos.length > 0) {
-    return `Cada archivo debe pesar máximo 10 MB: ${excedidos.map(archivo => archivo.name).join(', ')}.`;
+    return `Cada archivo debe pesar máximo 30 MB: ${excedidos.map(archivo => archivo.name).join(', ')}.`;
   }
 
   return '';
@@ -195,7 +195,7 @@ function actualizarListaArchivos(input, ayuda, lista, limite = MAX_ARCHIVOS) {
   }
 
   if (ayuda) {
-    ayuda.textContent = `Sube hasta ${limite} archivos compatibles. Tamaño máximo por archivo: 10 MB.`;
+    ayuda.textContent = `Sube hasta ${limite} archivos compatibles. Tamaño máximo por archivo: 30 MB.`;
     ayuda.classList.remove('generation-file-error');
   }
   if (lista) {
@@ -859,7 +859,7 @@ function limpiarFormularioGeneracion(formulario) {
   document.getElementById('dependenciaOtra').required = false;
   document.getElementById('listaArchivosSalida').replaceChildren();
   document.getElementById('archivosSalidaAyuda').textContent =
-    'Sube hasta 10 archivos compatibles. Tamaño máximo por archivo: 10 MB.';
+    'Sube hasta 10 archivos compatibles. Tamaño máximo por archivo: 30 MB.';
   document.getElementById('archivosSalidaAyuda').classList.remove('generation-file-error');
 }
 

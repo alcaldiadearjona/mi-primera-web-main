@@ -110,7 +110,7 @@ export const inicioMarkup = String.raw`<div id="pantallaInicio">
                 <div class="form-group full-width">
                   <label for="archivoPdfRecepcion">Documento de la solicitud (PDF opcional)</label>
                   <input type="file" id="archivoPdfRecepcion" accept=".pdf,application/pdf" aria-describedby="ayudaArchivoPdfRecepcion">
-                  <small id="ayudaArchivoPdfRecepcion">Adjunta un archivo PDF válido de máximo 10 MB, si está disponible.</small>
+                  <small id="ayudaArchivoPdfRecepcion">Adjunta un archivo PDF válido de máximo 30 MB, si está disponible.</small>
                 </div>
               </div>
               <label class="reception-no-number-option" for="sinNumeroRadicadoRecepcion">

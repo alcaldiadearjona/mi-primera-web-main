@@ -119,7 +119,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                     </label>
                     <input id="archivosSalida" name="archivos" type="file" multiple
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
-                    <span id="archivosSalidaAyuda">Sube hasta 10 archivos compatibles. Tamaño máximo por archivo: 10 MB.</span>
+                    <span id="archivosSalidaAyuda">Sube hasta 10 archivos compatibles. Tamaño máximo por archivo: 30 MB.</span>
                   </div>
                   <ul id="listaArchivosSalida" class="generation-file-list" aria-live="polite"></ul>
                 </div>
@@ -285,7 +285,7 @@ export const generacionMarkup = String.raw`<div id="pantallaGeneracion" style="d
                 <div id="archivosExistentesSalida" class="generation-existing-files"></div>
                 <label for="archivosEditarSalida">Agregar archivos</label>
                 <input id="archivosEditarSalida" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
-                <span id="archivosEditarSalidaAyuda" class="generation-edit-file-hint">Puedes agregar archivos hasta completar el máximo de 10.</span>
+                <span id="archivosEditarSalidaAyuda" class="generation-edit-file-hint">Puedes agregar archivos hasta completar el máximo de 10. Tamaño máximo por archivo: 30 MB.</span>
                 <ul id="listaArchivosEditarSalida" class="generation-file-list" aria-live="polite"></ul>
               </div>
             </div>
