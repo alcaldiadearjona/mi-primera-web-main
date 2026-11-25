@@ -238,6 +238,61 @@ function crearDatosCopiaCompetencia(
   };
 }
 
+function generarIdDistribucionAdicional(idOrigen, dependencia) {
+  const slug = dependencia
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `${idOrigen}__distribucion__${slug}`;
+}
+
+function crearDatosDistribucionAdicional(radicadoOriginal, dependencia, camposEditados) {
+  const datosCopia = { ...radicadoOriginal };
+  [
+    'dependenciasDestino',
+    'dependenciasRecibidas',
+    'dependenciasRechazadas',
+    'rechazosCompetencia',
+    'recepcionesCompetencia',
+    'remisionOrigenId',
+    'remisionOrigenColeccion',
+    'remisionOrigenDependencia',
+    'remisionOrigenRadicado',
+    'fechaRemisionCompetencia',
+    'fechaRecepcionCompetencia',
+    'dependenciasAgregadasManualmente'
+  ].forEach(campo => delete datosCopia[campo]);
+
+  return {
+    ...datosCopia,
+    ...camposEditados,
+    dependencia,
+    ...(Object.prototype.hasOwnProperty.call(datosCopia, 'dependenciaResponsable')
+      ? { dependenciaResponsable: dependencia }
+      : {}),
+    estado: 'VIGENTE',
+    funcionarioAsignado: '',
+    fechaAsignacion: '',
+    fechaCambioEstado: '',
+    gestionAsignadaUid: '',
+    gestionAsignadaNombre: '',
+    gestionAsignadaEn: '',
+    gestionAsignadaPresenciaToken: '',
+    otrosEstados: '',
+    observaciones: '',
+    respuestaUrl: '',
+    respuestaArchivos: [],
+    respuestaSoloEvidencia: false,
+    respuestaEnviarAlCiudadano: false,
+    fechaCargaRespuesta: '',
+    correoRespuestaEstado: '',
+    correoRespuestaFecha: '',
+    correoRespuestaError: ''
+  };
+}
+
 function cargarOpcionesRemision(registro) {
   const contenedor = document.getElementById('dependenciasRemisionCompetencia');
   if (!contenedor) return;
@@ -288,10 +343,10 @@ function cargarOpcionesEdicionRemision(registro) {
   cerrarSugerenciasDependenciasEdicion();
   if (!esRadicadoPqrs) return;
 
-  const destinosYaRemitidos = Array.isArray(registro.dependenciasDestino)
-    ? registro.dependenciasDestino
+  const destinosYaAgregados = Array.isArray(registro.dependenciasAgregadasManualmente)
+    ? registro.dependenciasAgregadasManualmente
     : [];
-  destinosYaRemitidos.forEach(dependencia => agregarChipDependenciaEdicion(dependencia, true));
+  destinosYaAgregados.forEach(dependencia => agregarChipDependenciaEdicion(dependencia, true));
 }
 
 function agregarChipDependenciaEdicion(dependencia, yaRemitida = false) {
@@ -1178,42 +1233,48 @@ async function guardarEdicionRadicado(e) {
       } : {})
     };
 
-    let seAgregaronDestinos = false;
+    let idsDistribucionCreados = [];
     if (destinosSeleccionados.length) {
       await runTransaction(db, async transaction => {
         const snapshot = await transaction.get(docRef);
-        if (!snapshot.exists()) throw new Error('No se encontró el radicado para agregar las dependencias.');
+        if (!snapshot.exists()) throw new Error('No se encontró el radicado para agregar la dependencia.');
         const radicadoOriginal = snapshot.data();
-        const destinosPrevios = Array.isArray(radicadoOriginal.dependenciasDestino)
-          ? radicadoOriginal.dependenciasDestino
+        const destinosPrevios = Array.isArray(radicadoOriginal.dependenciasAgregadasManualmente)
+          ? radicadoOriginal.dependenciasAgregadasManualmente
           : [];
-        const destinosNuevos = destinosSeleccionados.filter(
+        const destinosAAgregar = destinosSeleccionados.filter(
           dependencia => !destinosPrevios.includes(dependencia)
         );
-        seAgregaronDestinos = destinosNuevos.length > 0;
-        const fechaRemision = new Date().toISOString();
-
-        destinosNuevos.forEach(dependencia => {
+        const copias = destinosAAgregar.map(dependencia => ({
+          dependencia,
+          referencia: doc(
+            db, RADICADOS_COLLECTION, generarIdDistribucionAdicional(id, dependencia)
+          )
+        }));
+        const copiasExistentes = await Promise.all(
+          copias.map(copia => transaction.get(copia.referencia))
+        );
+        idsDistribucionCreados = [];
+        copias.forEach((copia, indice) => {
+          if (copiasExistentes[indice].exists()) return;
           transaction.set(
-            doc(db, RADICADOS_COLLECTION, generarIdCopiaCompetencia(id, dependencia)),
-            crearDatosCopiaCompetencia(
-              radicadoOriginal,
-              dependencia,
-              id,
-              coleccion,
-              fechaRemision,
-              camposEditados
-            )
+            copia.referencia,
+            crearDatosDistribucionAdicional(radicadoOriginal, copia.dependencia, camposEditados)
           );
+          idsDistribucionCreados.push(copia.referencia.id);
         });
         transaction.update(docRef, {
           ...camposEditados,
-          dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],
-          ...(destinosNuevos.length ? { fechaRemisionCompetencia: fechaRemision } : {})
+          dependenciasAgregadasManualmente: [...new Set([
+            ...destinosPrevios,
+            ...destinosAAgregar
+          ])]
         });
       });
-      if (seAgregaronDestinos) {
-        await informarResultadoNotificacionCorreo('remision', { id });
+      if (idsDistribucionCreados.length) {
+        await informarResultadoNotificacionCorreo('nueva-solicitud', {
+          ids: idsDistribucionCreados
+        });
       }
     } else {
       await updateDoc(docRef, camposEditados);
@@ -1221,8 +1282,8 @@ async function guardarEdicionRadicado(e) {
 
     await actualizarConsultaPublicaSiAplica(id, coleccion);
 
-    alert(destinosSeleccionados.length
-      ? 'Radicado actualizado y remitido a las dependencias seleccionadas.'
+    alert(idsDistribucionCreados.length
+      ? `Radicado actualizado y enviado a ${idsDistribucionCreados.length === 1 ? 'la dependencia agregada' : 'las dependencias agregadas'}.`
       : 'Radicado actualizado correctamente.');
     cerrarModalEditar();
     await recargarDatosRegistro(radicado);

@@ -41,8 +41,8 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
             <textarea id="editAsunto" maxlength="80" required></textarea>
           </div>
           <div id="grupoEdicionDependenciasDestino" class="form-group full-width" hidden>
-            <label for="buscarDependenciaDestinoEdicion">Agregar dependencias destino</label>
-            <p style="margin:0 0 8px; color:#64748b; font-size:12px;">Escribe el nombre y selecciona una coincidencia. Puedes agregar varias; las ya remitidas no se duplican.</p>
+            <label for="buscarDependenciaDestinoEdicion">Agregar dependencia omitida</label>
+            <p style="margin:0 0 8px; color:#64748b; font-size:12px;">Busca y selecciona la dependencia que faltó en el envío inicial. Se agregará una copia ordinaria de la solicitud, sin iniciar una remisión por competencia.</p>
             <div id="destinosSeleccionadosEdicion" class="edit-destination-chips" role="list" aria-label="Dependencias seleccionadas"></div>
             <input id="buscarDependenciaDestinoEdicion" type="search" autocomplete="off" placeholder="Buscar dependencia..." role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="opcionesDependenciasDestinoEdicion">
             <div id="opcionesDependenciasDestinoEdicion" class="custom-select-listbox" role="listbox" aria-label="Coincidencias de dependencias" hidden></div>
