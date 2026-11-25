@@ -292,6 +292,14 @@ const FUNCIONARIOS_POR_DEPENDENCIA = {
     'Vianeys Ortega',
     'Angie Mendivil',
     'Adriana Pinedo'
+  ],
+  'Despacho del Alcalde': [
+    'Kelly Garcia',
+    'Maria Davila'
+  ],
+  'Oficina de Gestion del Riesgo y Desastres': [
+    'Juan Tijera',
+    'Catherine Esalas'
   ]
 };
 let funcionarioAsignadoSeleccionado = '';
