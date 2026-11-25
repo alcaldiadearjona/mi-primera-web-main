@@ -410,6 +410,46 @@ select:not([multiple]):not([size]):not(.tipo-peticion-select) option {
   accent-color: #16804a;
 }
 
+.edit-destination-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.edit-destination-chips:empty {
+  display: none;
+}
+
+.edit-destination-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e8f3eb;
+  color: #245338;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.edit-destination-chip.is-existing {
+  background: #eef2f6;
+  color: #526174;
+}
+
+.edit-destination-remove {
+  flex: 0 0 auto;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 @media (max-width: 600px) {
   select:not([multiple]):not([size]):not(.tipo-peticion-select) {
     min-height: 44px !important;

@@ -60,6 +60,7 @@ export function inicializarAccionesRadicados() {
   document.getElementById('prorrogaDias')?.addEventListener('input', actualizarFechaProrroga);
   document.getElementById('formFuncionarioAsignado')?.addEventListener('submit', guardarFuncionarioAsignado);
   inicializarBuscadorFuncionarios();
+  inicializarBuscadorDependenciasEdicion();
   document.getElementById('txtFuncionarioAsignado')?.addEventListener('input', event => {
     if (event.currentTarget.value.trim() !== funcionarioAsignadoSeleccionado) {
       funcionarioAsignadoSeleccionado = '';
@@ -195,6 +196,48 @@ function generarIdCopiaCompetencia(idOrigen, dependencia) {
   return `${idOrigen}__competencia__${slug}`;
 }
 
+function crearDatosCopiaCompetencia(
+  radicadoOriginal,
+  dependencia,
+  idOrigen,
+  coleccionOrigen,
+  fechaRemision,
+  camposEditados = {}
+) {
+  const normalizarTextoPQRSF = coleccionOrigen === RADICADOS_COLLECTION
+    ? formatearMayusculasIniciales
+    : valor => valor;
+  return {
+    ...radicadoOriginal,
+    ...camposEditados,
+    dependencia,
+    estado: 'VIGENTE',
+    remitente: normalizarTextoPQRSF(camposEditados.remitente ?? radicadoOriginal.remitente),
+    asunto: normalizarTextoPQRSF(camposEditados.asunto ?? radicadoOriginal.asunto),
+    funcionarioAsignado: '',
+    otrosEstados: '',
+    respuestaUrl: '',
+    respuestaArchivos: [],
+    respuestaSoloEvidencia: false,
+    respuestaEnviarAlCiudadano: false,
+    fechaCargaRespuesta: '',
+    correoRespuestaEstado: '',
+    correoRespuestaFecha: '',
+    correoRespuestaError: '',
+    observaciones: '',
+    fechaEntregaManual: '',
+    fechaRecepcionCompetencia: '',
+    dependenciasRecibidas: [],
+    dependenciasRechazadas: [],
+    dependenciasDestino: [],
+    remisionOrigenId: idOrigen,
+    remisionOrigenColeccion: coleccionOrigen,
+    remisionOrigenDependencia: radicadoOriginal.dependencia || '',
+    remisionOrigenRadicado: radicadoOriginal.radicado || '',
+    fechaRemisionCompetencia: fechaRemision
+  };
+}
+
 function cargarOpcionesRemision(registro) {
   const contenedor = document.getElementById('dependenciasRemisionCompetencia');
   if (!contenedor) return;
@@ -228,6 +271,165 @@ function cargarOpcionesRemision(registro) {
       contenedor.append(etiqueta);
     });
   actualizarResumenRemision();
+}
+
+function cargarOpcionesEdicionRemision(registro) {
+  const grupo = document.getElementById('grupoEdicionDependenciasDestino');
+  const seleccionadas = document.getElementById('destinosSeleccionadosEdicion');
+  const input = document.getElementById('buscarDependenciaDestinoEdicion');
+  if (!grupo || !seleccionadas || !input) return;
+
+  const esRadicadoPqrs = obtenerColeccionRegistro(registro) === RADICADOS_COLLECTION;
+  grupo.hidden = !esRadicadoPqrs;
+  grupo.style.display = esRadicadoPqrs ? '' : 'none';
+  seleccionadas.replaceChildren();
+  input.value = '';
+  input.dataset.dependenciaOrigen = registro.dependencia || '';
+  cerrarSugerenciasDependenciasEdicion();
+  if (!esRadicadoPqrs) return;
+
+  const destinosYaRemitidos = Array.isArray(registro.dependenciasDestino)
+    ? registro.dependenciasDestino
+    : [];
+  destinosYaRemitidos.forEach(dependencia => agregarChipDependenciaEdicion(dependencia, true));
+}
+
+function agregarChipDependenciaEdicion(dependencia, yaRemitida = false) {
+  const seleccionadas = document.getElementById('destinosSeleccionadosEdicion');
+  if (!seleccionadas) return;
+  const yaAgregada = Array.from(seleccionadas.querySelectorAll('[data-dependencia]'))
+    .some(chip => chip.dataset.dependencia === dependencia);
+  if (yaAgregada) return;
+
+  const chip = document.createElement('span');
+  chip.className = 'edit-destination-chip';
+  chip.dataset.dependencia = dependencia;
+  chip.setAttribute('role', 'listitem');
+  const nombre = document.createElement('span');
+  nombre.textContent = dependencia;
+  chip.appendChild(nombre);
+
+  if (yaRemitida) {
+    chip.classList.add('is-existing');
+  } else {
+    const valor = document.createElement('input');
+    valor.type = 'hidden';
+    valor.name = 'dependenciaDestinoEdicion';
+    valor.value = dependencia;
+
+    const quitar = document.createElement('button');
+    quitar.type = 'button';
+    quitar.className = 'edit-destination-remove';
+    quitar.setAttribute('aria-label', `Quitar ${dependencia}`);
+    quitar.textContent = '×';
+    quitar.addEventListener('click', () => {
+      chip.remove();
+      const input = document.getElementById('buscarDependenciaDestinoEdicion');
+      input?.focus();
+    });
+
+    chip.append(valor, quitar);
+  }
+  seleccionadas.appendChild(chip);
+}
+
+function cerrarSugerenciasDependenciasEdicion() {
+  const input = document.getElementById('buscarDependenciaDestinoEdicion');
+  const lista = document.getElementById('opcionesDependenciasDestinoEdicion');
+  if (!input || !lista) return;
+  lista.hidden = true;
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+}
+
+function posicionarSugerenciasDependenciasEdicion() {
+  const input = document.getElementById('buscarDependenciaDestinoEdicion');
+  const lista = document.getElementById('opcionesDependenciasDestinoEdicion');
+  if (!input || !lista || lista.hidden) return;
+  const rectangulo = input.getBoundingClientRect();
+  lista.style.left = `${Math.max(8, Math.min(rectangulo.left, window.innerWidth - rectangulo.width - 8))}px`;
+  lista.style.top = `${rectangulo.bottom + 6}px`;
+  lista.style.width = `${Math.min(rectangulo.width, window.innerWidth - 16)}px`;
+  lista.style.maxHeight = '180px';
+}
+
+function filtrarSugerenciasDependenciasEdicion() {
+  const input = document.getElementById('buscarDependenciaDestinoEdicion');
+  const lista = document.getElementById('opcionesDependenciasDestinoEdicion');
+  const seleccionadas = document.getElementById('destinosSeleccionadosEdicion');
+  if (!input || !lista || !seleccionadas) return;
+
+  const consulta = normalizarTextoBusqueda(input.value);
+  const actuales = new Set(Array.from(
+    seleccionadas.querySelectorAll('[data-dependencia]')
+  ).map(chip => chip.dataset.dependencia));
+  const coincidencias = consulta
+    ? Object.keys(datosRadicados).filter(dependencia => (
+      dependencia !== input.dataset.dependenciaOrigen
+      && !actuales.has(dependencia)
+      && normalizarTextoBusqueda(dependencia).includes(consulta)
+    ))
+    : [];
+
+  lista.replaceChildren(...coincidencias.map((dependencia, indice) => {
+    const opcion = document.createElement('button');
+    opcion.type = 'button';
+    opcion.id = `${lista.id}-opcion-${indice}`;
+    opcion.className = 'custom-select-option';
+    opcion.setAttribute('role', 'option');
+    opcion.setAttribute('aria-selected', 'false');
+    opcion.textContent = dependencia;
+    opcion.addEventListener('click', () => {
+      agregarChipDependenciaEdicion(dependencia);
+      input.value = '';
+      cerrarSugerenciasDependenciasEdicion();
+      input.focus();
+    });
+    return opcion;
+  }));
+
+  const mostrar = consulta.length > 0 && coincidencias.length > 0;
+  lista.hidden = !mostrar;
+  input.setAttribute('aria-expanded', String(mostrar));
+  input.removeAttribute('aria-activedescendant');
+  if (mostrar) posicionarSugerenciasDependenciasEdicion();
+}
+
+function inicializarBuscadorDependenciasEdicion() {
+  const input = document.getElementById('buscarDependenciaDestinoEdicion');
+  const lista = document.getElementById('opcionesDependenciasDestinoEdicion');
+  if (!input || !lista) return;
+
+  input.addEventListener('input', filtrarSugerenciasDependenciasEdicion);
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      cerrarSugerenciasDependenciasEdicion();
+    } else if (event.key === 'ArrowDown' && !lista.hidden) {
+      event.preventDefault();
+      lista.querySelector('button')?.focus();
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (!lista.hidden) lista.querySelector('button')?.click();
+    }
+  });
+  lista.addEventListener('keydown', event => {
+    const opciones = Array.from(lista.querySelectorAll('button'));
+    const indice = opciones.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      cerrarSugerenciasDependenciasEdicion();
+      input.focus();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direccion = event.key === 'ArrowDown' ? 1 : -1;
+      opciones[(indice + direccion + opciones.length) % opciones.length]?.focus();
+    }
+  });
+  document.addEventListener('pointerdown', event => {
+    if (!input.contains(event.target) && !lista.contains(event.target)) {
+      cerrarSugerenciasDependenciasEdicion();
+    }
+  });
+  window.addEventListener('resize', posicionarSugerenciasDependenciasEdicion);
 }
 
 function actualizarEstadoFuncionarioPreview(event) {
@@ -799,6 +1001,7 @@ window.prepararEdicion = function(id, coleccion = '') {
         campo.step = '1';
       }
     });
+    cargarOpcionesEdicionRemision(item);
 
     document.getElementById('modalEditar').style.display = 'flex';
   }
@@ -928,8 +1131,8 @@ async function guardarProrrogaRadicado(event) {
 async function guardarEdicionRadicado(e) {
   e.preventDefault();
   const id = document.getElementById('editDocId').value;
-  const coleccion = document.getElementById('editDocId').dataset.collection || '';
-  const radicado = buscarRadicadoPorId(id, coleccion);
+  const coleccionSolicitada = document.getElementById('editDocId').dataset.collection || '';
+  const radicado = buscarRadicadoPorId(id, coleccionSolicitada);
   if (!puedeEditarRadicado(radicado)) {
     alert('No tienes permiso para editar este radicado.');
     return;
@@ -940,6 +1143,13 @@ async function guardarEdicionRadicado(e) {
   const texto = document.getElementById('textoGuardarEdicion');
   if (boton?.disabled) return;
 
+  const coleccion = obtenerColeccionRegistro(radicado);
+  const destinosSeleccionados = coleccion === RADICADOS_COLLECTION
+    ? Array.from(document.querySelectorAll(
+      '#destinosSeleccionadosEdicion input[name="dependenciaDestinoEdicion"]'
+    )).map(casilla => casilla.value)
+    : [];
+
   if (boton) {
     boton.disabled = true;
     boton.setAttribute('aria-busy', 'true');
@@ -948,13 +1158,12 @@ async function guardarEdicionRadicado(e) {
   if (texto) texto.textContent = 'Guardando...';
 
   try {
-    const coleccion = obtenerColeccionRegistro(radicado);
     const docRef = doc(db, coleccion, id);
     const normalizarTextoPQRSF = coleccion === RADICADOS_COLLECTION
       ? formatearMayusculasIniciales
       : valor => valor;
     const fechaVencimiento = document.getElementById('editFechaEntrega').value;
-    await updateDoc(docRef, {
+    const camposEditados = {
       radicado: document.getElementById('editRadicado').value,
       fechaRadicacion: document.getElementById('editFechaRadicacion').value,
       fechaEntregaManual: document.getElementById('editFechaEntregaManual')?.value || '',
@@ -967,10 +1176,54 @@ async function guardarEdicionRadicado(e) {
         folios: Number(document.getElementById('editFolios').value),
         anexos: Number(document.getElementById('editAnexos').value)
       } : {})
-    });
+    };
+
+    let seAgregaronDestinos = false;
+    if (destinosSeleccionados.length) {
+      await runTransaction(db, async transaction => {
+        const snapshot = await transaction.get(docRef);
+        if (!snapshot.exists()) throw new Error('No se encontró el radicado para agregar las dependencias.');
+        const radicadoOriginal = snapshot.data();
+        const destinosPrevios = Array.isArray(radicadoOriginal.dependenciasDestino)
+          ? radicadoOriginal.dependenciasDestino
+          : [];
+        const destinosNuevos = destinosSeleccionados.filter(
+          dependencia => !destinosPrevios.includes(dependencia)
+        );
+        seAgregaronDestinos = destinosNuevos.length > 0;
+        const fechaRemision = new Date().toISOString();
+
+        destinosNuevos.forEach(dependencia => {
+          transaction.set(
+            doc(db, RADICADOS_COLLECTION, generarIdCopiaCompetencia(id, dependencia)),
+            crearDatosCopiaCompetencia(
+              radicadoOriginal,
+              dependencia,
+              id,
+              coleccion,
+              fechaRemision,
+              camposEditados
+            )
+          );
+        });
+        transaction.update(docRef, {
+          ...camposEditados,
+          dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],
+          ...(destinosNuevos.length ? { fechaRemisionCompetencia: fechaRemision } : {})
+        });
+      });
+      if (seAgregaronDestinos) {
+        await informarResultadoNotificacionCorreo('remision', { id });
+      }
+    } else {
+      await updateDoc(docRef, camposEditados);
+    }
+
     await actualizarConsultaPublicaSiAplica(id, coleccion);
 
-    alert("Radicado actualizado correctamente.");
+    alert(destinosSeleccionados.length
+      ? 'Radicado actualizado y remitido a las dependencias seleccionadas.'
+      : 'Radicado actualizado correctamente.');
     cerrarModalEditar();
     await recargarDatosRegistro(radicado);
   } catch (error) {
@@ -1135,34 +1388,16 @@ window.guardarOtrosEstados = async function() {
         }));
 
         copias.forEach(copia => {
-          transaction.set(copia.referencia, {
-            ...radicadoOriginal,
-            dependencia: copia.dependencia,
-            estado: 'VIGENTE',
-            remitente: normalizarTextoPQRSF(radicadoOriginal.remitente),
-            asunto: normalizarTextoPQRSF(radicadoOriginal.asunto),
-            funcionarioAsignado: '',
-            otrosEstados: '',
-            respuestaUrl: '',
-            respuestaArchivos: [],
-            respuestaSoloEvidencia: false,
-            respuestaEnviarAlCiudadano: false,
-            fechaCargaRespuesta: '',
-            correoRespuestaEstado: '',
-            correoRespuestaFecha: '',
-            correoRespuestaError: '',
-            observaciones: '',
-            fechaEntregaManual: '',
-            fechaRecepcionCompetencia: '',
-            dependenciasRecibidas: [],
-            dependenciasRechazadas: [],
-            dependenciasDestino: [],
-            remisionOrigenId: id,
-            remisionOrigenColeccion: obtenerColeccionRegistro(radicado),
-            remisionOrigenDependencia: radicadoOriginal.dependencia || '',
-            remisionOrigenRadicado: radicadoOriginal.radicado || '',
-            fechaRemisionCompetencia: fechaRemision
-          });
+          transaction.set(
+            copia.referencia,
+            crearDatosCopiaCompetencia(
+              radicadoOriginal,
+              copia.dependencia,
+              id,
+              obtenerColeccionRegistro(radicado),
+              fechaRemision
+            )
+          );
         });
         transaction.update(docRef, {
           dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],

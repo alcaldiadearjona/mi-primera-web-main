@@ -8,7 +8,7 @@
 @import url("dashboard/informes.css");
 @import url("dashboard/avisos.css");
 @import url("dashboard/auth.css");
-@import url("dashboard/dropdowns.css");
+@import url("dashboard/dropdowns.css?v=edit-dependency-search-1");
 
 .table-truncated-text {
   user-select: text;
