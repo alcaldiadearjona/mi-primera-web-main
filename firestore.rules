@@ -80,43 +80,6 @@ service cloud.firestore {
         && profile().dependencia == dependencia;
     }
 
-    function isSharedCaseMember(data, documentId) {
-      return isFuncionario()
-        && data.get('grupoRespuestaId', '') is string
-        && data.get('grupoRespuestaId', '') != ''
-        && data.get('grupoRadicadoIds', []) is list
-        && data.get('grupoRadicadoIds', []).hasAny([documentId])
-        && data.get('dependenciasParticipantes', []) is list
-        && data.get('dependenciasParticipantes', []).hasAny([profile().dependencia]);
-    }
-
-    function seAgregoAporteDeDependenciaDespues(grupoId) {
-      let grupoPath = /databases/$(database)/documents/radicados/$(grupoId);
-      return exists(grupoPath)
-        && existsAfter(grupoPath)
-        && get(grupoPath).data.get('aportesDependencias', []) is list
-        && getAfter(grupoPath).data.get('aportesDependencias', []) is list
-        && getAfter(grupoPath).data.get('aportesDependencias', []).size()
-          == get(grupoPath).data.get('aportesDependencias', []).size() + 1
-        && getAfter(grupoPath).data.get('aportesDependencias', []).hasAll(
-          get(grupoPath).data.get('aportesDependencias', [])
-        )
-        && getAfter(grupoPath).data.aportesDependencias[
-          getAfter(grupoPath).data.aportesDependencias.size() - 1
-        ].dependencia == profile().dependencia
-        && get(grupoPath).data.get('dependenciasAportesEnviados', []) is list
-        && getAfter(grupoPath).data.get('dependenciasAportesEnviados', []) is list
-        && getAfter(grupoPath).data.get('dependenciasAportesEnviados', []).size()
-          == get(grupoPath).data.get('dependenciasAportesEnviados', []).size() + 1
-        && getAfter(grupoPath).data.get('dependenciasAportesEnviados', []).hasAll(
-          get(grupoPath).data.get('dependenciasAportesEnviados', [])
-        )
-        && !get(grupoPath).data.get('dependenciasAportesEnviados', [])
-          .hasAny([profile().dependencia])
-        && getAfter(grupoPath).data.get('dependenciasAportesEnviados', [])
-          .hasAny([profile().dependencia]);
-    }
-
     function isLegal() {
       return hasProfile()
         && profile().rol == 'funcionario'
@@ -157,7 +120,6 @@ service cloud.firestore {
     match /radicados/{radicadoId} {
       allow get: if isAdmin()
         || isEmployeeOf(resource.data.dependencia)
-        || isSharedCaseMember(resource.data, radicadoId)
         || (
           isFuncionario()
           && resource.data.dependenciasDestino is list
@@ -488,27 +450,6 @@ service cloud.firestore {
             'estado'
           ])
           && (
-            resource.data.get('grupoRespuestaId', '') == ''
-            || resource.data.dependenciaLider == profile().dependencia
-            || (
-              !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                'respuestaUrl',
-                'respuestaArchivos',
-                'respuestaSoloEvidencia',
-                'respuestaEnviarAlCiudadano',
-                'fechaCargaRespuesta',
-                'correoRespuestaEstado',
-                'correoRespuestaFecha',
-                'correoRespuestaError',
-                'otrosEstados'
-              ])
-              && (
-                !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
-                || request.resource.data.estado != 'CERRADO'
-              )
-            )
-          )
-          && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['estado'])
             || request.resource.data.estado == resource.data.estado
             || request.resource.data.estado in ['VIGENTE', 'EN TRAMITE', 'CERRADO']
@@ -687,163 +628,6 @@ service cloud.firestore {
           && request.resource.data.rechazosCompetencia[
             request.resource.data.rechazosCompetencia.size() - 1
           ].fechaRechazo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-        )
-        || (
-          isSharedCaseMember(resource.data, radicadoId)
-          && profile().dependencia != resource.data.dependenciaLider
-          && resource.data.grupoRespuestaId == radicadoId
-          && resource.data.estado != 'CERRADO'
-          && request.resource.data.dependencia == resource.data.dependencia
-          && request.resource.data.grupoRespuestaId == resource.data.grupoRespuestaId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'aportesDependencias',
-            'dependenciasAportesEnviados'
-          ])
-          && request.resource.data.aportesDependencias is list
-          && request.resource.data.aportesDependencias.size()
-            == resource.data.get('aportesDependencias', []).size() + 1
-          && request.resource.data.aportesDependencias.hasAll(
-            resource.data.get('aportesDependencias', [])
-          )
-          && request.resource.data.dependenciasAportesEnviados is list
-          && request.resource.data.dependenciasAportesEnviados.size()
-            == resource.data.get('dependenciasAportesEnviados', []).size() + 1
-          && request.resource.data.dependenciasAportesEnviados.hasAll(
-            resource.data.get('dependenciasAportesEnviados', [])
-          )
-          && !resource.data.get('dependenciasAportesEnviados', [])
-            .hasAny([profile().dependencia])
-          && request.resource.data.dependenciasAportesEnviados
-            .hasAny([profile().dependencia])
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].keys().hasOnly([
-            'id',
-            'dependencia',
-            'funcionario',
-            'texto',
-            'archivos',
-            'fecha'
-          ])
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].id is string
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].id.size() <= 150
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].dependencia == profile().dependencia
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].funcionario is string
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].funcionario.size() <= 120
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].texto is string
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].texto.size() <= 4000
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].archivos is list
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].archivos.size() <= 10
-          && (
-            request.resource.data.aportesDependencias[
-              request.resource.data.aportesDependencias.size() - 1
-            ].texto.size() > 0
-            || request.resource.data.aportesDependencias[
-              request.resource.data.aportesDependencias.size() - 1
-            ].archivos.size() > 0
-          )
-          && request.resource.data.aportesDependencias[
-            request.resource.data.aportesDependencias.size() - 1
-          ].fecha is string
-        )
-        || (
-          isSharedCaseMember(resource.data, radicadoId)
-          && isEmployeeOf(resource.data.dependencia)
-          && profile().dependencia != resource.data.dependenciaLider
-          && resource.data.grupoRespuestaId != radicadoId
-          && resource.data.estado != 'CERRADO'
-          && request.resource.data.dependencia == resource.data.dependencia
-          && request.resource.data.grupoRespuestaId == resource.data.grupoRespuestaId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'estado',
-            'fechaCambioEstado'
-          ])
-          && request.resource.data.estado == 'CERRADO'
-          && request.resource.data.fechaCambioEstado.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-          && seAgregoAporteDeDependenciaDespues(resource.data.grupoRespuestaId)
-        )
-        || (
-          isSharedCaseMember(resource.data, radicadoId)
-          && resource.data.dependenciaLider == profile().dependencia
-          && (
-            resource.data.estado != 'CERRADO'
-            || resource.data.get('respuestaUrl', '') == ''
-          )
-          && request.resource.data.dependencia == resource.data.dependencia
-          && request.resource.data.grupoRespuestaId == resource.data.grupoRespuestaId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'respuestaUrl',
-            'respuestaArchivos',
-            'respuestaSoloEvidencia',
-            'respuestaEnviarAlCiudadano',
-            'fechaCargaRespuesta',
-            'fechaCambioEstado',
-            'correoRespuestaEstado',
-            'correoRespuestaFecha',
-            'correoRespuestaError',
-            'estado'
-          ])
-          && request.resource.data.estado == 'CERRADO'
-          && request.resource.data.respuestaUrl is string
-          && request.resource.data.respuestaUrl.size() > 0
-          && request.resource.data.respuestaArchivos is list
-          && request.resource.data.respuestaArchivos.size() > 0
-          && request.resource.data.respuestaArchivos.size() <= 10
-          && request.resource.data.fechaCargaRespuesta is string
-          && request.resource.data.fechaCambioEstado is string
-          && request.resource.data.respuestaSoloEvidencia is bool
-          && request.resource.data.respuestaEnviarAlCiudadano is bool
-          && request.resource.data.respuestaSoloEvidencia
-            != request.resource.data.respuestaEnviarAlCiudadano
-          && request.resource.data.correoRespuestaEstado in [
-            'pendiente',
-            'enviado',
-            'error',
-            'no-aplica',
-            'omitido'
-          ]
-          && request.resource.data.correoRespuestaFecha is string
-          && request.resource.data.correoRespuestaError is string
-        )
-        || (
-          isSharedCaseMember(resource.data, radicadoId)
-          && resource.data.dependenciaLider == profile().dependencia
-          && resource.data.estado == 'CERRADO'
-          && request.resource.data.dependencia == resource.data.dependencia
-          && request.resource.data.grupoRespuestaId == resource.data.grupoRespuestaId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'correoRespuestaEstado',
-            'correoRespuestaFecha',
-            'correoRespuestaError'
-          ])
-          && request.resource.data.correoRespuestaEstado in [
-            'pendiente',
-            'enviado',
-            'error',
-            'no-aplica',
-            'omitido'
-          ]
-          && request.resource.data.correoRespuestaFecha is string
-          && request.resource.data.correoRespuestaError is string
-          && request.resource.data.correoRespuestaError.size() <= 500
         )
         || (
           isAdministradorEstricto()

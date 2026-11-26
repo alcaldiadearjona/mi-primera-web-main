@@ -165,18 +165,6 @@ function mapearRadicado(documento) {
     dependenciasAgregadasManualmente: Array.isArray(item.dependenciasAgregadasManualmente)
       ? item.dependenciasAgregadasManualmente
       : [],
-    grupoRespuestaId: typeof item.grupoRespuestaId === 'string' ? item.grupoRespuestaId : '',
-    grupoRadicadoIds: Array.isArray(item.grupoRadicadoIds)
-      ? item.grupoRadicadoIds.filter(id => typeof id === 'string')
-      : [],
-    dependenciasParticipantes: Array.isArray(item.dependenciasParticipantes)
-      ? item.dependenciasParticipantes.filter(dependencia => typeof dependencia === 'string')
-      : [],
-    dependenciaLider: typeof item.dependenciaLider === 'string' ? item.dependenciaLider : '',
-    aportesDependencias: Array.isArray(item.aportesDependencias) ? item.aportesDependencias : [],
-    dependenciasAportesEnviados: Array.isArray(item.dependenciasAportesEnviados)
-      ? item.dependenciasAportesEnviados.filter(dependencia => typeof dependencia === 'string')
-      : [],
     remisionOrigenId: item.remisionOrigenId || '',
     remisionOrigenColeccion: item.remisionOrigenColeccion || RADICADOS_COLLECTION,
     remisionOrigenDependencia: item.remisionOrigenDependencia || '',

@@ -124,55 +124,6 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
     </form>
   </dialog>
 
-  <dialog id="modalAporteDependencia" class="received-register-dialog response-upload-dialog" aria-labelledby="tituloModalAporteDependencia">
-    <form id="formAporteDependencia" class="received-register-dialog-card">
-      <div class="received-register-dialog-heading">
-        <span class="received-register-dialog-icon"><i class="bi bi-chat-square-text" aria-hidden="true"></i></span>
-        <div>
-          <h2 id="tituloModalAporteDependencia">Aportar al radicado</h2>
-          <p id="subtituloModalAporteDependencia">Agrega el concepto de tu dependencia para que la líder prepare la respuesta final.</p>
-        </div>
-        <button id="cerrarModalAporteDependencia" class="received-register-close" type="button" aria-label="Cerrar">×</button>
-      </div>
-      <label for="textoAporteDependencia">Concepto o información</label>
-      <textarea id="textoAporteDependencia" rows="4" maxlength="4000" placeholder="Escribe el aporte de tu dependencia..."></textarea>
-      <section class="response-modal-section" aria-labelledby="tituloArchivosAporte">
-        <h3 id="tituloArchivosAporte"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Documentos de apoyo</h3>
-        <label class="response-modal-file-picker" for="archivosAporteDependencia">
-          <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-          <span><strong>Seleccionar archivos</strong><small>Hasta 10 PDF, máximo 30 MB por archivo.</small></span>
-          <input id="archivosAporteDependencia" type="file" accept=".pdf,application/pdf" multiple aria-describedby="resumenArchivosAporte">
-        </label>
-        <p id="resumenArchivosAporte" class="response-modal-file-summary" aria-live="polite">Aún no has seleccionado archivos.</p>
-      </section>
-      <p id="errorAporteDependencia" class="received-register-error" role="alert" hidden></p>
-      <div class="received-register-dialog-actions">
-        <button id="cancelarAporteDependencia" class="received-register-cancel" type="button">Cancelar</button>
-        <button id="guardarAporteDependencia" class="received-register-submit" type="submit">
-          <i class="bi bi-send" aria-hidden="true"></i>
-          Enviar aporte
-        </button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="modalDetalleAportes" class="received-register-dialog response-view-dialog contribution-view-dialog" aria-labelledby="tituloModalDetalleAportes">
-    <div class="received-register-dialog-card">
-      <div class="received-register-dialog-heading">
-        <span class="received-register-dialog-icon"><i class="bi bi-chat-square-text" aria-hidden="true"></i></span>
-        <div>
-          <h2 id="tituloModalDetalleAportes">Aportes del radicado</h2>
-          <p id="subtituloModalDetalleAportes">Consulta la información enviada por las dependencias.</p>
-        </div>
-        <button id="cerrarModalDetalleAportes" class="received-register-close" type="button" aria-label="Cerrar">×</button>
-      </div>
-      <div id="listaDetalleAportes" class="contribution-view-list" aria-live="polite"></div>
-      <div class="received-register-dialog-actions">
-        <button id="cerrarDetalleAportes" class="received-register-cancel" type="button">Cerrar</button>
-      </div>
-    </div>
-  </dialog>
-
   <dialog id="modalVisualizarRespuesta" class="received-register-dialog response-view-dialog" aria-labelledby="tituloModalVisualizarRespuesta">
     <div class="received-register-dialog-card">
       <div class="received-register-dialog-heading">

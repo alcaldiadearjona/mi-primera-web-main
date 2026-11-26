@@ -35,7 +35,6 @@ import { confirmarAccion } from '../ui/avisos.js';
 import { actualizarDisponibilidadAccionesRadicado, TIPOS_PETICION } from './tabla.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
 import { convertirABase64 } from '../../utils/helpers.js';
-import { obtenerCopiasOrdinariasRadicado } from '../../utils/respuestas-compartidas.js';
 
 function obtenerFechaActualBogota() {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -352,21 +351,9 @@ function cargarOpcionesEdicionRemision(registro) {
   cerrarSugerenciasDependenciasEdicion();
   if (!esRadicadoPqrs) return;
 
-  const destinosYaAgregados = new Set([
-    ...(Array.isArray(registro.dependenciasParticipantes)
-      ? registro.dependenciasParticipantes
-      : []),
-    ...(Array.isArray(registro.dependenciasAgregadasManualmente)
-      ? registro.dependenciasAgregadasManualmente
-      : []),
-    ...Object.values(datosRadicados).flat()
-      .filter(candidato => (
-        candidato.radicado === registro.radicado
-        && !candidato.remisionOrigenId
-      ))
-      .map(candidato => candidato.dependencia)
-  ]);
-  destinosYaAgregados.delete(registro.dependencia);
+  const destinosYaAgregados = Array.isArray(registro.dependenciasAgregadasManualmente)
+    ? registro.dependenciasAgregadasManualmente
+    : [];
   destinosYaAgregados.forEach(dependencia => agregarChipDependenciaEdicion(dependencia, true));
 }
 
@@ -1254,71 +1241,18 @@ async function guardarEdicionRadicado(e) {
       } : {})
     };
 
-    const posiblesParticipantes = obtenerCopiasOrdinariasRadicado(datosRadicados, radicado.radicado)
-      .map(candidato => ({
-        id: candidato.id,
-        dependencia: candidato.dependencia,
-        referencia: doc(db, RADICADOS_COLLECTION, candidato.id)
-      }));
-    const requiereSincronizarGrupo = coleccion === RADICADOS_COLLECTION
-        && (
-          destinosSeleccionados.length > 0
-          || (
-            radicado.estado !== 'CERRADO'
-            && (posiblesParticipantes.length > 1 || radicado.grupoRespuestaId)
-          )
-        );
     let idsDistribucionCreados = [];
-    if (requiereSincronizarGrupo) {
+    if (destinosSeleccionados.length) {
       await runTransaction(db, async transaction => {
         const snapshot = await transaction.get(docRef);
         if (!snapshot.exists()) throw new Error('No se encontró el radicado para agregar la dependencia.');
         const radicadoOriginal = snapshot.data();
-        const referenciasExistentes = new Map(
-          posiblesParticipantes.map(participante => [participante.id, participante.referencia])
-        );
-        referenciasExistentes.set(id, docRef);
-        const documentosExistentes = await Promise.all(
-          Array.from(referenciasExistentes.entries()).map(async ([participanteId, referencia]) => ({
-            id: participanteId,
-            snapshot: await transaction.get(referencia)
-          }))
-        );
-        const participantes = documentosExistentes
-          .filter(item => item.snapshot.exists() && !item.snapshot.data().remisionOrigenId)
-          .map(item => ({ id: item.id, ...item.snapshot.data() }));
-        if (participantes.some(participante => participante.estado === 'CERRADO')) {
-          if (destinosSeleccionados.length) {
-            throw new Error('No se puede agregar una dependencia a un caso que ya tiene respuesta final.');
-          }
-          transaction.update(docRef, camposEditados);
-          return;
-        }
-        const metadatosGrupos = [...new Set(
-          participantes.map(participante => participante.grupoRespuestaId).filter(Boolean)
-        )];
-        if (metadatosGrupos.length > 1) {
-          throw new Error('Las dependencias ya pertenecen a grupos diferentes y no se pueden unir automáticamente.');
-        }
-        const dependenciaLider = participantes.find(participante => participante.dependenciaLider)
-          ?.dependenciaLider
-          || radicadoOriginal.dependenciaResponsable
-          || radicadoOriginal.dependencia;
-        const grupoRespuestaId = metadatosGrupos[0]
-          || participantes.find(participante => participante.dependencia === dependenciaLider)?.id
-          || id;
-        if (!participantes.some(participante => participante.id === grupoRespuestaId)) {
-          throw new Error('No se encontró la copia líder del grupo. Recarga los radicados antes de editar.');
-        }
         const destinosPrevios = Array.isArray(radicadoOriginal.dependenciasAgregadasManualmente)
           ? radicadoOriginal.dependenciasAgregadasManualmente
           : [];
-        const dependenciasParticipantes = new Set(
-          participantes.map(participante => participante.dependencia).filter(Boolean)
+        const destinosAAgregar = destinosSeleccionados.filter(
+          dependencia => !destinosPrevios.includes(dependencia)
         );
-        const destinosAAgregar = destinosSeleccionados.filter(dependencia => (
-          !dependenciasParticipantes.has(dependencia) && !destinosPrevios.includes(dependencia)
-        ));
         const copias = destinosAAgregar.map(dependencia => ({
           dependencia,
           referencia: doc(
@@ -1328,59 +1262,17 @@ async function guardarEdicionRadicado(e) {
         const copiasExistentes = await Promise.all(
           copias.map(copia => transaction.get(copia.referencia))
         );
-        if (copiasExistentes.some(snapshotCopia => snapshotCopia.exists())) {
-          throw new Error('Ya existe un registro con el identificador de una dependencia seleccionada. Recarga los radicados y vuelve a intentarlo.');
-        }
-        const registroLider = participantes.find(participante => participante.id === grupoRespuestaId);
-        const aportesExistentes = Array.isArray(registroLider.aportesDependencias)
-          ? registroLider.aportesDependencias
-          : [];
-        const idsGrupo = [
-          ...participantes.map(participante => participante.id),
-          ...copias.map(copia => copia.referencia.id)
-        ];
-        const metadatosGrupo = {
-          grupoRespuestaId,
-          grupoRadicadoIds: idsGrupo,
-          dependenciasParticipantes: [
-            ...new Set([
-              ...participantes.map(participante => participante.dependencia),
-              ...copias.map(copia => copia.dependencia)
-            ].filter(Boolean))
-          ],
-          dependenciaLider,
-            aportesDependencias: aportesExistentes,
-            dependenciasAportesEnviados: [
-              ...new Set([
-                ...(Array.isArray(registroLider.dependenciasAportesEnviados)
-                  ? registroLider.dependenciasAportesEnviados
-                  : []),
-                ...aportesExistentes
-                  .filter(aporte => aporte && typeof aporte === 'object')
-                  .map(aporte => aporte.dependencia)
-              ].filter(Boolean))
-            ]
-        };
-        participantes.filter(participante => participante.id !== id).forEach(participante => {
-          transaction.update(
-            referenciasExistentes.get(participante.id),
-            { ...camposEditados, ...metadatosGrupo }
-          );
-        });
         idsDistribucionCreados = [];
-        copias.forEach(copia => {
+        copias.forEach((copia, indice) => {
+          if (copiasExistentes[indice].exists()) return;
           transaction.set(
             copia.referencia,
-            {
-              ...crearDatosDistribucionAdicional(radicadoOriginal, copia.dependencia, camposEditados),
-              ...metadatosGrupo
-            }
+            crearDatosDistribucionAdicional(radicadoOriginal, copia.dependencia, camposEditados)
           );
           idsDistribucionCreados.push(copia.referencia.id);
         });
         transaction.update(docRef, {
           ...camposEditados,
-          ...metadatosGrupo,
           dependenciasAgregadasManualmente: [...new Set([
             ...destinosPrevios,
             ...destinosAAgregar
@@ -1454,10 +1346,6 @@ window.abrirModalOtrosEstados = function(id, coleccion = '') {
   if (!puedeGestionarRegistro(item)) return;
 
   if (item) {
-    if (item.grupoRespuestaId && item.dependencia !== item.dependenciaLider) {
-      alert('Los estados del caso compartido solo pueden gestionarse desde la dependencia líder.');
-      return;
-    }
     if (!item.funcionarioAsignado?.trim()) {
       alert('Asigna un funcionario antes de gestionar otros estados.');
       return;
@@ -1490,10 +1378,6 @@ window.guardarOtrosEstados = async function() {
   const radicado = buscarRadicadoPorId(id, coleccion);
   if (!puedeGestionarRegistro(radicado)) {
     alert('No tienes permiso para gestionar este radicado.');
-    return;
-  }
-  if (radicado?.grupoRespuestaId && radicado.dependencia !== radicado.dependenciaLider) {
-    alert('Los estados del caso compartido solo pueden gestionarse desde la dependencia líder.');
     return;
   }
   if (!radicado?.funcionarioAsignado?.trim()) {

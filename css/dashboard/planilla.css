@@ -125,54 +125,6 @@
   width: min(560px, calc(100vw - 32px));
 }
 
-#modalAporteDependencia .received-register-dialog-card {
-  display: grid;
-  gap: 12px;
-}
-
-#modalAporteDependencia .received-register-dialog-heading {
-  margin-bottom: 0;
-}
-
-#modalAporteDependencia label[for="textoAporteDependencia"] {
-  color: #385846;
-  font-size: 13px;
-  font-weight: 650;
-}
-
-#modalAporteDependencia #textoAporteDependencia {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 132px;
-  padding: 12px 14px;
-  border: 1px solid #cbd9ce;
-  border-radius: 10px;
-  background: #fff;
-  color: #263d30;
-  font: inherit;
-  line-height: 1.5;
-  resize: vertical;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-#modalAporteDependencia #textoAporteDependencia::placeholder {
-  color: #8a9b90;
-}
-
-#modalAporteDependencia #textoAporteDependencia:focus {
-  border-color: #5b9a6d;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(80, 148, 103, 0.16);
-}
-
-#modalAporteDependencia .response-modal-section {
-  margin-top: 2px;
-}
-
-#modalAporteDependencia .received-register-dialog-actions {
-  margin-top: 2px;
-}
-
 .response-view-dialog {
   width: min(480px, calc(100vw - 32px));
 }
