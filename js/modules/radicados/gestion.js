@@ -23,6 +23,7 @@ import {
   formatearMayusculasIniciales,
   sumarDiasHabilesColombia
 } from '../../utils/helpers.js';
+import { crearDatosCopiaCompetencia } from '../../utils/competencia.js';
 import {
   esAdministrador,
   obtenerPerfilSesion,
@@ -204,52 +205,6 @@ function generarIdCopiaCompetencia(idOrigen, dependencia) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
   return `${idOrigen}__competencia__${slug}`;
-}
-
-function crearDatosCopiaCompetencia(
-  radicadoOriginal,
-  dependencia,
-  idOrigen,
-  coleccionOrigen,
-  fechaRemision,
-  camposEditados = {},
-  observacionesDestinatario = ''
-) {
-  const normalizarTextoPQRSF = coleccionOrigen === RADICADOS_COLLECTION
-    ? formatearMayusculasIniciales
-    : valor => valor;
-  return {
-    ...radicadoOriginal,
-    ...camposEditados,
-    dependencia,
-    estado: 'VIGENTE',
-    remitente: normalizarTextoPQRSF(camposEditados.remitente ?? radicadoOriginal.remitente),
-    asunto: normalizarTextoPQRSF(camposEditados.asunto ?? radicadoOriginal.asunto),
-    funcionarioAsignado: '',
-    otrosEstados: '',
-    respuestaUrl: '',
-    respuestaArchivos: [],
-    respuestaSoloEvidencia: false,
-    respuestaEnviarAlCiudadano: false,
-    fechaCargaRespuesta: '',
-    correoRespuestaEstado: '',
-    correoRespuestaFecha: '',
-    correoRespuestaError: '',
-    observaciones: '',
-    ...(observacionesDestinatario.trim()
-      ? { observacionesDestinatario: normalizarTextoPQRSF(observacionesDestinatario) }
-      : {}),
-    fechaEntregaManual: '',
-    fechaRecepcionCompetencia: '',
-    dependenciasRecibidas: [],
-    dependenciasRechazadas: [],
-    dependenciasDestino: [],
-    remisionOrigenId: idOrigen,
-    remisionOrigenColeccion: coleccionOrigen,
-    remisionOrigenDependencia: radicadoOriginal.dependencia || '',
-    remisionOrigenRadicado: radicadoOriginal.radicado || '',
-    fechaRemisionCompetencia: fechaRemision
-  };
 }
 
 function generarIdDistribucionAdicional(idOrigen, dependencia) {
@@ -1491,7 +1446,6 @@ window.guardarOtrosEstados = async function() {
               id,
               obtenerColeccionRegistro(radicado),
               fechaRemision,
-              {},
               observacionesDestinatario
             )
           );

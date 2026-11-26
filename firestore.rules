@@ -147,6 +147,7 @@ service cloud.firestore {
             'estado',
             'tipoCanal',
             'fechaRadicacion',
+            'fechaRecepcion',
             'fechaEntregaManual',
             'diasHabiles',
             'fechaVencimiento',
@@ -229,6 +230,9 @@ service cloud.firestore {
             'folios',
             'anexos',
             'pdfUrl',
+            'pdfNombre',
+            'pdfCiudadanoUrl',
+            'pdfCiudadanoNombre',
             'dependencia',
             'tipoPeticion',
             'funcionarioAsignado',
@@ -304,6 +308,46 @@ service cloud.firestore {
           && request.resource.data.pdfUrl == getAfter(
             /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
           ).data.pdfUrl
+          && (
+            !request.resource.data.keys().hasAny(['fechaRecepcion'])
+            || (
+              request.resource.data.fechaRecepcion is string
+              && request.resource.data.fechaRecepcion.size() <= 100
+              && request.resource.data.fechaRecepcion == getAfter(
+                /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+              ).data.get('fechaRecepcion', '')
+            )
+          )
+          && (
+            !request.resource.data.keys().hasAny(['pdfNombre'])
+            || (
+              request.resource.data.pdfNombre is string
+              && request.resource.data.pdfNombre.size() <= 255
+              && request.resource.data.pdfNombre == getAfter(
+                /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+              ).data.get('pdfNombre', '')
+            )
+          )
+          && (
+            !request.resource.data.keys().hasAny(['pdfCiudadanoUrl'])
+            || (
+              request.resource.data.pdfCiudadanoUrl is string
+              && request.resource.data.pdfCiudadanoUrl.size() <= 2000
+              && request.resource.data.pdfCiudadanoUrl == getAfter(
+                /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+              ).data.get('pdfCiudadanoUrl', '')
+            )
+          )
+          && (
+            !request.resource.data.keys().hasAny(['pdfCiudadanoNombre'])
+            || (
+              request.resource.data.pdfCiudadanoNombre is string
+              && request.resource.data.pdfCiudadanoNombre.size() <= 255
+              && request.resource.data.pdfCiudadanoNombre == getAfter(
+                /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+              ).data.get('pdfCiudadanoNombre', '')
+            )
+          )
           && request.resource.data.estado == 'VIGENTE'
           && request.resource.data.funcionarioAsignado == ''
           && request.resource.data.otrosEstados == ''
