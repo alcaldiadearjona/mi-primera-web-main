@@ -71,7 +71,10 @@ export function inicializarAccionesRadicados() {
     filtrarSugerenciasFuncionarios();
   });
   document.getElementById('alternarDependenciasRemision')?.addEventListener('click', alternarDesplegableRemision);
-  document.getElementById('dependenciasRemisionCompetencia')?.addEventListener('change', actualizarResumenRemision);
+  document.getElementById('dependenciasRemisionCompetencia')?.addEventListener(
+    'change',
+    manejarCambioDependenciaRemision
+  );
   document.addEventListener('pointerdown', seleccionarFilaRadicadoActiva, true);
   document.addEventListener('click', seleccionarFilaRadicadoActiva, true);
   document.addEventListener('click', cerrarDesplegableRemisionAlClicExterno);
@@ -108,20 +111,32 @@ function cerrarDesplegableRemisionAlClicExterno(event) {
   const lista = document.getElementById('dependenciasRemisionCompetencia');
   if (!boton || !lista || lista.hidden) return;
   if (boton.parentElement.contains(event.target)) return;
-  lista.hidden = true;
-  boton.setAttribute('aria-expanded', 'false');
-  boton.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
+  cerrarDesplegableRemision();
 }
 
 function cerrarDesplegableRemisionConEscape(event) {
   if (event.key !== 'Escape') return;
+  cerrarDesplegableRemision(true);
+}
+
+function cerrarDesplegableRemision(devolverFoco = false) {
   const boton = document.getElementById('alternarDependenciasRemision');
   const lista = document.getElementById('dependenciasRemisionCompetencia');
   if (!boton || !lista || lista.hidden) return;
   lista.hidden = true;
   boton.setAttribute('aria-expanded', 'false');
   boton.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
-  boton.focus();
+  if (devolverFoco) boton.focus();
+}
+
+function manejarCambioDependenciaRemision(event) {
+  actualizarResumenRemision();
+  if (
+    event.target instanceof HTMLInputElement
+    && event.target.name === 'dependenciaDestinoCompetencia'
+  ) {
+    cerrarDesplegableRemision(true);
+  }
 }
 
 function actualizarResumenRemision() {

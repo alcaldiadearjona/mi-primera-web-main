@@ -221,6 +221,7 @@ service cloud.firestore {
             'tipoCanal',
             'fechaRadicacion',
             'fechaHoraRadicacion',
+            'fechaRecepcion',
             'fechaEntregaManual',
             'diasHabiles',
             'fechaVencimiento',
