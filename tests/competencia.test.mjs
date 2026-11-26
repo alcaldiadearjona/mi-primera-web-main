@@ -9,8 +9,8 @@ test('crea una copia de competencia sin campos de origen ajenos a la remisión',
     fechaRadicacion: '2026-11-26',
     diasHabiles: '15',
     fechaVencimiento: '2026-12-17',
-    remitente: 'María Pérez',
-    asunto: 'Solicitud',
+    remitente: 'MARÍA PÉREZ',
+    asunto: 'SOLICITUD ORIGINAL',
     folios: 2,
     anexos: 0,
     pdfUrl: '',
@@ -33,6 +33,8 @@ test('crea una copia de competencia sin campos de origen ajenos a la remisión',
   );
 
   assert.equal(copia.dependencia, 'Secretaría de Gobierno');
+  assert.equal(copia.remitente, original.remitente);
+  assert.equal(copia.asunto, original.asunto);
   assert.equal(copia.pdfUrl, original.pdfUrl);
   assert.equal(copia.pdfNombre, original.pdfNombre);
   assert.equal(copia.pdfCiudadanoUrl, original.pdfCiudadanoUrl);
@@ -58,5 +60,5 @@ test('incluye la observación autorizada solo cuando se proporciona', () => {
     'Revisar el documento adjunto.'
   );
 
-  assert.equal(copia.observacionesDestinatario, 'Revisar El Documento Adjunto.');
+  assert.equal(copia.observacionesDestinatario, 'Revisar el documento adjunto.');
 });

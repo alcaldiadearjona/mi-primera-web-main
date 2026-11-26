@@ -1,5 +1,3 @@
-import { formatearMayusculasIniciales } from './helpers.js';
-
 export function crearDatosCopiaCompetencia(
   radicadoOriginal,
   dependencia,
@@ -8,9 +6,9 @@ export function crearDatosCopiaCompetencia(
   fechaRemision,
   observacionesDestinatario = ''
 ) {
-  const normalizarTexto = coleccionOrigen === 'radicados'
-    ? formatearMayusculasIniciales
-    : valor => valor;
+  const copiarValor = campo => radicadoOriginal[campo] === undefined
+    ? ''
+    : radicadoOriginal[campo];
   const camposOpcionales = {};
 
   [
@@ -31,18 +29,18 @@ export function crearDatosCopiaCompetencia(
 
   return {
     ...camposOpcionales,
-    radicado: radicadoOriginal.radicado || '',
+    radicado: copiarValor('radicado'),
     estado: 'VIGENTE',
-    tipoCanal: radicadoOriginal.tipoCanal || '',
-    fechaRadicacion: radicadoOriginal.fechaRadicacion || '',
+    tipoCanal: copiarValor('tipoCanal'),
+    fechaRadicacion: copiarValor('fechaRadicacion'),
     fechaEntregaManual: '',
-    diasHabiles: radicadoOriginal.diasHabiles ?? '',
-    fechaVencimiento: radicadoOriginal.fechaVencimiento || '',
-    remitente: normalizarTexto(radicadoOriginal.remitente || ''),
-    asunto: normalizarTexto(radicadoOriginal.asunto || ''),
+    diasHabiles: copiarValor('diasHabiles'),
+    fechaVencimiento: copiarValor('fechaVencimiento'),
+    remitente: copiarValor('remitente'),
+    asunto: copiarValor('asunto'),
     folios: radicadoOriginal.folios ?? '',
     anexos: radicadoOriginal.anexos ?? '',
-    pdfUrl: radicadoOriginal.pdfUrl || '',
+    pdfUrl: copiarValor('pdfUrl'),
     dependencia,
     funcionarioAsignado: '',
     otrosEstados: '',
@@ -56,7 +54,7 @@ export function crearDatosCopiaCompetencia(
     correoRespuestaError: '',
     observaciones: '',
     ...(observacionesDestinatario.trim()
-      ? { observacionesDestinatario: normalizarTexto(observacionesDestinatario) }
+      ? { observacionesDestinatario }
       : {}),
     dependenciasRecibidas: [],
     dependenciasRechazadas: [],
@@ -64,7 +62,7 @@ export function crearDatosCopiaCompetencia(
     remisionOrigenId: idOrigen,
     remisionOrigenColeccion: coleccionOrigen,
     remisionOrigenDependencia: radicadoOriginal.dependencia || '',
-    remisionOrigenRadicado: radicadoOriginal.radicado || '',
+    remisionOrigenRadicado: copiarValor('radicado'),
     fechaRemisionCompetencia: fechaRemision,
     fechaRecepcionCompetencia: ''
   };
