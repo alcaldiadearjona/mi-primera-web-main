@@ -209,6 +209,10 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
           <textarea id="txtObservacionesRemision" rows="3" maxlength="4000" placeholder="Escriba las indicaciones para la dependencia destinataria..." style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
           <small style="display: block; margin-top: 5px; color: #64748b;">Estas observaciones aparecerán en la copia recibida por la dependencia.</small>
         </div>
+        <button id="btnRemitirPorCompetencia" class="gestion-primary-button remision-competencia-submit" type="button" onclick="remitirPorCompetencia()" disabled>
+          <i class="bi bi-send-check" aria-hidden="true"></i>
+          <span>Remitir por Competencia</span>
+        </button>
       </section>
 
       <hr style="margin: 18px 0; border: 0; border-top: 1px solid #e2e8f0;">
@@ -229,8 +233,8 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
 
       <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
   <button type="button" onclick="cerrarModalOtrosEstados()" style="background: #e2e8f0; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancelar</button>
-  <button id="btnGuardarOtrosEstados" type="button" onclick="guardarOtrosEstados()" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">
-    <span id="spinnerGuardarOtrosEstados" class="spinner" style="display:none;" aria-hidden="true"></span><span id="textoGuardarOtrosEstados">Guardar</span>
+  <button id="btnGuardarOtrosEstados" class="gestion-primary-button gestion-save-button" type="button" onclick="guardarOtrosEstados()">
+    <i class="bi bi-check2-circle" aria-hidden="true"></i><span id="spinnerGuardarOtrosEstados" class="spinner" style="display:none;" aria-hidden="true"></span><span id="textoGuardarOtrosEstados">Guardar</span>
   </button>
 </div>
 </div>

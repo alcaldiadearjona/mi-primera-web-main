@@ -204,7 +204,6 @@ service cloud.firestore {
             'otrosEstados',
             'respuestaUrl',
             'observaciones',
-            'observacionesDestinatario',
             'dependenciasRecibidas',
             'dependenciasRechazadas',
             'dependenciasDestino',
@@ -310,11 +309,16 @@ service cloud.firestore {
           && request.resource.data.otrosEstados == ''
           && request.resource.data.respuestaUrl == ''
           && request.resource.data.observaciones == ''
-          && request.resource.data.observacionesDestinatario is string
-          && request.resource.data.observacionesDestinatario.size() <= 4000
           && (
-            request.resource.data.observacionesDestinatario == ''
-            || profile().dependencia == 'Secretaría de Planeación'
+            !request.resource.data.keys().hasAny(['observacionesDestinatario'])
+            || (
+              request.resource.data.observacionesDestinatario is string
+              && request.resource.data.observacionesDestinatario.size() <= 4000
+              && (
+                request.resource.data.observacionesDestinatario == ''
+                || profile().dependencia == 'Secretaría de Planeación'
+              )
+            )
           )
           && request.resource.data.fechaEntregaManual == ''
           && request.resource.data.fechaRecepcionCompetencia == ''

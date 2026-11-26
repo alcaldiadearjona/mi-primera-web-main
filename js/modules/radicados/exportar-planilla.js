@@ -1,6 +1,7 @@
 import { datosRadicados } from '../../data/radicados.js';
 import { cargarDatosDesdeFirebase } from '../../services/radicados.js';
 import { asegurarBordesCeldaExcel } from '../../utils/excel.js';
+import { filtrarRegistrosPorCanales } from '../../utils/planilla.js';
 
 const RUTA_PLANTILLA = new URL(
   '../../../assets/plantillas/Planilla de Recibido de Comunicaciones Entrantes.xlsx',
@@ -199,8 +200,11 @@ export function inicializarExportacionPlanilla() {
   const anoInput = document.getElementById('anoPlanilla');
   const todasDependencias = document.getElementById('todasDependenciasPlanilla');
   const contenedorDependencias = document.getElementById('dependenciasPlanilla');
+  const controlesCanales = formulario
+    ? Array.from(formulario.querySelectorAll('input[name="canalesPlanilla"]'))
+    : [];
   const error = document.getElementById('errorExportarPlanilla');
-  if (!modal || !formulario || !botonAbrir || !desdeInput || !hastaInput) return;
+  if (!modal || !formulario || !botonAbrir || !desdeInput || !hastaInput || controlesCanales.length === 0) return;
 
   const controlesDependencias = Object.keys(datosRadicados).map((dependencia, indice) => {
     const etiqueta = document.createElement('label');
@@ -249,10 +253,17 @@ export function inicializarExportacionPlanilla() {
     const fechaHasta = fechaHastaInput.value;
     const mes = mesInput.value;
     const ano = anoInput.value;
+    const canalesSeleccionados = controlesCanales
+      .filter(casilla => casilla.checked)
+      .map(casilla => casilla.value);
     const dependenciasSeleccionadas = todasDependencias.checked
       ? []
       : controlesDependencias.filter(casilla => casilla.checked).map(casilla => casilla.value);
 
+    if (canalesSeleccionados.length === 0) {
+      mostrarError(error, 'Selecciona al menos un canal de radicación.');
+      return;
+    }
     if (Boolean(radicadoDesde) !== Boolean(radicadoHasta)) {
       mostrarError(error, 'Completa ambos radicados para filtrar por rango.');
       return;
@@ -285,7 +296,15 @@ export function inicializarExportacionPlanilla() {
 
     const inicio = radicadoDesde ? analizarNumeroRadicado(radicadoDesde) : null;
     const fin = radicadoHasta ? analizarNumeroRadicado(radicadoHasta) : null;
-    if (!inicio && !fechaDesde && !fechaHasta && !mes && !ano && todasDependencias.checked) {
+    if (
+      !inicio
+      && !fechaDesde
+      && !fechaHasta
+      && !mes
+      && !ano
+      && todasDependencias.checked
+      && canalesSeleccionados.length === 2
+    ) {
       mostrarError(error, 'Selecciona al menos un filtro para generar la planilla.');
       return;
     }
@@ -303,30 +322,32 @@ export function inicializarExportacionPlanilla() {
       return;
     }
 
-    const registros = Object.entries(datosRadicados)
-      .flatMap(([dependencia, lista]) => lista.map(registro => ({
-        ...registro,
-        dependencia: registro.dependencia || dependencia
-      })))
-      .filter(registro => {
-        const numero = inicio && analizarNumeroRadicado(registro.radicado);
-        const fecha = normalizarFecha(registro.fechaRadicacion);
-        return (!inicio || (numero
-            && numero.prefijo === inicio.prefijo
-            && numero.consecutivo >= inicio.consecutivo
-            && numero.consecutivo <= fin.consecutivo))
-          && (!fechaDesde || fecha >= fechaDesde)
-          && (!fechaHasta || fecha <= fechaHasta)
-          && (!mes || fecha.slice(5, 7) === mes)
-          && (!ano || fecha.slice(0, 4) === ano)
-          && (todasDependencias.checked || dependenciasSeleccionadas.includes(registro.dependencia));
-      })
-      .sort((a, b) => {
-        const numeroA = analizarNumeroRadicado(a.radicado);
-        const numeroB = analizarNumeroRadicado(b.radicado);
-        const diferencia = (numeroA?.consecutivo || 0) - (numeroB?.consecutivo || 0);
-        return diferencia || a.dependencia.localeCompare(b.dependencia, 'es');
-      });
+    const registros = filtrarRegistrosPorCanales(
+      Object.entries(datosRadicados)
+        .flatMap(([dependencia, lista]) => lista.map(registro => ({
+          ...registro,
+          dependencia: registro.dependencia || dependencia
+        }))),
+      canalesSeleccionados
+    ).filter(registro => {
+      const numero = inicio && analizarNumeroRadicado(registro.radicado);
+      const fecha = normalizarFecha(registro.fechaRadicacion);
+      return (!inicio || (numero
+          && numero.prefijo === inicio.prefijo
+          && numero.consecutivo >= inicio.consecutivo
+          && numero.consecutivo <= fin.consecutivo))
+        && (!fechaDesde || fecha >= fechaDesde)
+        && (!fechaHasta || fecha <= fechaHasta)
+        && (!mes || fecha.slice(5, 7) === mes)
+        && (!ano || fecha.slice(0, 4) === ano)
+        && (todasDependencias.checked || dependenciasSeleccionadas.includes(registro.dependencia));
+    });
+    registros.sort((a, b) => {
+      const numeroA = analizarNumeroRadicado(a.radicado);
+      const numeroB = analizarNumeroRadicado(b.radicado);
+      const diferencia = (numeroA?.consecutivo || 0) - (numeroB?.consecutivo || 0);
+      return diferencia || a.dependencia.localeCompare(b.dependencia, 'es');
+    });
 
     if (registros.length === 0) {
       mostrarError(error, 'No se encontraron radicados dentro del rango indicado.');

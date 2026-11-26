@@ -486,6 +486,35 @@
   cursor: not-allowed;
 }
 
+.received-register-channel-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.received-register-channel-option {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid #d5e4d9;
+  border-radius: 9px;
+  background: #f8fbf8;
+  color: #385846;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.received-register-channel-option input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  accent-color: #34704d;
+}
+
 .received-register-error {
   margin: 14px 0 0;
   padding: 10px 12px;

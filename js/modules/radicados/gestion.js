@@ -128,6 +128,10 @@ function actualizarResumenRemision() {
   const selecciones = Array.from(
     document.querySelectorAll('input[name="dependenciaDestinoCompetencia"]:checked')
   );
+  const botonRemitir = document.getElementById('btnRemitirPorCompetencia');
+  if (botonRemitir) {
+    botonRemitir.disabled = !selecciones.some(casilla => !casilla.disabled);
+  }
   const campoObservaciones = document.getElementById('campoObservacionesRemision');
   if (campoObservaciones) {
     const tieneNuevoDestino = selecciones.some(casilla => !casilla.disabled);
@@ -232,7 +236,9 @@ function crearDatosCopiaCompetencia(
     correoRespuestaFecha: '',
     correoRespuestaError: '',
     observaciones: '',
-    observacionesDestinatario: normalizarTextoPQRSF(observacionesDestinatario),
+    ...(observacionesDestinatario.trim()
+      ? { observacionesDestinatario: normalizarTextoPQRSF(observacionesDestinatario) }
+      : {}),
     fechaEntregaManual: '',
     fechaRecepcionCompetencia: '',
     dependenciasRecibidas: [],
@@ -1372,6 +1378,11 @@ window.cerrarModalOtrosEstados = function() {
   document.getElementById('modalOtrosEstados').style.display = 'none';
 };
 
+window.remitirPorCompetencia = async function() {
+  if (document.getElementById('btnRemitirPorCompetencia')?.disabled) return;
+  await window.guardarOtrosEstados();
+};
+
 window.guardarOtrosEstados = async function() {
   const id = document.getElementById('modalEstadoDocId').value;
   const coleccion = document.getElementById('modalEstadoDocId').dataset.collection || '';
@@ -1412,6 +1423,7 @@ window.guardarOtrosEstados = async function() {
   }
 
   const boton = document.getElementById('btnGuardarOtrosEstados');
+  const botonRemitir = document.getElementById('btnRemitirPorCompetencia');
   const spinner = document.getElementById('spinnerGuardarOtrosEstados');
   const texto = document.getElementById('textoGuardarOtrosEstados');
   if (boton?.disabled) return;
@@ -1419,6 +1431,10 @@ window.guardarOtrosEstados = async function() {
   if (boton) {
     boton.disabled = true;
     boton.setAttribute('aria-busy', 'true');
+  }
+  if (botonRemitir) {
+    botonRemitir.disabled = true;
+    botonRemitir.setAttribute('aria-busy', 'true');
   }
   if (spinner) spinner.style.display = 'inline-block';
   if (texto) texto.textContent = 'Guardando...';
@@ -1506,5 +1522,7 @@ window.guardarOtrosEstados = async function() {
       boton.disabled = false;
       boton.removeAttribute('aria-busy');
     }
+    if (botonRemitir) botonRemitir.removeAttribute('aria-busy');
+    actualizarResumenRemision();
   }
 };

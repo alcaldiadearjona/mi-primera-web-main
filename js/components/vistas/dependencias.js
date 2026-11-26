@@ -155,6 +155,19 @@ export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style=
                 </label>
               </div>
             </section>
+            <section class="received-register-filter-section" aria-labelledby="tituloFiltroCanalPlanilla">
+              <h3 id="tituloFiltroCanalPlanilla"><i class="bi bi-broadcast" aria-hidden="true"></i> Canal de radicación <span>Puedes elegir varios</span></h3>
+              <div class="received-register-channel-options" role="group" aria-label="Canales de radicación">
+                <label class="received-register-channel-option">
+                  <input name="canalesPlanilla" type="checkbox" value="Virtual" checked>
+                  Virtual
+                </label>
+                <label class="received-register-channel-option">
+                  <input name="canalesPlanilla" type="checkbox" value="Presencial" checked>
+                  Presencial
+                </label>
+              </div>
+            </section>
             <section class="received-register-filter-section" aria-labelledby="tituloFiltroDependencia">
               <h3 id="tituloFiltroDependencia"><i class="bi bi-buildings" aria-hidden="true"></i> Dependencias <span>Puedes elegir varias</span></h3>
               <label class="received-register-select-all">
@@ -232,6 +245,19 @@ export const dependenciasMarkup = String.raw`<div id="vista-dependencias" style=
                 <label>
                   Año
                   <input id="anoPlanillaRecepcion" name="ano" type="number" min="1900" max="9999" step="1">
+                </label>
+              </div>
+            </section>
+            <section class="received-register-filter-section" aria-labelledby="tituloFiltroCanalPlanillaRecepcion">
+              <h3 id="tituloFiltroCanalPlanillaRecepcion"><i class="bi bi-broadcast" aria-hidden="true"></i> Canal de radicación <span>Puedes elegir varios</span></h3>
+              <div class="received-register-channel-options" role="group" aria-label="Canales de radicación">
+                <label class="received-register-channel-option">
+                  <input name="canalesPlanilla" type="checkbox" value="Virtual" checked>
+                  Virtual
+                </label>
+                <label class="received-register-channel-option">
+                  <input name="canalesPlanilla" type="checkbox" value="Presencial" checked>
+                  Presencial
                 </label>
               </div>
             </section>

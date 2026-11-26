@@ -10,6 +10,7 @@ import {
   compararRadicadosPendientes,
   formatearMayusculasIniciales
 } from '../../utils/helpers.js';
+import { filtrarRegistrosPorCanales } from '../../utils/planilla.js';
 import { cargarExcelJs } from './exportar-planilla.js';
 
 const RUTA_PLANTILLA_RECEPCION = new URL(
@@ -99,7 +100,7 @@ function ordenarRecepciones(registros) {
 function filtrarRecepciones(registros, filtros) {
   const inicio = filtros.radicadoDesde ? analizarNumeroRadicado(filtros.radicadoDesde) : null;
   const fin = filtros.radicadoHasta ? analizarNumeroRadicado(filtros.radicadoHasta) : null;
-  return registros.filter(registro => {
+  return filtrarRegistrosPorCanales(registros, filtros.canalesSeleccionados).filter(registro => {
     const numero = inicio && analizarNumeroRadicado(registro.radicado);
     const fecha = normalizarFecha(registro.fechaRadicacion);
     return (!inicio || (numero
@@ -246,6 +247,9 @@ export function inicializarExportacionPlanillaRecepcion() {
   const fechaHastaInput = document.getElementById('fechaHastaPlanillaRecepcion');
   const mesInput = document.getElementById('mesPlanillaRecepcion');
   const anoInput = document.getElementById('anoPlanillaRecepcion');
+  const controlesCanales = formulario
+    ? Array.from(formulario.querySelectorAll('input[name="canalesPlanilla"]'))
+    : [];
   const error = document.getElementById('errorExportarPlanillaRecepcion');
   if (
     !modal
@@ -258,6 +262,7 @@ export function inicializarExportacionPlanillaRecepcion() {
     || !fechaHastaInput
     || !mesInput
     || !anoInput
+    || controlesCanales.length === 0
     || !error
   ) return;
 
@@ -282,7 +287,14 @@ export function inicializarExportacionPlanillaRecepcion() {
     const fechaHasta = fechaHastaInput.value;
     const mes = mesInput.value;
     const ano = anoInput.value;
+    const canalesSeleccionados = controlesCanales
+      .filter(casilla => casilla.checked)
+      .map(casilla => casilla.value);
 
+    if (canalesSeleccionados.length === 0) {
+      mostrarError(error, 'Selecciona al menos un canal de radicación.');
+      return;
+    }
     if (Boolean(radicadoDesde) !== Boolean(radicadoHasta)) {
       mostrarError(error, 'Completa ambos radicados para filtrar por rango.');
       return;
@@ -306,7 +318,14 @@ export function inicializarExportacionPlanillaRecepcion() {
       mostrarError(error, 'La fecha inicial debe ser menor o igual a la fecha final.');
       return;
     }
-    if (!inicio && !fechaDesde && !fechaHasta && !mes && !ano) {
+    if (
+      !inicio
+      && !fechaDesde
+      && !fechaHasta
+      && !mes
+      && !ano
+      && canalesSeleccionados.length === 2
+    ) {
       mostrarError(error, 'Selecciona al menos un filtro para generar la planilla de Recepción.');
       return;
     }
@@ -321,7 +340,8 @@ export function inicializarExportacionPlanillaRecepcion() {
         fechaDesde,
         fechaHasta,
         mes,
-        ano
+        ano,
+        canalesSeleccionados
       });
       if (registros.length === 0) {
         mostrarError(error, 'No se encontraron recepciones con los filtros seleccionados.');
