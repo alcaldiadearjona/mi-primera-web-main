@@ -35,7 +35,8 @@ import {
   esFuncionario,
   obtenerCanalPendientesSesion,
   obtenerDependenciaSesion,
-  obtenerPerfilSesion
+  obtenerPerfilSesion,
+  puedeConsultarPQRSFPendientes
 } from '../auth/roles.js';
 import { mostrarAviso } from '../ui/avisos.js';
 import { informarResultadoNotificacionCorreo } from './notificaciones-correo.js';
@@ -1160,6 +1161,7 @@ async function consultarEstadoCiudadano(event) {
 }
 
 async function cargarPQRSFPendientes() {
+  if (!puedeConsultarPQRSFPendientes()) return;
   mostrarMensajePendientes('Cargando PQRS pendientes…');
   try {
     const pendientes = await getDocs(query(
@@ -1933,7 +1935,7 @@ async function guardarRadicado(e) {
       establecerModoFormularioPQRSF('gestion');
       establecerFormularioVisible(true);
       const pendientes = document.getElementById('pqrsPendientesGestion');
-      if (pendientes) pendientes.hidden = false;
+      if (pendientes) pendientes.hidden = !puedeConsultarPQRSFPendientes();
       actualizarEstadoBotonGestion(false);
     }
 
@@ -2033,7 +2035,7 @@ export function prepararVistaPQRSF(esVistaCiudadano = false) {
   }
   establecerModoFormularioPQRSF(esVistaCiudadano ? 'directo' : 'gestion');
   const pendientes = document.getElementById('pqrsPendientesGestion');
-  const puedeConsultarPendientes = !esVistaCiudadano && esAdministrador();
+  const puedeConsultarPendientes = !esVistaCiudadano && puedeConsultarPQRSFPendientes();
   if (pendientes) pendientes.hidden = !puedeConsultarPendientes;
   actualizarContadorBibliotecaPdfGestion();
   actualizarEstadoBotonGestion(false);

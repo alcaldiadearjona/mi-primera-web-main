@@ -3,6 +3,19 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { crearDatosCopiaCompetencia } from '../js/utils/competencia.js';
 
+test('Control Interno puede listar radicados como administrador', () => {
+  const reglas = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
+  const inicioReglaRadicados = reglas.indexOf('match /radicados/{radicadoId}');
+  const reglaLecturaLista = reglas.indexOf('allow list:', inicioReglaRadicados);
+  const finReglaLecturaLista = reglas.indexOf(';', reglaLecturaLista);
+
+  assert.ok(inicioReglaRadicados >= 0);
+  assert.match(
+    reglas.slice(reglaLecturaLista, finReglaLecturaLista),
+    /allow list: if isAdmin\(\)\s*\|\|\s*isEmployeeOf\(resource\.data\.dependencia\)/
+  );
+});
+
 test('los campos de la copia están permitidos por las reglas de creación de remisiones', () => {
   const reglas = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
   const inicioReglaRemision = reglas.indexOf(

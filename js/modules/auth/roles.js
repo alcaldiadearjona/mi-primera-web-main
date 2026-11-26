@@ -149,6 +149,10 @@ export function esFuncionario() {
   return perfilSesion?.rol === 'funcionario' && !esControlInterno();
 }
 
+export function puedeConsultarPQRSFPendientes() {
+  return esAdministrador() && !esControlInterno();
+}
+
 export function puedeAgregarObservacionesDestinatario() {
   return perfilSesion?.rol === 'funcionario'
     && perfilSesion.dependencia === 'Secretaría de Planeación';

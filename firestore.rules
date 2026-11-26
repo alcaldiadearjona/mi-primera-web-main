@@ -130,7 +130,7 @@ service cloud.firestore {
           && resource.data.origenSolicitud == 'ciudadano'
           && resource.data.ciudadanoUid == request.auth.uid
         );
-      allow list: if isAdministradorEstricto()
+      allow list: if isAdmin()
         || isEmployeeOf(resource.data.dependencia);
       allow create: if (
         isAdmin()

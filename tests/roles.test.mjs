@@ -13,6 +13,7 @@ import {
   perfilCoincideCredencial,
   puedeAgregarObservacionesDestinatario,
   puedeConsultarIAS,
+  puedeConsultarPQRSFPendientes,
   puedeEditarRadicado,
   puedeGestionarIAS
 } from '../js/modules/auth/roles.js';
@@ -23,8 +24,16 @@ test('Control Interno tiene acceso equivalente al administrador', () => {
   assert.equal(esAdministrador(), true);
   assert.equal(esFuncionario(), false);
   assert.equal(puedeConsultarIAS(), true);
+  assert.equal(puedeConsultarPQRSFPendientes(), false);
   assert.equal(puedeGestionarIAS(), true);
   assert.equal(puedeEditarRadicado({ coleccion: 'radicados' }), true);
+  limpiarSesionUsuario();
+});
+
+test('El administrador puede consultar PQRS pendientes', () => {
+  establecerSesionUsuario({}, { rol: 'administrador' });
+
+  assert.equal(puedeConsultarPQRSFPendientes(), true);
   limpiarSesionUsuario();
 });
 
