@@ -196,7 +196,7 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
 
       <section aria-labelledby="tituloRemisionCompetencia" style="margin-top: 16px;">
         <h4 id="tituloRemisionCompetencia" style="margin: 0 0 5px; font-size: 14px; color: #334155;">Remitir por Competencia</h4>
-        <p style="margin: 0 0 10px; color: #64748b; font-size: 12px;">Selecciona una o varias dependencias. Se creará una copia VIGENTE con el mismo número de radicado y esta solicitud quedará cerrada.</p>
+        <p style="margin: 0 0 10px; color: #64748b; font-size: 12px;">Selecciona una o varias dependencias y elige si deseas remitir la solicitud o vincular copias con respuestas independientes.</p>
         <div style="position: relative;">
           <button id="alternarDependenciasRemision" type="button" aria-expanded="false" aria-controls="dependenciasRemisionCompetencia">
             <span id="resumenDependenciasRemision">Seleccionar dependencias destino</span>
@@ -212,6 +212,10 @@ export const modalesMarkup = String.raw`  <!-- MODAL PARA EDITAR RADICADO -->
         <button id="btnRemitirPorCompetencia" class="gestion-primary-button remision-competencia-submit" type="button" onclick="remitirPorCompetencia()" disabled>
           <i class="bi bi-send-check" aria-hidden="true"></i>
           <span>Remitir por Competencia</span>
+        </button>
+        <button id="btnVincularPorCompetencia" class="gestion-primary-button remision-competencia-submit vincular-competencia-submit" type="button" onclick="vincularPorCompetencia()" disabled>
+          <i class="bi bi-link-45deg" aria-hidden="true"></i>
+          <span>Vincular por Competencia</span>
         </button>
       </section>
 

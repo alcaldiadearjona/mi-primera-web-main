@@ -1,8 +1,10 @@
 import {
   abreviarNombreDependencia,
+  compararRadicadosPorConfirmacionYFecha,
   evaluarEstadoAutomatico,
   obtenerEtiquetaCumplimientoCierre,
-  obtenerUrlHttpsSegura
+  obtenerUrlHttpsSegura,
+  requiereConfirmacionCompetencia
 } from '../../utils/helpers.js';
 import {
   esAdministrador,
@@ -263,23 +265,23 @@ export function renderizarTablaRadicados(
   const nombreMesActual = formatoMes
     .format(new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1))
     .replace(/^./, character => character.toLocaleUpperCase('es-CO'));
-  const radicadosOrdenados = [...lista].sort((a, b) => {
-    const fechaA = String(a.fechaRadicacion || '').slice(0, 10);
-    const fechaB = String(b.fechaRadicacion || '').slice(0, 10);
-    const ordenFecha = fechaB.localeCompare(fechaA);
-    if (ordenFecha) return ordenFecha;
-
-    const instanteA = Date.parse(a.fechaHoraRadicacion || a.fechaRadicacion || '');
-    const instanteB = Date.parse(b.fechaHoraRadicacion || b.fechaRadicacion || '');
-    return (Number.isFinite(instanteB) ? instanteB : 0)
-      - (Number.isFinite(instanteA) ? instanteA : 0);
-  });
+  const radicadosOrdenados = [...lista].sort(compararRadicadosPorConfirmacionYFecha);
+  const pendientesConfirmacion = radicadosOrdenados.filter(requiereConfirmacionCompetencia);
+  const radicadosPorFecha = radicadosOrdenados.filter(registro => (
+    !requiereConfirmacionCompetencia(registro)
+  ));
+  const claveGrupoConfirmacion = 'pendientes-confirmacion';
+  if (pendientesConfirmacion.length) {
+    gruposPorMes.set(claveGrupoConfirmacion, {
+      radicados: pendientesConfirmacion
+    });
+  }
 
   if (!hayFiltrosActivos || (periodoActualSeleccionado && !busquedaActiva && !mesSeleccionado)) {
     gruposPorMes.set(mesActualKey, { etiqueta: nombreMesActual, radicados: [] });
   }
 
-  radicadosOrdenados.forEach(reg => {
+  radicadosPorFecha.forEach(reg => {
     const fechaRadicacion = typeof reg.fechaRadicacion === 'string' ? reg.fechaRadicacion : '';
     const coincidenciaMes = fechaRadicacion.match(/^(\d{4})-(0[1-9]|1[0-2])(?:-\d{2})?$/);
     const mesKey = coincidenciaMes ? `${coincidenciaMes[1]}-${coincidenciaMes[2]}` : 'sin-fecha';
@@ -297,13 +299,15 @@ export function renderizarTablaRadicados(
 
   gruposPorMes.forEach((grupo, mesKey) => {
     const esMesActual = mesKey === mesActualKey;
-    if (!esMesActual) {
+    const esGrupoConfirmacion = mesKey === claveGrupoConfirmacion;
+    const grupoExpandido = mesesDesplegados.has(mesKey);
+    if (!esMesActual && !esGrupoConfirmacion) {
       const filaMes = document.createElement('tr');
       filaMes.className = 'month-group-row';
       filaMes.innerHTML = `
         <th colspan="15">
-          <button class="month-group-toggle" type="button" aria-expanded="false" onclick="toggleMonthGroup(this)">
-            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          <button class="month-group-toggle" type="button" aria-expanded="${grupoExpandido}" onclick="toggleMonthGroup(this)">
+            <i class="bi ${grupoExpandido ? 'bi-chevron-down' : 'bi-chevron-right'}" aria-hidden="true"></i>
             <span>${grupo.etiqueta}</span>
             <span class="month-group-count">${grupo.radicados.length} ${grupo.radicados.length === 1 ? 'radicado' : 'radicados'}</span>
           </button>
@@ -443,7 +447,7 @@ export function renderizarTablaRadicados(
     if (reg.id === radicadoActivoId && tr.dataset.collection === coleccionActiva) {
       tr.classList.add('is-active-row');
     }
-    tr.hidden = !esMesActual;
+    tr.hidden = !esMesActual && !esGrupoConfirmacion;
     tr.innerHTML = `
       <td style="text-align: center;">${pdfCellHtml}</td>
       <td title="${reg.radicado || ''}"><strong>${reg.radicado || ''}</strong></td>
@@ -512,6 +516,9 @@ export function renderizarTablaRadicados(
     ));
 
     const dependenciasDestino = Array.isArray(reg.dependenciasDestino) ? reg.dependenciasDestino : [];
+    const dependenciasVinculadas = Array.isArray(reg.dependenciasVinculadas)
+      ? reg.dependenciasVinculadas
+      : [];
     const dependenciasRecibidas = Array.isArray(reg.dependenciasRecibidas)
       ? reg.dependenciasRecibidas
       : [];
@@ -554,6 +561,13 @@ export function renderizarTablaRadicados(
       crearDetalleRemision(
         'Ver Rechazo',
         `Rechazada R.C por: "${dependenciasRechazadas.join(', ')}"`
+      );
+    }
+
+    if (dependenciasVinculadas.length) {
+      crearDetalleRemision(
+        'Ver vínculos',
+        `Copias independientes para: ${dependenciasVinculadas.join(', ')}`
       );
     }
 
@@ -605,9 +619,16 @@ export function renderizarTablaRadicados(
       const botonRecibir = document.createElement('button');
       botonRecibir.type = 'button';
       botonRecibir.className = 'competence-receive-button';
-      botonRecibir.textContent = 'Recibir';
-      botonRecibir.title = 'Registrar recepción y actualizar la fecha de entrega';
-      botonRecibir.setAttribute('aria-label', 'Recibir oficio remitido por competencia');
+      botonRecibir.textContent = reg.vinculadaPorCompetencia ? 'Recibir copia' : 'Recibir';
+      botonRecibir.title = reg.vinculadaPorCompetencia
+        ? 'Registrar recepción de esta copia sin cambiar el estado del radicado original'
+        : 'Registrar recepción y actualizar la fecha de entrega';
+      botonRecibir.setAttribute(
+        'aria-label',
+        reg.vinculadaPorCompetencia
+          ? 'Recibir copia vinculada por competencia'
+          : 'Recibir oficio remitido por competencia'
+      );
       botonRecibir.addEventListener('click', () => {
         window.recibirRadicadoCompetencia(reg.id, coleccion);
       });
@@ -615,9 +636,16 @@ export function renderizarTablaRadicados(
       const botonRechazar = document.createElement('button');
       botonRechazar.type = 'button';
       botonRechazar.className = 'competence-reject-button';
-      botonRechazar.textContent = 'Rechazar';
-      botonRechazar.title = 'Rechazar esta remisión sin afectar las demás dependencias';
-      botonRechazar.setAttribute('aria-label', 'Rechazar oficio remitido por competencia');
+      botonRechazar.textContent = reg.vinculadaPorCompetencia ? 'Quitar vínculo' : 'Rechazar';
+      botonRechazar.title = reg.vinculadaPorCompetencia
+        ? 'Quitar únicamente esta copia vinculada'
+        : 'Rechazar esta remisión sin afectar las demás dependencias';
+      botonRechazar.setAttribute(
+        'aria-label',
+        reg.vinculadaPorCompetencia
+          ? 'Quitar copia vinculada por competencia'
+          : 'Rechazar oficio remitido por competencia'
+      );
       botonRechazar.addEventListener('click', () => {
         window.rechazarRadicadoCompetencia(reg.id, coleccion);
       });

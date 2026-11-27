@@ -162,6 +162,8 @@ function mapearRadicado(documento) {
     dependenciasRechazadas: Array.isArray(item.dependenciasRechazadas) ? item.dependenciasRechazadas : [],
     rechazosCompetencia: Array.isArray(item.rechazosCompetencia) ? item.rechazosCompetencia : [],
     dependenciasDestino: Array.isArray(item.dependenciasDestino) ? item.dependenciasDestino : [],
+    dependenciasVinculadas: Array.isArray(item.dependenciasVinculadas) ? item.dependenciasVinculadas : [],
+    vinculadaPorCompetencia: item.vinculadaPorCompetencia === true,
     dependenciasAgregadasManualmente: Array.isArray(item.dependenciasAgregadasManualmente)
       ? item.dependenciasAgregadasManualmente
       : [],

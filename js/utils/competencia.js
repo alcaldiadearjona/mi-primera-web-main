@@ -4,7 +4,8 @@ export function crearDatosCopiaCompetencia(
   idOrigen,
   coleccionOrigen,
   fechaRemision,
-  observacionesDestinatario = ''
+  observacionesDestinatario = '',
+  vinculadaPorCompetencia = false
 ) {
   const copiarValor = campo => radicadoOriginal[campo] === undefined
     ? ''
@@ -59,6 +60,7 @@ export function crearDatosCopiaCompetencia(
     dependenciasRecibidas: [],
     dependenciasRechazadas: [],
     dependenciasDestino: [],
+    vinculadaPorCompetencia,
     remisionOrigenId: idOrigen,
     remisionOrigenColeccion: coleccionOrigen,
     remisionOrigenDependencia: radicadoOriginal.dependencia || '',

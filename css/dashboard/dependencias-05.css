@@ -91,7 +91,8 @@
 
 #pantallaDependencia .competence-decision-actions button {
   box-sizing: border-box;
-  width: 60px;
+  width: max-content;
+  min-width: 60px;
   max-width: 100%;
   min-height: 24px;
   padding: 3px 5px;
@@ -103,6 +104,9 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   -webkit-appearance: none;
   appearance: none;
   -webkit-tap-highlight-color: transparent;

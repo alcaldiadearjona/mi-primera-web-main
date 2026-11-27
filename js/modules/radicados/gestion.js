@@ -145,12 +145,16 @@ function actualizarResumenRemision() {
     document.querySelectorAll('input[name="dependenciaDestinoCompetencia"]:checked')
   );
   const botonRemitir = document.getElementById('btnRemitirPorCompetencia');
+  const botonVincular = document.getElementById('btnVincularPorCompetencia');
+  const tieneNuevoDestino = selecciones.some(casilla => !casilla.disabled);
   if (botonRemitir) {
-    botonRemitir.disabled = !selecciones.some(casilla => !casilla.disabled);
+    botonRemitir.disabled = !tieneNuevoDestino;
+  }
+  if (botonVincular) {
+    botonVincular.disabled = true;
   }
   const campoObservaciones = document.getElementById('campoObservacionesRemision');
   if (campoObservaciones) {
-    const tieneNuevoDestino = selecciones.some(casilla => !casilla.disabled);
     campoObservaciones.hidden = !puedeAgregarObservacionesDestinatario() || !tieneNuevoDestino;
   }
   if (!resumen) return;
@@ -212,30 +216,32 @@ async function existeOtroRadicadoConRespuesta(url, id, coleccionActual) {
   )));
 }
 
-function generarIdCopiaCompetencia(idOrigen, dependencia) {
-  const slug = dependencia
+function generarSlugDependencia(dependencia) {
+  return dependencia
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
-  return `${idOrigen}__competencia__${slug}`;
+}
+
+function generarIdCopiaCompetencia(idOrigen, dependencia) {
+  return `${idOrigen}__competencia__${generarSlugDependencia(dependencia)}`;
+}
+
+function generarIdVinculoCompetencia(idOrigen, dependencia) {
+  return `${idOrigen}__vinculo__${generarSlugDependencia(dependencia)}`;
 }
 
 function generarIdDistribucionAdicional(idOrigen, dependencia) {
-  const slug = dependencia
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-  return `${idOrigen}__distribucion__${slug}`;
+  return `${idOrigen}__distribucion__${generarSlugDependencia(dependencia)}`;
 }
 
 function crearDatosDistribucionAdicional(radicadoOriginal, dependencia, camposEditados) {
   const datosCopia = { ...radicadoOriginal };
   [
     'dependenciasDestino',
+    'dependenciasVinculadas',
     'dependenciasRecibidas',
     'dependenciasRechazadas',
     'rechazosCompetencia',
@@ -246,7 +252,8 @@ function crearDatosDistribucionAdicional(radicadoOriginal, dependencia, camposEd
     'remisionOrigenRadicado',
     'fechaRemisionCompetencia',
     'fechaRecepcionCompetencia',
-    'dependenciasAgregadasManualmente'
+    'dependenciasAgregadasManualmente',
+    'vinculadaPorCompetencia'
   ].forEach(campo => delete datosCopia[campo]);
 
   return {
@@ -289,9 +296,10 @@ function cargarOpcionesRemision(registro) {
   }
   contenedor.hidden = true;
 
-  const destinosYaRemitidos = Array.isArray(registro.dependenciasDestino)
-    ? registro.dependenciasDestino
-    : [];
+  const destinosYaRemitidos = [
+    ...(Array.isArray(registro.dependenciasDestino) ? registro.dependenciasDestino : []),
+    ...(Array.isArray(registro.dependenciasVinculadas) ? registro.dependenciasVinculadas : [])
+  ];
   Object.keys(datosRadicados)
     .filter(dependencia => dependencia !== registro.dependencia)
     .forEach((dependencia, indice) => {
@@ -797,16 +805,18 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
         fechaEntregaManual: fechaRecepcion,
         fechaRecepcionCompetencia: fechaRecepcion
       });
-      transaction.update(origenRef, {
-        dependenciasRecibidas: arrayUnion(datosRadicado.dependencia),
-        recepcionesCompetencia: arrayUnion({
-          dependencia: datosRadicado.dependencia,
-          fechaRecepcion,
-          fechaHoraRecepcion
-        }),
-        estado: 'R. por C.'
-      });
-      return true;
+      if (datosRadicado.vinculadaPorCompetencia !== true) {
+        transaction.update(origenRef, {
+          dependenciasRecibidas: arrayUnion(datosRadicado.dependencia),
+          recepcionesCompetencia: arrayUnion({
+            dependencia: datosRadicado.dependencia,
+            fechaRecepcion,
+            fechaHoraRecepcion
+          }),
+          estado: 'R. por C.'
+        });
+      }
+      return { vinculada: datosRadicado.vinculadaPorCompetencia === true };
     });
 
     if (!recibido) {
@@ -815,16 +825,22 @@ window.recibirRadicadoCompetencia = async function(id, coleccion = '') {
       return;
     }
 
-    await actualizarConsultaPublicaSiAplica(
-      radicado.remisionOrigenId,
-      radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
-    );
+    if (!recibido.vinculada) {
+      await actualizarConsultaPublicaSiAplica(
+        radicado.remisionOrigenId,
+        radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
+      );
+    }
     await recargarDatosRegistro(radicado);
-    await informarResultadoNotificacionCorreo('recibida', {
-      id: radicado.remisionOrigenId,
-      dependencia: radicado.dependencia
-    });
-    alert(`Radicado recibido. La fecha de entrega se actualizó al ${fechaRecepcion}.`);
+    if (!recibido.vinculada) {
+      await informarResultadoNotificacionCorreo('recibida', {
+        id: radicado.remisionOrigenId,
+        dependencia: radicado.dependencia
+      });
+    }
+    alert(recibido.vinculada
+      ? `Copia vinculada recibida. El estado del radicado original no cambió.`
+      : `Radicado recibido. La fecha de entrega se actualizó al ${fechaRecepcion}.`);
   } catch (error) {
     console.error('Error al recibir el radicado por competencia:', error);
     alert(`No fue posible recibir el radicado: ${error.message}`);
@@ -847,8 +863,12 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
   }
 
   const confirmado = await confirmarAccion(
-    `Se eliminará únicamente la copia de ${abreviarNombreDependencia(radicado.dependencia)} y se registrará el rechazo en la dependencia de origen. Las demás dependencias no se modificarán.`,
-    { titulo: 'Rechazar remisión por competencia', aceptarTexto: 'Rechazar' }
+    radicado.vinculadaPorCompetencia
+      ? `Se eliminará únicamente la copia vinculada de ${abreviarNombreDependencia(radicado.dependencia)}. El estado del radicado original y las demás dependencias no cambiarán.`
+      : `Se eliminará únicamente la copia de ${abreviarNombreDependencia(radicado.dependencia)} y se registrará el rechazo en la dependencia de origen. Las demás dependencias no se modificarán.`,
+    radicado.vinculadaPorCompetencia
+      ? { titulo: 'Quitar vínculo por competencia', aceptarTexto: 'Quitar vínculo' }
+      : { titulo: 'Rechazar remisión por competencia', aceptarTexto: 'Rechazar' }
   );
   if (!confirmado) return;
 
@@ -870,27 +890,42 @@ window.rechazarRadicadoCompetencia = async function(id, coleccion = '') {
         throw new Error('No se puede rechazar un radicado que ya fue recibido.');
       }
 
-      transaction.update(origenRef, {
-        dependenciasRechazadas: arrayUnion(radicado.dependencia),
-        rechazosCompetencia: arrayUnion({
-          dependencia: radicado.dependencia,
-          fechaRechazo,
-          fechaHoraRechazo
-        })
-      });
+      if (copia.vinculadaPorCompetencia === true) {
+        const origen = await transaction.get(origenRef);
+        if (!origen.exists()) throw new Error('No se encontró el radicado original del vínculo.');
+        const vinculadas = Array.isArray(origen.data().dependenciasVinculadas)
+          ? origen.data().dependenciasVinculadas
+          : [];
+        transaction.update(origenRef, {
+          dependenciasVinculadas: vinculadas.filter(dependencia => dependencia !== copia.dependencia)
+        });
+      } else {
+        transaction.update(origenRef, {
+          dependenciasRechazadas: arrayUnion(radicado.dependencia),
+          rechazosCompetencia: arrayUnion({
+            dependencia: radicado.dependencia,
+            fechaRechazo,
+            fechaHoraRechazo
+          })
+        });
+      }
       transaction.delete(copiaRef);
     });
 
     await recargarDatosRegistro(radicado);
-    await actualizarConsultaPublicaSiAplica(
-      radicado.remisionOrigenId,
-      radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
-    );
-    await informarResultadoNotificacionCorreo('rechazo', {
-      id: radicado.remisionOrigenId,
-      dependencia: radicado.dependencia
-    });
-    alert('Se rechazó la remisión. Las demás dependencias conservan sus copias pendientes.');
+    if (!radicado.vinculadaPorCompetencia) {
+      await actualizarConsultaPublicaSiAplica(
+        radicado.remisionOrigenId,
+        radicado.remisionOrigenColeccion || RADICADOS_COLLECTION
+      );
+      await informarResultadoNotificacionCorreo('rechazo', {
+        id: radicado.remisionOrigenId,
+        dependencia: radicado.dependencia
+      });
+    }
+    alert(radicado.vinculadaPorCompetencia
+      ? 'Se quitó el vínculo. El estado del radicado original no cambió.'
+      : 'Se rechazó la remisión. Las demás dependencias conservan sus copias pendientes.');
   } catch (error) {
     console.error('Error al rechazar el radicado por competencia:', error);
     alert(`No fue posible rechazar el radicado: ${error.message}`);
@@ -932,6 +967,7 @@ window.eliminarRadicado = async function(id, elementoClick) {
       && (
         radicadoAEliminar.remisionOrigenId
         || radicadoAEliminar.dependenciasDestino?.length
+        || radicadoAEliminar.dependenciasVinculadas?.length
       )
     );
     const archivosRespuesta = [...new Set([
@@ -1340,6 +1376,10 @@ window.abrirModalOtrosEstados = function(id, coleccion = '') {
     if (seccionRemision) {
       seccionRemision.hidden = obtenerColeccionRegistro(item) === 'radicadosIAS' && !esAdministrador();
     }
+    const botonVincular = document.getElementById('btnVincularPorCompetencia');
+    if (botonVincular) {
+      botonVincular.hidden = obtenerColeccionRegistro(item) === 'radicadosIAS';
+    }
     document.getElementById('modalOtrosEstados').style.display = 'flex';
   }
 };
@@ -1350,10 +1390,15 @@ window.cerrarModalOtrosEstados = function() {
 
 window.remitirPorCompetencia = async function() {
   if (document.getElementById('btnRemitirPorCompetencia')?.disabled) return;
-  await window.guardarOtrosEstados();
+  await window.guardarOtrosEstados('remitir');
 };
 
-window.guardarOtrosEstados = async function() {
+window.vincularPorCompetencia = async function() {
+  if (document.getElementById('btnVincularPorCompetencia')?.disabled) return;
+  await window.guardarOtrosEstados('vincular');
+};
+
+window.guardarOtrosEstados = async function(accionCompetencia = 'remitir') {
   const id = document.getElementById('modalEstadoDocId').value;
   const coleccion = document.getElementById('modalEstadoDocId').dataset.collection || '';
   const radicado = buscarRadicadoPorId(id, coleccion);
@@ -1375,9 +1420,11 @@ window.guardarOtrosEstados = async function() {
   if (
     destinosSeleccionados.length
     && obtenerColeccionRegistro(radicado) === 'radicadosIAS'
-    && !esAdministrador()
+    && (!esAdministrador() || accionCompetencia === 'vincular')
   ) {
-    alert('Solo el administrador puede remitir radicados IAS por competencia.');
+    alert(accionCompetencia === 'vincular'
+      ? 'Vincular por competencia solo está disponible para solicitudes PQRS.'
+      : 'Solo el administrador puede remitir radicados IAS por competencia.');
     return;
   }
 
@@ -1394,6 +1441,7 @@ window.guardarOtrosEstados = async function() {
 
   const boton = document.getElementById('btnGuardarOtrosEstados');
   const botonRemitir = document.getElementById('btnRemitirPorCompetencia');
+  const botonVincular = document.getElementById('btnVincularPorCompetencia');
   const spinner = document.getElementById('spinnerGuardarOtrosEstados');
   const texto = document.getElementById('textoGuardarOtrosEstados');
   if (boton?.disabled) return;
@@ -1405,6 +1453,10 @@ window.guardarOtrosEstados = async function() {
   if (botonRemitir) {
     botonRemitir.disabled = true;
     botonRemitir.setAttribute('aria-busy', 'true');
+  }
+  if (botonVincular) {
+    botonVincular.disabled = true;
+    botonVincular.setAttribute('aria-busy', 'true');
   }
   if (spinner) spinner.style.display = 'inline-block';
   if (texto) texto.textContent = 'Guardando...';
@@ -1427,9 +1479,14 @@ window.guardarOtrosEstados = async function() {
     };
 
     if (destinosSeleccionados.length > 0) {
+      const esVinculacion = accionCompetencia === 'vincular';
       const confirmado = await confirmarAccion(
-        `La solicitud se remitirá a ${destinosSeleccionados.map(abreviarNombreDependencia).join(', ')}. Se crearán copias VIGENTES con el mismo número de radicado. El oficio de origen conservará su estado hasta que una dependencia lo acepte.`,
-        { titulo: 'Remitir por Competencia', aceptarTexto: 'Remitir' }
+        esVinculacion
+          ? `Se crearán copias independientes para ${destinosSeleccionados.map(abreviarNombreDependencia).join(', ')}. Cada dependencia gestionará su propia respuesta y el estado de este radicado original no cambiará.`
+          : `La solicitud se remitirá a ${destinosSeleccionados.map(abreviarNombreDependencia).join(', ')}. Se crearán copias VIGENTES con el mismo número de radicado. El oficio de origen conservará su estado hasta que una dependencia lo acepte.`,
+        esVinculacion
+          ? { titulo: 'Vincular por Competencia', aceptarTexto: 'Vincular' }
+          : { titulo: 'Remitir por Competencia', aceptarTexto: 'Remitir' }
       );
       if (!confirmado) return;
 
@@ -1437,18 +1494,35 @@ window.guardarOtrosEstados = async function() {
         const snapshot = await transaction.get(docRef);
         if (!snapshot.exists()) throw new Error('No se encontró el radicado original para remitir.');
         const radicadoOriginal = snapshot.data();
-        const destinosPrevios = Array.isArray(radicadoOriginal.dependenciasDestino)
-          ? radicadoOriginal.dependenciasDestino
-          : [];
+        const destinosPrevios = esVinculacion
+          ? (Array.isArray(radicadoOriginal.dependenciasVinculadas)
+            ? radicadoOriginal.dependenciasVinculadas
+            : [])
+          : (Array.isArray(radicadoOriginal.dependenciasDestino)
+            ? radicadoOriginal.dependenciasDestino
+            : []);
+        const todosLosDestinosPrevios = [
+          ...destinosPrevios,
+          ...(Array.isArray(radicadoOriginal.dependenciasDestino)
+            ? radicadoOriginal.dependenciasDestino
+            : []),
+          ...(Array.isArray(radicadoOriginal.dependenciasVinculadas)
+            ? radicadoOriginal.dependenciasVinculadas
+            : [])
+        ];
         const destinosNuevos = destinosSeleccionados.filter(
-          dependencia => !destinosPrevios.includes(dependencia)
+          dependencia => !todosLosDestinosPrevios.includes(dependencia)
         );
         const fechaRemision = new Date().toISOString();
 
         const copias = destinosNuevos.map(dependencia => ({
           dependencia,
           referencia: doc(
-            db, RADICADOS_COLLECTION, generarIdCopiaCompetencia(id, dependencia)
+            db,
+            RADICADOS_COLLECTION,
+            esVinculacion
+              ? generarIdVinculoCompetencia(id, dependencia)
+              : generarIdCopiaCompetencia(id, dependencia)
           )
         }));
 
@@ -1461,23 +1535,34 @@ window.guardarOtrosEstados = async function() {
               id,
               obtenerColeccionRegistro(radicado),
               fechaRemision,
-              observacionesDestinatario
+              observacionesDestinatario,
+              esVinculacion
             )
           );
         });
-        transaction.update(docRef, {
-          dependenciasDestino: [...new Set([...destinosPrevios, ...destinosSeleccionados])],
-          fechaRemisionCompetencia: fechaRemision
-        });
+        if (esVinculacion) {
+          transaction.update(docRef, {
+            dependenciasVinculadas: [...new Set([...destinosPrevios, ...destinosNuevos])]
+          });
+        } else {
+          transaction.update(docRef, {
+            dependenciasDestino: [...new Set([...destinosPrevios, ...destinosNuevos])],
+            fechaRemisionCompetencia: fechaRemision
+          });
+        }
       });
-      await informarResultadoNotificacionCorreo('remision', { id });
+      if (!esVinculacion) {
+        await informarResultadoNotificacionCorreo('remision', { id });
+      }
     } else {
       await updateDoc(docRef, camposGestion);
     }
 
     await actualizarConsultaPublicaSiAplica(id, obtenerColeccionRegistro(radicado));
     alert(destinosSeleccionados.length > 0
-      ? 'La PQRS fue remitida a las dependencias seleccionadas.'
+      ? accionCompetencia === 'vincular'
+        ? 'Se crearon copias independientes para las dependencias seleccionadas. El estado original no cambió.'
+        : 'La PQRS fue remitida a las dependencias seleccionadas.'
       : 'Gestión guardada correctamente.');
     cerrarModalOtrosEstados();
     await recargarDatosRegistro(radicado);
@@ -1492,6 +1577,9 @@ window.guardarOtrosEstados = async function() {
       boton.removeAttribute('aria-busy');
     }
     if (botonRemitir) botonRemitir.removeAttribute('aria-busy');
+    if (botonVincular) {
+      botonVincular.removeAttribute('aria-busy');
+    }
     actualizarResumenRemision();
   }
 };

@@ -84,6 +84,26 @@ export function compararRadicadosPendientes(a, b) {
     || String(a.id || '').localeCompare(String(b.id || ''));
 }
 
+export function requiereConfirmacionCompetencia(registro) {
+  return Boolean(registro?.remisionOrigenId && !registro.fechaRecepcionCompetencia);
+}
+
+export function compararRadicadosPorConfirmacionYFecha(a, b) {
+  const ordenConfirmacion = Number(requiereConfirmacionCompetencia(b))
+    - Number(requiereConfirmacionCompetencia(a));
+  if (ordenConfirmacion) return ordenConfirmacion;
+
+  const fechaA = String(a.fechaRadicacion || '').slice(0, 10);
+  const fechaB = String(b.fechaRadicacion || '').slice(0, 10);
+  const ordenFecha = fechaB.localeCompare(fechaA);
+  if (ordenFecha) return ordenFecha;
+
+  const instanteA = Date.parse(a.fechaHoraRadicacion || a.fechaRadicacion || '');
+  const instanteB = Date.parse(b.fechaHoraRadicacion || b.fechaRadicacion || '');
+  return (Number.isFinite(instanteB) ? instanteB : 0)
+    - (Number.isFinite(instanteA) ? instanteA : 0);
+}
+
 export function obtenerUrlHttpsSegura(valor) {
   if (typeof valor !== 'string' || !valor.trim()) return '';
   try {

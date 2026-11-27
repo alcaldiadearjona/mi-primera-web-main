@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   calcularPascua,
+  compararRadicadosPorConfirmacionYFecha,
   compararRadicadosPendientes,
   evaluarEstadoAutomatico,
   formatearMayusculasIniciales,
@@ -11,6 +12,7 @@ import {
   obtenerFestivosColombia,
   obtenerEtiquetaCumplimientoCierre,
   obtenerRadicadosProximosAVencer,
+  requiereConfirmacionCompetencia,
   siguienteLunes,
   sumarDiasHabilesColombia
 } from '../js/utils/helpers.js';
@@ -76,6 +78,35 @@ test('compararRadicadosPendientes ubica solicitudes sin número según su fecha 
     registros.sort(compararRadicadosPendientes).map(registro => registro.id),
     ['uno', 'sin-numero', 'dos']
   );
+});
+
+test('prioriza confirmaciones pendientes y luego ordena por fecha de radicación', () => {
+  const registros = [
+    { id: 'normal-reciente', fechaRadicacion: '2026-11-27' },
+    {
+      id: 'confirmacion-antigua',
+      fechaRadicacion: '2026-11-20',
+      remisionOrigenId: 'origen-antiguo'
+    },
+    {
+      id: 'confirmacion-reciente',
+      fechaRadicacion: '2026-11-25',
+      remisionOrigenId: 'origen-reciente'
+    },
+    {
+      id: 'confirmada',
+      fechaRadicacion: '2026-11-26',
+      remisionOrigenId: 'origen-confirmado',
+      fechaRecepcionCompetencia: '2026-11-26'
+    }
+  ];
+
+  assert.deepEqual(
+    registros.sort(compararRadicadosPorConfirmacionYFecha).map(registro => registro.id),
+    ['confirmacion-reciente', 'confirmacion-antigua', 'normal-reciente', 'confirmada']
+  );
+  assert.equal(requiereConfirmacionCompetencia(registros[0]), true);
+  assert.equal(requiereConfirmacionCompetencia(registros[3]), false);
 });
 
 test('obtenerUrlHttpsSegura solo acepta enlaces HTTPS válidos', () => {

@@ -16,7 +16,7 @@ test('Control Interno puede listar radicados como administrador', () => {
   );
 });
 
-test('los campos de la copia están permitidos por las reglas de creación de remisiones', () => {
+test('los campos de la copia están permitidos por las reglas de creación por competencia', () => {
   const reglas = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
   const inicioReglaRemision = reglas.indexOf(
     "request.resource.data.remisionOrigenColeccion == 'radicados'"
@@ -57,10 +57,49 @@ test('los campos de la copia están permitidos por las reglas de creación de re
 
   assert.ok(inicioReglaRemision >= 0);
   assert.ok(inicioCamposPermitidos > inicioReglaRemision);
+  assert.equal(copia.vinculadaPorCompetencia, false);
   assert.deepEqual(
     Object.keys(copia).filter(campo => !camposPermitidos.has(campo)),
     []
   );
+});
+
+test('las reglas permiten registrar vínculos sin cambiar el estado del radicado original', () => {
+  const reglas = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
+  assert.match(
+    reglas,
+    /request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\[\s*'dependenciasVinculadas'\s*\]\)\s*&& request\.resource\.data\.dependenciasVinculadas is list/
+  );
+});
+
+test('las copias vinculadas tienen una respuesta independiente', () => {
+  const copia = crearDatosCopiaCompetencia(
+    {
+      radicado: 'R-2026-00001',
+      estado: 'EN TRAMITE',
+      respuestaUrl: 'respuesta-original.pdf',
+      respuestaArchivos: ['respuesta-original.pdf'],
+      tipoCanal: 'Virtual',
+      fechaRadicacion: '2026-11-26',
+      diasHabiles: '15',
+      fechaVencimiento: '2026-12-17',
+      remitente: 'María Pérez',
+      asunto: 'Solicitud original',
+      pdfUrl: '',
+      dependencia: 'Secretaría de Salud'
+    },
+    'Secretaría de Gobierno',
+    'radicado-original',
+    'radicados',
+    '2026-11-26T14:00:00.000Z',
+    '',
+    true
+  );
+
+  assert.equal(copia.vinculadaPorCompetencia, true);
+  assert.equal(copia.estado, 'VIGENTE');
+  assert.equal(copia.respuestaUrl, '');
+  assert.deepEqual(copia.respuestaArchivos, []);
 });
 
 test('crea una copia de competencia sin campos de origen ajenos a la remisión', () => {

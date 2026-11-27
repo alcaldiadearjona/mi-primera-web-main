@@ -207,6 +207,7 @@ service cloud.firestore {
             'dependenciasRecibidas',
             'dependenciasRechazadas',
             'dependenciasDestino',
+            'vinculadaPorCompetencia',
             'remisionOrigenId',
             'remisionOrigenColeccion',
             'remisionOrigenDependencia',
@@ -254,6 +255,7 @@ service cloud.firestore {
             'rechazosCompetencia',
             'recepcionesCompetencia',
             'dependenciasDestino',
+            'vinculadaPorCompetencia',
             'remisionOrigenId',
             'remisionOrigenColeccion',
             'remisionOrigenDependencia',
@@ -281,9 +283,16 @@ service cloud.firestore {
           && getAfter(
             /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
           ).data.dependencia == profile().dependencia
-          && getAfter(
-            /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
-          ).data.dependenciasDestino.hasAny([request.resource.data.dependencia])
+          && request.resource.data.vinculadaPorCompetencia is bool
+          && (
+            request.resource.data.vinculadaPorCompetencia
+              ? getAfter(
+                  /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+                ).data.get('dependenciasVinculadas', []).hasAny([request.resource.data.dependencia])
+              : getAfter(
+                  /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
+                ).data.dependenciasDestino.hasAny([request.resource.data.dependencia])
+          )
           && request.resource.data.radicado == getAfter(
             /databases/$(database)/documents/radicados/$(request.resource.data.remisionOrigenId)
           ).data.radicado
@@ -593,6 +602,19 @@ service cloud.firestore {
           )
           && request.resource.data.fechaRemisionCompetencia is string
           && request.resource.data.fechaRemisionCompetencia.size() > 0
+        )
+        || (
+          isEmployeeOf(resource.data.dependencia)
+          && request.resource.data.dependencia == resource.data.dependencia
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'dependenciasVinculadas'
+          ])
+          && request.resource.data.dependenciasVinculadas is list
+          && request.resource.data.dependenciasVinculadas.size()
+            > resource.data.get('dependenciasVinculadas', []).size()
+          && request.resource.data.dependenciasVinculadas.hasAll(
+            resource.data.get('dependenciasVinculadas', [])
+          )
         )
         || (
           isEmployeeOf(resource.data.dependencia)
@@ -924,8 +946,60 @@ service cloud.firestore {
           && request.resource.data.rechazosCompetencia[
             request.resource.data.rechazosCompetencia.size() - 1
           ].fechaRechazo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        )
+        || (
+          isFuncionario()
+          && resource.data.dependenciasVinculadas is list
+          && resource.data.dependenciasVinculadas.hasAny([profile().dependencia])
+          && request.resource.data.dependencia == resource.data.dependencia
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'dependenciasVinculadas'
+          ])
+          && request.resource.data.dependenciasVinculadas is list
+          && request.resource.data.dependenciasVinculadas.size()
+            == resource.data.dependenciasVinculadas.size() - 1
+          && resource.data.dependenciasVinculadas.hasAll(
+            request.resource.data.dependenciasVinculadas
+          )
+          && !request.resource.data.dependenciasVinculadas.hasAny([profile().dependencia])
         );
-      allow delete: if isAdmin();
+      allow delete: if isAdmin()
+        || (
+          isEmployeeOf(resource.data.dependencia)
+          && resource.data.vinculadaPorCompetencia == true
+          && resource.data.remisionOrigenId is string
+          && resource.data.remisionOrigenId.size() > 0
+          && (
+            !resource.data.keys().hasAny(['fechaRecepcionCompetencia'])
+            || resource.data.fechaRecepcionCompetencia == ''
+          )
+          && get(
+            /databases/$(database)/documents/radicados/$(resource.data.remisionOrigenId)
+          ).data.get('dependenciasVinculadas', []).hasAny([profile().dependencia])
+        )
+        || (
+          isEmployeeOf(resource.data.dependencia)
+          && resource.data.remisionOrigenId is string
+          && resource.data.remisionOrigenId.size() > 0
+          && (
+            !resource.data.keys().hasAny(['fechaRecepcionCompetencia'])
+            || resource.data.fechaRecepcionCompetencia == ''
+          )
+          && (
+            (
+              resource.data.get('remisionOrigenColeccion', 'radicados') == 'radicados'
+              && getAfter(
+                /databases/$(database)/documents/radicados/$(resource.data.remisionOrigenId)
+              ).data.dependenciasRechazadas.hasAny([profile().dependencia])
+            )
+            || (
+              resource.data.remisionOrigenColeccion == 'radicadosIAS'
+              && getAfter(
+                /databases/$(database)/documents/radicadosIAS/$(resource.data.remisionOrigenId)
+              ).data.dependenciasRechazadas.hasAny([profile().dependencia])
+            )
+          )
+        );
     }
 
     match /radicadosSalida/{radicadoId} {
